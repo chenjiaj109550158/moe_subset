@@ -11,8 +11,8 @@ code-task semantics are cross-checked against EvalPlus commit
 
 ## Protocol revision history
 
-The formal suite is v5, fingerprint
-`6533c5cd17b77427ddbe280b921aab4b3ef68a104b402ad1761c440fda226e8f`.
+The formal suite is v8, fingerprint
+`528d5ba8c8b8e66a882a19488aaacd62dc972b9d6ff95bfdbf1270c9f377fec3`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -32,7 +32,20 @@ then found that a correct non-empty continuation before the prompt-provided
 closing fence was displaced by a later explanatory fence. V5 always prefers a
 non-empty prefix continuation and looks for a complete replacement only when the
 continuation is empty. A regression covers both shapes; all pre-v5 rows remain
-protocol-development artifacts.
+protocol-development artifacts. V6 raises GPT-OSS GSM8K and StrategyQA output
+limits to 4096 after high-effort smokes repeatedly exhausted the shorter limit.
+V7 fixes GSM8K final-number selection so that a number explicitly following
+`Final Answer` takes precedence over later explanatory numbers, and compares
+numeric answers by decimal value. It also version-controls which old scores may
+be reused and which generations must be deterministically rescored. The
+triggering old rows and an importer-race duplicate remain in separate diagnostic
+roots and are excluded from claims. V8 freezes GPT-OSS at
+`reasoning_effort=medium`, with 4096-token limits for GSM8K, StrategyQA, AIME24,
+and AIME25. High-effort AIME repeatedly failed to terminate even at 32768 tokens;
+the full medium smoke matched the paper discrete AIME outcomes while remaining
+finite. Qwen generation settings did not change. Formal v8 shards reuse only
+generation-compatible rows, retaining their provenance and applying the v7
+scorer where required.
 
 ## Disclosure boundary
 
@@ -47,15 +60,16 @@ an exact execution of unpublished author artifacts.
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
   paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v5.yaml`.
+  `configs/benchmark/speculating_experts_accuracy_v8.yaml`.
 - Decoding is batch one and greedy (`do_sample=false`) for deterministic
   paired comparisons. Qwen uses its non-thinking Instruct chat template.
-  GPT-OSS uses its pinned Harmony template with `reasoning_effort=high`. Its
-  StrategyQA cap is 512 rather than the raw harness's 128 so that Harmony's
-  analysis channel cannot consume the entire allowance; only the final channel
-  is scored. Raw task stop strings remain enabled for Qwen, but are disabled
-  for GPT-OSS because Harmony analysis can quote `Q:`/`Question:` before its
-  final channel; GPT-OSS terminates by EOS or the recorded token cap.
+  GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.
+  GSM8K, StrategyQA, AIME24, and AIME25 use a 4096-token cap so that the
+  Harmony analysis channel has a meaningful but finite allowance; only the
+  final channel is scored. Raw task stop strings remain enabled for Qwen, but
+  are disabled for GPT-OSS because Harmony analysis can quote
+  `Q:`/`Question:` before its final channel; GPT-OSS terminates by EOS or the
+  recorded token cap.
 - `vanilla` executes native selected expert IDs and weights.
 - `router_pf` reconstructs YALIS layer-ahead default-vector routing: layer zero
   is native; each later layer executes IDs and routing weights predicted at the
