@@ -63,6 +63,48 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _write_jsonl_atomic(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with temporary.open("w", encoding="utf-8") as stream:
+        for row in rows:
+            stream.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, path)
+
+
+def _merge_task_shards(task_root: Path, shard_count: int, expected: int) -> bool:
+    shards_root = task_root / "shards"
+    rows: list[dict[str, Any]] = []
+    for shard_index in range(shard_count):
+        stem = f"{shard_index:05d}-of-{shard_count:05d}"
+        if not (shards_root / f"{stem}.DONE").is_file():
+            return False
+        shard_rows = [
+            row
+            for row in _read_jsonl(shards_root / f"{stem}.jsonl")
+            if row.get("state") == "complete"
+        ]
+        shard_expected = len(range(shard_index, expected, shard_count))
+        if len(shard_rows) != shard_expected:
+            return False
+        rows.extend(shard_rows)
+    row_indices = [int(row["row_index"]) for row in rows]
+    sample_ids = [str(row["sample_id"]) for row in rows]
+    if (
+        len(rows) != expected
+        or len(set(row_indices)) != expected
+        or set(row_indices) != set(range(expected))
+        or len(set(sample_ids)) != expected
+    ):
+        raise RuntimeError(f"invalid task shards in {task_root}")
+    rows.sort(key=lambda row: int(row["row_index"]))
+    _write_jsonl_atomic(task_root / "samples.jsonl", rows)
+    (task_root / "DONE").write_text("complete\n", encoding="utf-8")
+    return True
+
+
 def _software_hardware() -> dict[str, object]:
     import datasets  # type: ignore[import-untyped]
     import safetensors
@@ -421,6 +463,8 @@ def _run_task(
     policy: str,
     task_key: str,
     max_samples: int | None,
+    shard_count: int,
+    shard_index: int,
 ) -> None:
     dataset_config = next(item for item in suite.datasets if item.key == task_key)
     examples = load_examples(dataset_config, cache_dir=suite.dataset_cache_dir)
@@ -431,8 +475,20 @@ def _run_task(
         examples = tuple(replace(example, max_new_tokens=override) for example in examples)
     if max_samples is not None:
         examples = examples[:max_samples]
+    indexed_examples = tuple(enumerate(examples))
+    selected_examples = tuple(
+        item for item in indexed_examples if item[0] % shard_count == shard_index
+    )
     task_root = root / "results" / policy / task_key
-    result_path = task_root / "samples.jsonl"
+    shard_stem = f"{shard_index:05d}-of-{shard_count:05d}"
+    result_path = (
+        task_root / "samples.jsonl"
+        if shard_count == 1
+        else task_root / "shards" / f"{shard_stem}.jsonl"
+    )
+    shard_done = task_root / "shards" / f"{shard_stem}.DONE"
+    if shard_count > 1:
+        shard_done.unlink(missing_ok=True)
     completed = {
         str(row["sample_id"]) for row in _read_jsonl(result_path) if row.get("state") == "complete"
     }
@@ -446,7 +502,7 @@ def _run_task(
     else:
         context = nullcontext(None)
     with context as active:
-        for index, example in enumerate(examples):
+        for index, example in selected_examples:
             if example.sample_id in completed:
                 continue
             seed_everything(suite.decode.seed)
@@ -503,6 +559,8 @@ def _run_task(
                         "task": task_key,
                         "index": index,
                         "total": len(examples),
+                        "shard_count": shard_count,
+                        "shard_index": shard_index,
                         "correct": score.correct,
                         "tokens": len(token_ids),
                         "elapsed": round(elapsed, 3),
@@ -511,11 +569,15 @@ def _run_task(
                 ),
                 flush=True,
             )
-    expected = len(examples)
+    expected = len(selected_examples)
     actual = sum(row.get("state") == "complete" for row in _read_jsonl(result_path))
     if actual != expected:
         raise RuntimeError(f"{model_config.key}/{policy}/{task_key}: {actual}/{expected} complete")
-    (task_root / "DONE").write_text("complete\n", encoding="utf-8")
+    if shard_count == 1:
+        (task_root / "DONE").write_text("complete\n", encoding="utf-8")
+    else:
+        shard_done.write_text("complete\n", encoding="utf-8")
+        _merge_task_shards(task_root, shard_count, len(examples))
 
 
 def _materialize_oracle_task(
@@ -577,10 +639,16 @@ def run_model(
     policies: tuple[str, ...],
     tasks: tuple[str, ...],
     max_samples: int | None,
+    shard_count: int = 1,
+    shard_index: int = 0,
 ) -> None:
     root = output_root / "models" / model_config.key
     root.mkdir(parents=True, exist_ok=True)
-    (root / "RUNNING").write_text("running\n", encoding="utf-8")
+    worker_suffix = "" if shard_count == 1 else f".shard-{shard_index}-of-{shard_count}"
+    running_path = root / f"RUNNING{worker_suffix}"
+    failed_path = root / f"FAILED{worker_suffix}.json"
+    manifest_path = root / f"manifest{worker_suffix}.json"
+    running_path.write_text("running\n", encoding="utf-8")
     started = time.time()
     try:
         seed_everything(suite.decode.seed)
@@ -603,6 +671,8 @@ def run_model(
                         policy,
                         task,
                         max_samples,
+                        shard_count,
+                        shard_index,
                     )
         manifest = {
             "schema_version": 1,
@@ -612,16 +682,19 @@ def run_model(
             "policies": list(policies),
             "tasks": list(tasks),
             "max_samples": max_samples,
+            "shard_count": shard_count,
+            "shard_index": shard_index,
             "validation": validation,
             "default_vector_fingerprint": defaults.fingerprint,
             "elapsed_seconds": time.time() - started,
             "software_hardware": _software_hardware(),
         }
-        (root / "manifest.json").write_text(
+        manifest_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
-        (root / "FAILED.json").unlink(missing_ok=True)
-        (root / "DONE").write_text("complete\n", encoding="utf-8")
+        failed_path.unlink(missing_ok=True)
+        if shard_count == 1:
+            (root / "DONE").write_text("complete\n", encoding="utf-8")
     except BaseException as error:
         failure = {
             "state": "failed",
@@ -630,12 +703,12 @@ def run_model(
             "message": str(error),
             "traceback": traceback.format_exc(),
         }
-        (root / "FAILED.json").write_text(
+        failed_path.write_text(
             json.dumps(failure, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
         raise
     finally:
-        (root / "RUNNING").unlink(missing_ok=True)
+        running_path.unlink(missing_ok=True)
 
 
 def _paired_policy_comparisons(
@@ -943,6 +1016,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--policies")
     parser.add_argument("--tasks")
     parser.add_argument("--max-samples", type=int)
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--aggregate-only", action="store_true")
     parser.add_argument("--finalize-only", action="store_true")
     parser.add_argument("--materialize-oracle-only", action="store_true")
@@ -956,6 +1031,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     suite = load_accuracy_suite_config(args.config)
+    if args.shard_count <= 0 or not 0 <= args.shard_index < args.shard_count:
+        raise SystemExit("--shard-count must be positive and shard-index must be in range")
     output_root = Path(args.output_dir)
     if args.validate_envelope_only:
         print(json.dumps(validate_accuracy_envelope(output_root), indent=2, sort_keys=True))
@@ -986,6 +1063,8 @@ def main(argv: list[str] | None = None) -> int:
             f"unknown policies/tasks: {sorted(unknown_policies)} {sorted(unknown_tasks)}"
         )
     if args.materialize_oracle_only:
+        if args.shard_count != 1:
+            raise SystemExit("oracle materialization does not accept row sharding")
         if policies != ("oracle_pf",):
             raise SystemExit("--materialize-oracle-only requires --policies oracle_pf")
         for model in models:
@@ -1001,6 +1080,8 @@ def main(argv: list[str] | None = None) -> int:
         "policies": list(policies),
         "tasks": list(tasks),
         "max_samples": args.max_samples,
+        "shard_count": args.shard_count,
+        "shard_index": args.shard_index,
         "output_dir": str(output_root),
     }
     if args.dry_run:
@@ -1037,6 +1118,8 @@ def main(argv: list[str] | None = None) -> int:
             policies=policies,
             tasks=tasks,
             max_samples=args.max_samples,
+            shard_count=args.shard_count,
+            shard_index=args.shard_index,
         )
     print(json.dumps(aggregate(suite, output_root), indent=2, sort_keys=True))
     return 0

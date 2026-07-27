@@ -18,6 +18,7 @@ from pseudoroute.benchmark.prefetch import (
 )
 from pseudoroute.benchmark.runner import (
     _materialize_oracle_task,
+    _merge_task_shards,
     _paired_policy_comparisons,
     _sha256_file,
     validate_accuracy_envelope,
@@ -190,6 +191,48 @@ def test_accuracy_suite_protocol_is_frozen_and_complete() -> None:
     assert suite.policies == ("vanilla", "router_pf", "oracle_pf")
     assert {dataset.expected_samples for dataset in suite.datasets} >= {30, 164, 378, 687, 1319}
     assert suite.fingerprint() == "6533c5cd17b77427ddbe280b921aab4b3ef68a104b402ad1761c440fda226e8f"
+
+
+def test_accuracy_v6_raises_gpt_reasoning_budgets_only() -> None:
+    v5 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v5.yaml")
+    v6 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v6.yaml")
+    assert v6.protocol_revision == 6
+    assert v6.models[0] == v5.models[0]
+    assert v6.models[1].max_new_tokens_overrides == {
+        "gsm8k": 4096,
+        "strategyqa": 4096,
+    }
+
+
+def test_task_shards_merge_in_original_row_order(tmp_path: Path) -> None:
+    task_root = tmp_path / "task"
+    shards = task_root / "shards"
+    shards.mkdir(parents=True)
+    payloads = {
+        0: [
+            {"state": "complete", "row_index": 0, "sample_id": "a"},
+            {"state": "complete", "row_index": 2, "sample_id": "c"},
+        ],
+        1: [
+            {"state": "complete", "row_index": 1, "sample_id": "b"},
+            {"state": "complete", "row_index": 3, "sample_id": "d"},
+        ],
+    }
+    json_module = __import__("json")
+    for shard_index, rows in payloads.items():
+        stem = f"{shard_index:05d}-of-00002"
+        (shards / f"{stem}.jsonl").write_text(
+            "".join(json_module.dumps(row) + "\n" for row in rows),
+            encoding="utf-8",
+        )
+        (shards / f"{stem}.DONE").write_text("complete\n", encoding="utf-8")
+    assert _merge_task_shards(task_root, 2, 4)
+    merged = [
+        json_module.loads(line)
+        for line in (task_root / "samples.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert [row["row_index"] for row in merged] == [0, 1, 2, 3]
+    assert (task_root / "DONE").read_text(encoding="utf-8") == "complete\n"
 
 
 def test_oracle_materialization_and_paired_comparison(tmp_path: Path) -> None:
