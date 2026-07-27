@@ -48,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
         "simulate-offload",
         "benchmark-offload",
         "trained-suite",
+        "accuracy-suite",
     ):
         subparser = subparsers.add_parser(command)
         subparser.add_argument("--config", required=True)
@@ -1983,6 +1984,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         return benchmark_offload(
             arguments.config, output_dir=arguments.output_dir, dry_run=arguments.dry_run
         )
+    if arguments.command == "accuracy-suite":
+        from pseudoroute.benchmark.runner import main as accuracy_main
+
+        if arguments.output_dir is None:
+            raise SystemExit("accuracy-suite requires --output-dir")
+        forwarded = [
+            "--config",
+            arguments.config,
+            "--output-dir",
+            arguments.output_dir,
+        ]
+        if arguments.dry_run:
+            forwarded.append("--dry-run")
+        return accuracy_main(forwarded)
     if arguments.command == "trained-suite":
         from pseudoroute.trained.config import load_trained_suite_config
         from pseudoroute.trained.runner import run_trained_suite
