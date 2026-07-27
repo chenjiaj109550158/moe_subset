@@ -186,14 +186,14 @@ def test_answer_scorers_use_final_explicit_answers() -> None:
 
 
 def test_accuracy_suite_protocol_is_frozen_and_complete() -> None:
-    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v3.yaml")
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v4.yaml")
     assert suite.policies == ("vanilla", "router_pf", "oracle_pf")
     assert {dataset.expected_samples for dataset in suite.datasets} >= {30, 164, 378, 687, 1319}
-    assert suite.fingerprint() == "0d311bc4ffc89c4a60fa3ff966c5c470d597c19da7d2b516a5c86a1b8f23eba5"
+    assert suite.fingerprint() == "225a55988d1236086f3cf93e08002424f1292890f5954ec11b28138c6e9457ba"
 
 
 def test_oracle_materialization_and_paired_comparison(tmp_path: Path) -> None:
-    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v3.yaml")
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v4.yaml")
     model = suite.models[0]
     model_root = tmp_path / "models" / model.key
     vanilla_path = model_root / "results" / "vanilla" / "humaneval" / "samples.jsonl"
@@ -257,7 +257,7 @@ def test_code_sandbox_allows_benign_doctest_import() -> None:
         user_prompt="prompt",
         assistant_prefix=None,
         target="assert identity(3) == 3",
-        row={"prompt": "def identity(value):\n"},
+        row={"prompt": "def identity(value):\n", "entry_point": "identity"},
         stop_strings=(),
         max_new_tokens=32,
     )
@@ -266,5 +266,26 @@ def test_code_sandbox_allows_benign_doctest_import() -> None:
         "if __name__ == '__main__':\n"
         "    import doctest\n"
         "    doctest.testmod()\n"
+    )
+    assert score_response(example, generated).correct
+
+
+def test_code_extractor_accepts_complete_fenced_rewrite_after_prefix_close() -> None:
+    example = BenchmarkExample(
+        task="humaneval",
+        sample_id="rewrite",
+        user_prompt="prompt",
+        assistant_prefix="prefix",
+        target="assert identity(3) == 3",
+        row={
+            "prompt": 'def identity(value):\n    """Return the input."""\n',
+            "entry_point": "identity",
+        },
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    generated = (
+        "```\nExplanation before the replacement.\n"
+        "```python\ndef identity(value):\n    return value\n```"
     )
     assert score_response(example, generated).correct

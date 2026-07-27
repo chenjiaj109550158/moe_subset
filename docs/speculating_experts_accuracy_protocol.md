@@ -11,8 +11,8 @@ code-task semantics are cross-checked against EvalPlus commit
 
 ## Protocol revision history
 
-The formal suite is v3, fingerprint
-`0d311bc4ffc89c4a60fa3ff966c5c470d597c19da7d2b516a5c86a1b8f23eba5`.
+The formal suite is v4, fingerprint
+`225a55988d1236086f3cf93e08002424f1292890f5954ec11b28138c6e9457ba`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -22,7 +22,12 @@ are protocol-development artifacts and are excluded from final checksums and
 claims. A second interrupted pre-AIME audit found that v2's unboxed AIME fallback
 selected the last numeric token, while the pinned harness compares the complete
 unboxed response. V3 matches that behavior and adds a regression test. No AIME
-or aggregate accuracy was generated before freezing v3.
+or aggregate accuracy was generated before freezing v3. A final interrupted
+HumanEval audit found that GPT-OSS can close the prompt-provided fence immediately
+and emit a complete replacement function in a later `python` block. V4 accepts a
+complete fenced rewrite containing the required entry point, while retaining the
+continuation rule otherwise. The triggering generated program passes its pinned
+tests under v4; v3 rows remain excluded from claims.
 
 ## Disclosure boundary
 
@@ -37,7 +42,7 @@ an exact execution of unpublished author artifacts.
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
   paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v3.yaml`.
+  `configs/benchmark/speculating_experts_accuracy_v4.yaml`.
 - Decoding is batch one and greedy (`do_sample=false`) for deterministic
   paired comparisons. Qwen uses its non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=high`. Its

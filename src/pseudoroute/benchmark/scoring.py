@@ -11,6 +11,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from pseudoroute.benchmark.tasks import BenchmarkExample
 
@@ -82,11 +83,30 @@ def _score_strategyqa(text: str, target: str) -> ScoreResult:
 
 def _extract_code(example: BenchmarkExample, text: str) -> str:
     before_fence = text.split("```", 1)[0]
+    fenced_source = text
+    if text.lstrip().startswith("```"):
+        # The prompt already opened a fence. Some chat models close it immediately,
+        # then emit a complete replacement in a second fenced block.
+        fenced_source = text.lstrip()[3:]
+    blocks = cast(
+        list[str],
+        re.findall(
+            r"```(?:python)?\s*(.*?)```",
+            fenced_source,
+            flags=re.DOTALL | re.IGNORECASE,
+        ),
+    )
     if example.task == "humaneval":
+        entry_point = str(example.row["entry_point"])
+        complete = next(
+            (block for block in blocks if re.search(rf"\bdef\s+{re.escape(entry_point)}\b", block)),
+            None,
+        )
+        if complete is not None:
+            return str(example.row["prompt"]) + "\n" + complete
         return str(example.row["prompt"]) + before_fence
-    match = re.search(r"```(?:python)?\s*(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
-    if match:
-        return match.group(1)
+    if blocks:
+        return blocks[0]
     return before_fence
 
 
