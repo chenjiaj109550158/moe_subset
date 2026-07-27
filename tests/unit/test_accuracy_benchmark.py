@@ -258,6 +258,26 @@ def test_accuracy_v9_preserves_gpt_reasoning_channel_for_code_only() -> None:
     assert v9.fingerprint() == "8cf30430b17b2e82a23adb573872d2fb440c0bf31a22eb2d2e5d5264f6974d1d"
 
 
+def test_accuracy_v10_raises_only_gpt_code_caps() -> None:
+    v9 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v9.yaml")
+    v10 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v10.yaml")
+    assert v10.protocol_revision == 9
+    assert v10.models[0] == v9.models[0]
+    assert v10.models[1].max_new_tokens_overrides == {
+        **v9.models[1].max_new_tokens_overrides,
+        "humaneval": 4096,
+        "mbpp_plus": 4096,
+    }
+    assert _generation_compatibility_payload(
+        v9.model_dump(mode="json"), "gpt_oss_20b", "gsm8k"
+    ) == _generation_compatibility_payload(v10.model_dump(mode="json"), "gpt_oss_20b", "gsm8k")
+    assert _generation_compatibility_payload(
+        v9.model_dump(mode="json"), "gpt_oss_20b", "humaneval"
+    ) != _generation_compatibility_payload(v10.model_dump(mode="json"), "gpt_oss_20b", "humaneval")
+    assert _can_reuse_imported_score(8, 9, "gsm8k")
+    assert v10.fingerprint() == "0d4fbb451a55f8fab39dabb8ab55c4e798f24f1489f8c94a10d717aced612fdc"
+
+
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:
     assert _can_reuse_imported_score(5, 7, "humaneval")
     assert _can_reuse_imported_score(6, 7, "strategyqa")

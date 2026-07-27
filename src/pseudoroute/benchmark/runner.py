@@ -406,7 +406,7 @@ def _generation_compatibility_payload(
 def _can_reuse_imported_score(source_protocol: int, target_protocol: int, task_key: str) -> bool:
     if source_protocol == target_protocol:
         return True
-    if source_protocol == 7 and target_protocol == 8:
+    if (source_protocol, target_protocol) in {(7, 8), (8, 9)}:
         return True
     return source_protocol in {5, 6} and target_protocol == 7 and task_key != "gsm8k"
 
