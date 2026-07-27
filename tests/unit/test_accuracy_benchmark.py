@@ -177,6 +177,7 @@ def test_answer_scorers_use_final_explicit_answers() -> None:
     truncated = score_response(_example("strategyqa", "yes"), "analysisMaybe yes")
     assert gsm.correct and gsm.parsed_answer == "42"
     assert aime.correct and aime.parsed_answer == "123"
+    assert not score_response(_example("aime24", "123"), "reasoning 5; final 123").correct
     assert strategy.correct and strategy.parsed_answer == "yes"
     assert harmony.correct and harmony.parsed_answer == "yes"
     assert not truncated.correct and truncated.parsed_answer == ""
@@ -185,14 +186,14 @@ def test_answer_scorers_use_final_explicit_answers() -> None:
 
 
 def test_accuracy_suite_protocol_is_frozen_and_complete() -> None:
-    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v2.yaml")
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v3.yaml")
     assert suite.policies == ("vanilla", "router_pf", "oracle_pf")
     assert {dataset.expected_samples for dataset in suite.datasets} >= {30, 164, 378, 687, 1319}
-    assert suite.fingerprint() == "b06a195cd93b75ce30d3f5af8261056ecf54937b4e47e217230678bd3a0e970e"
+    assert suite.fingerprint() == "0d311bc4ffc89c4a60fa3ff966c5c470d597c19da7d2b516a5c86a1b8f23eba5"
 
 
 def test_oracle_materialization_and_paired_comparison(tmp_path: Path) -> None:
-    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v2.yaml")
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v3.yaml")
     model = suite.models[0]
     model_root = tmp_path / "models" / model.key
     vanilla_path = model_root / "results" / "vanilla" / "humaneval" / "samples.jsonl"

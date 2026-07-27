@@ -60,9 +60,6 @@ def _score_aime(text: str, target: str) -> ScoreResult:
     else:
         dollars = [index for index, char in enumerate(text) if char == "$"]
         answer = text[dollars[0] + 1 : dollars[-1]] if len(dollars) > 1 else text
-        numbers = re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?", answer)
-        if numbers:
-            answer = numbers[-1]
     parsed = _normalize_math(answer)
     expected = _normalize_math(target)
     return ScoreResult(parsed == expected, parsed, f"expected={expected}")

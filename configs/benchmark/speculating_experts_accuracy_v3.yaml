@@ -1,7 +1,7 @@
 schema_version: 1
-protocol_revision: 2
+protocol_revision: 3
 code_execution_sandbox_revision: v2_preload_doctest_ssl_before_socket_block
-suite_id: speculating_experts_accuracy_v2
+suite_id: speculating_experts_accuracy_v3
 paper_url: https://arxiv.org/abs/2603.19289
 paper_code_url: https://github.com/axonn-ai/yalis/tree/offload_prefetch
 paper_code_revision: b1970f7881129d92448e2f83b0702fea48644b92
