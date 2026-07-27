@@ -17,6 +17,8 @@ from pseudoroute.benchmark.prefetch import (
     save_default_vectors,
 )
 from pseudoroute.benchmark.runner import (
+    _can_reuse_imported_score,
+    _generation_compatibility_payload,
     _materialize_oracle_task,
     _merge_task_shards,
     _paired_policy_comparisons,
@@ -172,11 +174,23 @@ def _example(task: str, target: str) -> BenchmarkExample:
 
 def test_answer_scorers_use_final_explicit_answers() -> None:
     gsm = score_response(_example("gsm8k", "42"), "work 11. The answer is 42.")
+    gsm_final = score_response(
+        _example("gsm8k", "45"),
+        "work 180. Final Answer: John is 45 miles away after 4 hours.",
+    )
+    gsm_decimal = score_response(_example("gsm8k", "26"), "Final Answer: **$26.00**")
+    gsm_boxed = score_response(
+        _example("gsm8k", "6"),
+        r"work 12 and 4. Final Answer: \boxed{6}. Remaining 6 at 4 mph.",
+    )
     aime = score_response(_example("aime24", "123"), r"work \boxed{123}")
     strategy = score_response(_example("strategyqa", "yes"), "Maybe no. Final answer: yes")
     harmony = score_response(_example("strategyqa", "yes"), "analysisMaybe no.assistantfinalYes")
     truncated = score_response(_example("strategyqa", "yes"), "analysisMaybe yes")
     assert gsm.correct and gsm.parsed_answer == "42"
+    assert gsm_final.correct and gsm_final.parsed_answer == "45"
+    assert gsm_decimal.correct and gsm_decimal.parsed_answer == "26.00"
+    assert gsm_boxed.correct and gsm_boxed.parsed_answer == "6"
     assert aime.correct and aime.parsed_answer == "123"
     assert not score_response(_example("aime24", "123"), "reasoning 5; final 123").correct
     assert strategy.correct and strategy.parsed_answer == "yes"
@@ -202,6 +216,47 @@ def test_accuracy_v6_raises_gpt_reasoning_budgets_only() -> None:
         "gsm8k": 4096,
         "strategyqa": 4096,
     }
+
+
+def test_accuracy_v7_changes_only_scorer_protocol_identity() -> None:
+    v6 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v6.yaml")
+    v7 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v7.yaml")
+    assert v7.protocol_revision == 7
+    assert v7.models == v6.models
+    assert v7.datasets == v6.datasets
+    assert v7.decode == v6.decode
+
+
+def test_v7_import_score_reuse_matrix_is_explicit() -> None:
+    assert _can_reuse_imported_score(5, 7, "humaneval")
+    assert _can_reuse_imported_score(6, 7, "strategyqa")
+    assert not _can_reuse_imported_score(5, 7, "gsm8k")
+    assert not _can_reuse_imported_score(4, 7, "humaneval")
+    assert _can_reuse_imported_score(7, 7, "gsm8k")
+
+
+def test_generation_compatibility_is_model_and_task_scoped() -> None:
+    v5 = load_accuracy_suite_config(
+        "configs/benchmark/speculating_experts_accuracy_v5.yaml"
+    ).model_dump(mode="json")
+    v7 = load_accuracy_suite_config(
+        "configs/benchmark/speculating_experts_accuracy_v7.yaml"
+    ).model_dump(mode="json")
+    assert _generation_compatibility_payload(
+        v5, "qwen3_30b_a3b", "gsm8k"
+    ) == _generation_compatibility_payload(v7, "qwen3_30b_a3b", "gsm8k")
+    assert _generation_compatibility_payload(
+        v5, "gpt_oss_20b", "humaneval"
+    ) == _generation_compatibility_payload(v7, "gpt_oss_20b", "humaneval")
+    assert _generation_compatibility_payload(
+        v5, "gpt_oss_20b", "aime24"
+    ) == _generation_compatibility_payload(v7, "gpt_oss_20b", "aime24")
+    assert _generation_compatibility_payload(
+        v5, "gpt_oss_20b", "gsm8k"
+    ) != _generation_compatibility_payload(v7, "gpt_oss_20b", "gsm8k")
+    assert _generation_compatibility_payload(
+        v5, "gpt_oss_20b", "strategyqa"
+    ) != _generation_compatibility_payload(v7, "gpt_oss_20b", "strategyqa")
 
 
 def test_task_shards_merge_in_original_row_order(tmp_path: Path) -> None:

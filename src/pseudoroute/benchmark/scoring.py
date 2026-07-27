@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import cast
 
@@ -67,11 +68,37 @@ def _score_aime(text: str, target: str) -> ScoreResult:
 
 
 def _score_gsm8k(text: str, target: str) -> ScoreResult:
-    explicit = re.findall(r"The answer is\s+(-?[$0-9.,]+)", text, flags=re.IGNORECASE)
-    candidates = explicit or re.findall(r"-?[$0-9][0-9,]*(?:\.[0-9]+)?", text)
-    parsed = candidates[-1].replace("$", "").replace(",", "").rstrip(".") if candidates else ""
+    number_pattern = r"-?\$?[0-9][0-9,]*(?:\.[0-9]+)?"
+    boxed = _last_boxed(text)
+    boxed_numbers = re.findall(number_pattern, boxed) if boxed is not None else []
+    final_sections = re.split(r"final\s+answer\s*:?\s*", text, flags=re.IGNORECASE)
+    final_numbers = (
+        re.findall(number_pattern, final_sections[-1]) if len(final_sections) > 1 else []
+    )
+    explicit = re.findall(
+        rf"(?:the\s+)?answer\s+is\s+({number_pattern})",
+        text,
+        flags=re.IGNORECASE,
+    )
+    candidates = re.findall(number_pattern, text)
+    raw = (
+        boxed_numbers[-1]
+        if boxed_numbers
+        else final_numbers[0]
+        if final_numbers
+        else explicit[-1]
+        if explicit
+        else candidates[-1]
+        if candidates
+        else ""
+    )
+    parsed = raw.replace("$", "").replace(",", "").rstrip(".")
     expected = target.replace("$", "").replace(",", "").rstrip(".")
-    return ScoreResult(parsed == expected, parsed, f"expected={expected}")
+    try:
+        correct = Decimal(parsed) == Decimal(expected)
+    except InvalidOperation:
+        correct = False
+    return ScoreResult(correct, parsed, f"expected={expected}")
 
 
 def _score_strategyqa(text: str, target: str) -> ScoreResult:

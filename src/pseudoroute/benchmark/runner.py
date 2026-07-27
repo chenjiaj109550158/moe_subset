@@ -369,11 +369,32 @@ def _generate(
     return ids, text
 
 
-def _generation_compatibility_payload(config: dict[str, Any]) -> dict[str, Any]:
-    payload = dict(config)
-    payload.pop("protocol_revision", None)
-    payload.pop("suite_id", None)
-    return payload
+def _generation_compatibility_payload(
+    config: dict[str, Any], model_key: str, task_key: str
+) -> dict[str, Any]:
+    models = [item for item in config["models"] if item["key"] == model_key]
+    datasets = [item for item in config["datasets"] if item["key"] == task_key]
+    if len(models) != 1 or len(datasets) != 1:
+        raise ValueError(f"missing generation config for {model_key}/{task_key}")
+    model = dict(models[0])
+    overrides = dict(model["max_new_tokens_overrides"])
+    model["max_new_tokens_overrides"] = (
+        {task_key: overrides[task_key]} if task_key in overrides else {}
+    )
+    return {
+        "schema_version": config["schema_version"],
+        "harness_revision": config["harness_revision"],
+        "evalplus_revision": config["evalplus_revision"],
+        "model": model,
+        "dataset": datasets[0],
+        "decode": config["decode"],
+    }
+
+
+def _can_reuse_imported_score(source_protocol: int, target_protocol: int, task_key: str) -> bool:
+    if source_protocol == target_protocol:
+        return True
+    return source_protocol in {5, 6} and target_protocol == 7 and task_key != "gsm8k"
 
 
 def import_compatible_vanilla_results(
@@ -388,14 +409,17 @@ def import_compatible_vanilla_results(
         raise ValueError(f"missing source resolved config: {source_config_path}")
     source_config = cast(dict[str, Any], json.loads(source_config_path.read_text(encoding="utf-8")))
     current_config = suite.model_dump(mode="json")
-    if _generation_compatibility_payload(source_config) != _generation_compatibility_payload(
-        current_config
-    ):
-        raise ValueError("source and target generation configurations are incompatible")
     imported = 0
     for model in models:
         model_root = output_root / "models" / model.key
         for task_key in tasks:
+            if _generation_compatibility_payload(
+                source_config, model.key, task_key
+            ) != _generation_compatibility_payload(current_config, model.key, task_key):
+                raise ValueError(
+                    f"source and target generation configurations are incompatible: "
+                    f"{model.key}/{task_key}"
+                )
             dataset = next(item for item in suite.datasets if item.key == task_key)
             examples = load_examples(dataset, cache_dir=suite.dataset_cache_dir)
             source_path = (
@@ -430,19 +454,34 @@ def import_compatible_vanilla_results(
                     or source.get("dataset_revision") != dataset.revision
                 ):
                     raise ValueError(f"source revision mismatch: {model.key}/{task_key}/{index}")
-                score = score_response(example, str(source["generated_text"]))
+                reuse_score = _can_reuse_imported_score(
+                    int(source_config["protocol_revision"]), suite.protocol_revision, task_key
+                )
+                if reuse_score:
+                    correct = bool(source["correct"])
+                    parsed_answer = str(source["parsed_answer"])
+                    score_detail = str(source["score_detail"])
+                else:
+                    score = score_response(example, str(source["generated_text"]))
+                    correct = score.correct
+                    parsed_answer = score.parsed_answer
+                    score_detail = score.detail
                 row = dict(source)
                 row.update(
                     {
                         "suite_id": suite.suite_id,
                         "config_fingerprint": suite.fingerprint(),
-                        "correct": score.correct,
-                        "parsed_answer": score.parsed_answer,
-                        "score_detail": score.detail,
+                        "correct": correct,
+                        "parsed_answer": parsed_answer,
+                        "score_detail": score_detail,
                         "derived": True,
                         "derived_from_suite": source.get("suite_id"),
                         "derived_from_config_fingerprint": source.get("config_fingerprint"),
-                        "derivation": "generation_compatible_deterministic_rescore",
+                        "derivation": (
+                            "generation_and_scorer_compatible_metadata_rewrite"
+                            if reuse_score
+                            else "generation_compatible_deterministic_rescore"
+                        ),
                     }
                 )
                 _append_jsonl(target_path, cast(dict[str, object], row))
