@@ -25,6 +25,7 @@ class AccuracyModelConfig(StrictModel):
     reasoning_effort: Literal["none", "low", "medium", "high"]
     max_new_tokens_overrides: dict[str, int] = Field(default_factory=dict)
     honor_task_stop_strings: bool
+    code_assistant_prefill: bool = True
 
 
 class AccuracyDatasetConfig(StrictModel):
@@ -71,7 +72,7 @@ class PaperResult(StrictModel):
 
 class AccuracySuiteConfig(StrictModel):
     schema_version: Literal[1]
-    protocol_revision: Literal[5, 6, 7]
+    protocol_revision: Literal[5, 6, 7, 8]
     code_execution_sandbox_revision: Literal["v2_preload_doctest_ssl_before_socket_block"]
     suite_id: str
     paper_url: str
@@ -108,7 +109,15 @@ class AccuracySuiteConfig(StrictModel):
         return self
 
     def fingerprint(self) -> str:
-        payload = json.dumps(self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+        payload_dict = self.model_dump(mode="json")
+        for model, dumped in zip(self.models, payload_dict["models"], strict=True):
+            if "code_assistant_prefill" not in model.model_fields_set:
+                dumped.pop("code_assistant_prefill", None)
+        payload = json.dumps(
+            payload_dict,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         return hashlib.sha256(payload.encode()).hexdigest()
 
 

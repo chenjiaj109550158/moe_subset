@@ -11,8 +11,10 @@ code-task semantics are cross-checked against EvalPlus commit
 
 ## Protocol revision history
 
-The formal suite is v8, fingerprint
+The first full-run reconstruction is v8, fingerprint
 `528d5ba8c8b8e66a882a19488aaacd62dc972b9d6ff95bfdbf1270c9f377fec3`.
+A targeted GPT code-alignment candidate is v9, fingerprint
+`8cf30430b17b2e82a23adb573872d2fb440c0bf31a22eb2d2e5d5264f6974d1d`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -42,10 +44,23 @@ triggering old rows and an importer-race duplicate remain in separate diagnostic
 roots and are excluded from claims. V8 freezes GPT-OSS at
 `reasoning_effort=medium`, with 4096-token limits for GSM8K, StrategyQA, AIME24,
 and AIME25. High-effort AIME repeatedly failed to terminate even at 32768 tokens;
-the full medium smoke matched the paper discrete AIME outcomes while remaining
-finite. Qwen generation settings did not change. Formal v8 shards reuse only
+the full medium smoke matched the paper-reported discrete AIME outcomes while
+remaining finite. Qwen generation settings did not change. Formal v8 shards reuse only
 generation-compatible rows, retaining their provenance and applying the v7
 scorer where required.
+
+V9 was declared after completed v8 GPT HumanEval and in-progress MBPP+
+diagnostics showed that GPT code quality missed the paper gate. The official
+GPT-OSS model card requires Harmony formatting and demonstrates a user message
+followed by model-generated reasoning and final channels. V8 continued an
+assistant `final` message containing a code fence, structurally preventing that
+reasoning channel. V9 changes only GPT HumanEval and MBPP+: it sends the
+identical user prompt without assistant prefill and scores the standalone final
+code fence. Qwen and every QA/math generation remain byte-compatible with v8.
+Before any v9 generation, the adoption rule is fixed: v9 replaces v8 for final
+GPT code claims only if both complete vanilla code tasks pass the unchanged
+two-standard-error alignment gate and code-extraction audit. Otherwise both
+protocol failures are retained; results are not selected task by task.
 
 ## Disclosure boundary
 
@@ -60,7 +75,7 @@ an exact execution of unpublished author artifacts.
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
   paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v8.yaml`.
+  `configs/benchmark/speculating_experts_accuracy_v9.yaml`.
 - Decoding is batch one and greedy (`do_sample=false`) for deterministic
   paired comparisons. Qwen uses its non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.

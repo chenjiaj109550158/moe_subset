@@ -21,6 +21,7 @@ from pseudoroute.benchmark.runner import (
     _generation_compatibility_payload,
     _materialize_oracle_task,
     _merge_task_shards,
+    _model_example,
     _paired_policy_comparisons,
     _sha256_file,
     validate_accuracy_envelope,
@@ -241,6 +242,22 @@ def test_accuracy_v8_selects_medium_gpt_and_finite_aime_budget() -> None:
     }
 
 
+def test_accuracy_v9_preserves_gpt_reasoning_channel_for_code_only() -> None:
+    v8 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v8.yaml")
+    v9 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v9.yaml")
+    assert v9.protocol_revision == 8
+    assert v9.models[0].code_assistant_prefill
+    assert not v9.models[1].code_assistant_prefill
+    assert _generation_compatibility_payload(
+        v8.model_dump(mode="json"), "gpt_oss_20b", "gsm8k"
+    ) == _generation_compatibility_payload(v9.model_dump(mode="json"), "gpt_oss_20b", "gsm8k")
+    assert _generation_compatibility_payload(
+        v8.model_dump(mode="json"), "gpt_oss_20b", "humaneval"
+    ) != _generation_compatibility_payload(v9.model_dump(mode="json"), "gpt_oss_20b", "humaneval")
+    assert _can_reuse_imported_score(7, 8, "gsm8k")
+    assert v9.fingerprint() == "8cf30430b17b2e82a23adb573872d2fb440c0bf31a22eb2d2e5d5264f6974d1d"
+
+
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:
     assert _can_reuse_imported_score(5, 7, "humaneval")
     assert _can_reuse_imported_score(6, 7, "strategyqa")
@@ -401,6 +418,32 @@ def test_code_extractor_accepts_complete_fenced_rewrite_after_prefix_close() -> 
         "```python\ndef identity(value):\n    return value\n```"
     )
     assert score_response(example, generated).correct
+
+
+def test_gpt_code_without_assistant_prefill_scores_standalone_fence() -> None:
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v9.yaml")
+    example = BenchmarkExample(
+        task="humaneval",
+        sample_id="standalone",
+        user_prompt="prompt",
+        assistant_prefix="prefilled",
+        target="assert identity(3) == 3",
+        row={
+            "prompt": 'def identity(value):\n    """Return the input."""\n',
+            "entry_point": "identity",
+        },
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    rendered_example = _model_example(example, suite.models[1])
+    assert rendered_example.assistant_prefix is None
+    assert _model_example(example, suite.models[0]).assistant_prefix == "prefilled"
+    generated = (
+        "analysisUse a direct return.assistantfinal"
+        "Here is the implementation:\n"
+        "```python\ndef identity(value):\n    return value\n```"
+    )
+    assert score_response(rendered_example, generated).correct
 
 
 def test_code_extractor_prefers_nonempty_prefix_continuation() -> None:

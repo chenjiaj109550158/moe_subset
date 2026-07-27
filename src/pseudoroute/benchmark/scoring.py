@@ -109,6 +109,29 @@ def _score_strategyqa(text: str, target: str) -> ScoreResult:
 
 
 def _extract_code(example: BenchmarkExample, text: str) -> str:
+    if example.assistant_prefix is None:
+        blocks = cast(
+            list[str],
+            re.findall(
+                r"```(?:python)?\s*(.*?)```",
+                text,
+                flags=re.DOTALL | re.IGNORECASE,
+            ),
+        )
+        if example.task == "humaneval":
+            entry_point = str(example.row["entry_point"])
+            complete = next(
+                (
+                    block
+                    for block in blocks
+                    if re.search(rf"\bdef\s+{re.escape(entry_point)}\b", block)
+                ),
+                None,
+            )
+            if complete is not None:
+                return str(example.row["prompt"]) + "\n" + complete
+        elif blocks:
+            return blocks[0]
     before_fence = text.split("```", 1)[0]
     if before_fence.strip():
         if example.task == "humaneval":

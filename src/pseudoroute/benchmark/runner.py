@@ -192,6 +192,14 @@ def _render(
     return inputs, rendered
 
 
+def _model_example(
+    example: BenchmarkExample, model_config: AccuracyModelConfig
+) -> BenchmarkExample:
+    if example.task in {"humaneval", "mbpp_plus"} and not model_config.code_assistant_prefill:
+        return replace(example, assistant_prefix=None)
+    return example
+
+
 def _calibration_batches(
     tokenizer: Any,
     model_config: AccuracyModelConfig,
@@ -377,6 +385,10 @@ def _generation_compatibility_payload(
     if len(models) != 1 or len(datasets) != 1:
         raise ValueError(f"missing generation config for {model_key}/{task_key}")
     model = dict(models[0])
+    if task_key in {"humaneval", "mbpp_plus"}:
+        model.setdefault("code_assistant_prefill", True)
+    else:
+        model.pop("code_assistant_prefill", None)
     overrides = dict(model["max_new_tokens_overrides"])
     model["max_new_tokens_overrides"] = (
         {task_key: overrides[task_key]} if task_key in overrides else {}
@@ -393,6 +405,8 @@ def _generation_compatibility_payload(
 
 def _can_reuse_imported_score(source_protocol: int, target_protocol: int, task_key: str) -> bool:
     if source_protocol == target_protocol:
+        return True
+    if source_protocol == 7 and target_protocol == 8:
         return True
     return source_protocol in {5, 6} and target_protocol == 7 and task_key != "gsm8k"
 
@@ -545,6 +559,7 @@ def _run_task(
             if example.sample_id in completed:
                 continue
             seed_everything(suite.decode.seed)
+            example = _model_example(example, model_config)
             inputs, rendered = _render(tokenizer, model_config, suite, example)
             before = _copy_stats(active.stats) if active is not None else PrefetchStats()
             torch.cuda.reset_peak_memory_stats(torch.device(model_config.device))
