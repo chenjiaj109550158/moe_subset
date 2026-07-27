@@ -114,6 +114,20 @@ Authorized 2026-07-27 after the initial OLMoE smoke. Staged additions:
 
 Qwen uses its repository-specific license (`other` in Hub metadata); gpt-oss and Mixtral are Apache-2.0. gpt-oss uses native MXFP4 MoE weights, so its results remain separate from floating-point residency results. The planned primary payload was 135.9 GB; the retained gpt-oss Metal duplicate raised observed use by about 13.8 GB. After all downloads, 248 GB remains free, preserving 98 GB beyond the 30 GB trace/result reserve, 20 GB temporary reserve, and 100 GB mandatory headroom. All 3 gpt-oss and 19 Mixtral Transformers shards match Hub-published SHA-256 metadata; all 8 Qwen shards were locally hashed and will be matched to published metadata before its smoke run. Every architecture must pass native route regression and a checksum-valid smoke before the common oracle grid. DeepSeek-MoE-16B is deferred because its reference path requires `trust_remote_code=True` and a non-standard model license.
 
+## Related-work model audit and trusted remote code
+
+Audited 2026-07-27. The 20-model local-routing-consistency study includes OLMoE-1B-7B-0125, Qwen1.5-MoE-A2.7B, Mixtral-8x7B, DeepSeek-V2-Lite, DeepSeekMoE, Qwen3-30B-A3B, LLaMA-MoE-v2, and other families. CommitMoE evaluates Mixtral-8x7B-Instruct, Qwen1.5-MoE-Chat, and DeepSeek-V2-Lite-Chat. The current matrix therefore already covers three architecture families, and its most direct missing related-work control is DeepSeek-V2-Lite-Chat.
+
+Add `deepseek-ai/DeepSeek-V2-Lite-Chat` at immutable revision `85864749cd611b4353ce1decdb286193298f64c7`. The repository totals 31,418,838,089 bytes, including four safetensors shards totaling 31,413,626,576 bytes and pinned custom configuration, modeling, and tokenizer code. Hub metadata labels its license `other`; retain and comply with the included DeepSeek model license. Download code first, inspect it locally, then download weights. Loading may use `trust_remote_code=True` only at this pinned revision. The architecture adds 27 layers, 64 routed experts plus 2 shared experts, and top-6 routed activation. With 248 GB currently free, the completed cache leaves about 216 GB, preserving the 150 GB combined artifact/temporary/mandatory-headroom reserve.
+
+Qwen3-30B-A3B (`ad44e777bcd18fa416d9da3bd8f70d33ebb85d39`, 61.08 GB) is deferred despite appearing in related work because it is architecturally adjacent to cached Qwen1.5 and would leave little surplus beyond the current reserve. LLaMA-MoE-v2 is a smaller high-consistency follow-up candidate, but is less directly comparable to the closed-loop CommitMoE model set.
+
+## DeepSeek download and smoke outcome
+
+Completed 2026-07-27. All four safetensors shards matched Hub-published SHA-256 metadata. The cache occupies 30 GiB and 218 GB disk remained free. Static review found no subprocess, socket/HTTP, dynamic execution, arbitrary file access, or custom compilation. Direct loading under Transformers 5.14.1 initially failed because the pinned 4.x-era code imports the removed `is_torch_fx_available` helper. A minimal in-memory compatibility shim restoring only that query allowed local-only loading without modifying upstream code. A 10-token natural-forward smoke captured 26 MoE layers, native top-6 gate outputs, finite language-model logits, and 32,646,750,720 peak CUDA bytes on one A100.
+
+This validates fit and basic native execution only. The adapter must encode the compatibility shim explicitly, regression-test router logits/scores/IDs/weights and shared-expert semantics, and retain the initial import failure in its validation report before DeepSeek enters the oracle sweep.
+
 ## Go/no-download gate
 
 The environment passes the resource gate for OLMoE. Download is authorized only
