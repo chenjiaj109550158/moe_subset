@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import copy
+from functools import cached_property
 from typing import Any, cast
 
 import torch
 from torch import Tensor, nn
 
 from pseudoroute.analysis.pseudo_sequences import OfflinePseudoSequence
-from pseudoroute.execution.routing_policy import NaturalRoutingPolicy, RoutingPolicy
+from pseudoroute.execution.routing_policy import ExecutedRoute, RoutingPolicy
+from pseudoroute.models.adapters.subset_hooks import (
+    NativeRouteSemantics,
+    install_tuple_router_hooks,
+)
 from pseudoroute.models.base import (
     ForwardResult,
     MoELayerHandle,
@@ -84,7 +89,7 @@ class HFMixtralAdapter(MoEModelAdapter):
         base = cast(Any, self.model.model)
         return cast(Any, base.layers)
 
-    @property
+    @cached_property
     def spec(self) -> ModelSpec:
         config = self._config()
         expert_bytes: dict[ExpertKey, int] = {}
@@ -114,6 +119,11 @@ class HFMixtralAdapter(MoEModelAdapter):
             uses_rope=True,
             pre_norm=True,
             expert_bytes=expert_bytes,
+            shared_experts_by_layer={layer: 0 for layer in range(int(config.num_hidden_layers))},
+            routing_semantics_by_layer={
+                layer: "softmax_float32_topk_renormalized"
+                for layer in range(int(config.num_hidden_layers))
+            },
         )
 
     def validate_structure(self) -> None:
@@ -157,6 +167,7 @@ class HFMixtralAdapter(MoEModelAdapter):
                 shared_expert=None,
                 score_function="softmax",
                 has_router_bias=False,
+                shared_expert_count=0,
             )
             for layer_idx, layer in enumerate(self._layers())
         )
@@ -284,11 +295,26 @@ class HFMixtralAdapter(MoEModelAdapter):
         kv_cache: object | None = None,
         use_cache: bool = False,
     ) -> ForwardResult:
-        if allowed_experts is not None or allowed_experts_by_position is not None:
-            raise NotImplementedError("constrained Hugging Face execution is not part of M3")
-        if not isinstance(policy, NaturalRoutingPolicy) or not policy.authorize_natural_route():
-            raise NotImplementedError("constrained routing policies begin in M3")
-        return self.run_base_forward(input_ids, kv_cache=kv_cache, use_cache=use_cache)
+        if allowed_experts_by_position is not None:
+            raise NotImplementedError("trained cached execution accepts the current global subset")
+        records: list[ExecutedRoute] = []
+        handles = install_tuple_router_hooks(
+            tuple((i, cast(nn.Module, layer.mlp.gate)) for i, layer in enumerate(self._layers())),
+            policy=policy,
+            allowed_experts=allowed_experts,
+            top_k_by_layer=self.spec.top_k_by_layer,
+            semantics_by_layer={
+                i: NativeRouteSemantics("softmax_float32", True)
+                for i in self.spec.moe_layer_indices
+            },
+            records=records,
+        )
+        try:
+            result = self.run_base_forward(input_ids, kv_cache=kv_cache, use_cache=use_cache)
+        finally:
+            for handle in handles:
+                handle.remove()
+        return ForwardResult(result.logits, result.traces, result.kv_cache, tuple(records))
 
     def clone_kv_cache_for_shadow(self, kv_cache: object) -> object:
         return copy.deepcopy(kv_cache)

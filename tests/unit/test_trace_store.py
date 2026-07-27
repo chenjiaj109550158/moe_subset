@@ -64,7 +64,13 @@ def test_chunked_store_random_access_resume_and_validation(tmp_path: Path) -> No
     assert [record.start_offset for record in manifest.shards] == [0, 3]
     loaded = resumed.load_sample("sample-a")
     assert loaded["router_logits"].shape == (3, 2, 4)
+    assert loaded["router_pre_topk_scores"].shape == (3, 2, 4)
     assert loaded["router_topk_ids"].shape == (3, 2, 2)
+    assert loaded["layer_ids"].tolist() == list(tiny_adapter().spec.moe_layer_indices)
+    assert manifest.schema_version == 2
+    assert manifest.moe_layer_indices == tiny_adapter().spec.moe_layer_indices
+    assert manifest.shared_experts_by_layer == tiny_adapter().spec.shared_experts_by_layer
+    assert manifest.routing_semantics_by_layer == tiny_adapter().spec.routing_semantics_by_layer
 
 
 def test_routes_only_omits_full_logits(tmp_path: Path) -> None:

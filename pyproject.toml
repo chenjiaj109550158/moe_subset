@@ -26,8 +26,11 @@ dev = [
 ]
 
 hf = [
+  "accelerate>=1.14,<2",
   "datasets>=3,<5",
   "huggingface-hub>=0.26,<2",
+  "kernels>=0.15.2,<0.16",
+  "psutil>=7.2,<8",
   "transformers>=4.45,<6",
 ]
 

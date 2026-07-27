@@ -65,6 +65,10 @@ class TraceStore:
         dataset_split: str,
         trace_level: TraceLevel,
         resume: bool = False,
+        tokenizer_fingerprint: str | None = None,
+        dataset_config: str | None = None,
+        seed: int = 0,
+        full_router_mass_valid: bool = True,
     ) -> TraceStore:
         identity = json.dumps(
             {
@@ -85,14 +89,21 @@ class TraceStore:
             dataset_id=dataset_id,
             dataset_revision=dataset_revision,
             dataset_split=dataset_split,
+            dataset_config=dataset_config,
             dataset_fingerprint=fingerprint_text(
                 f"{dataset_id}@{dataset_revision}:{dataset_split}"
             ),
+            tokenizer_fingerprint=tokenizer_fingerprint,
+            seed=seed,
             trace_level=trace_level.value,
             storage_dtype="float32",
             num_moe_layers=len(spec.moe_layer_indices),
+            moe_layer_indices=spec.moe_layer_indices,
             num_experts_by_layer=spec.num_experts_by_layer,
             top_k_by_layer=spec.top_k_by_layer,
+            shared_experts_by_layer=spec.shared_experts_by_layer,
+            routing_semantics_by_layer=spec.routing_semantics_by_layer,
+            full_router_mass_valid=full_router_mass_valid,
         )
         return cls(root, manifest, resume=resume)
 
@@ -107,6 +118,10 @@ class TraceStore:
         traces: tuple[RouterTrace, ...],
         *,
         is_prompt: bool = True,
+        source_row_id: str | None = None,
+        domain: str | None = None,
+        prompt_rendering: str | None = None,
+        source_text_sha256: str | None = None,
     ) -> bool:
         if sample_id in self.completed_sample_ids:
             return False
@@ -119,12 +134,16 @@ class TraceStore:
         if len(traces) != expected:
             raise ValueError(f"expected {expected} trace records, got {len(traces)}")
         by_key = {(trace.token_position, trace.layer_idx): trace for trace in traces}
+        layer_indices = self.manifest.moe_layer_indices or tuple(range(layers))
         ordered = [
-            by_key[(position, layer)] for position in range(token_count) for layer in range(layers)
+            by_key[(position, layer)] for position in range(token_count) for layer in layer_indices
         ]
         logits = torch.stack([trace.raw_logits.reshape(-1) for trace in ordered]).reshape(
             token_count, layers, -1
         )
+        pre_topk_scores = torch.stack(
+            [trace.pre_topk_scores.reshape(-1) for trace in ordered]
+        ).reshape(token_count, layers, -1)
         topk_ids = (
             torch.stack([trace.topk_ids.reshape(-1) for trace in ordered])
             .reshape(token_count, layers, -1)
@@ -139,6 +158,8 @@ class TraceStore:
             "token_ids": tokens,
             "position_ids": torch.arange(token_count, dtype=torch.int64),
             "is_prompt": torch.full((token_count,), is_prompt, dtype=torch.bool),
+            "layer_ids": torch.tensor(layer_indices, dtype=torch.int64),
+            "router_pre_topk_scores": pre_topk_scores.float(),
             "router_topk_ids": topk_ids,
             "router_topk_weights": topk_weights,
         }
@@ -159,6 +180,10 @@ class TraceStore:
             num_tokens=token_count,
             start_offset=start,
             end_offset=start + token_count,
+            source_row_id=source_row_id,
+            domain=domain,
+            prompt_rendering=prompt_rendering,
+            source_text_sha256=source_text_sha256,
         )
         self.manifest.shards.append(record)
         self.manifest.num_samples += 1

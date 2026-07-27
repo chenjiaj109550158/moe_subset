@@ -26,9 +26,10 @@ def _discounts(horizon: int, gamma: float, *, device: torch.device) -> Tensor:
 
 def binary_count_utility(window: OracleWindow, num_experts: int) -> dict[int, Tensor]:
     utilities: dict[int, Tensor] = {}
-    for layer in range(window.topk_ids.shape[1]):
+    layer_indices = window.layer_indices or tuple(range(window.topk_ids.shape[1]))
+    for axis, layer in enumerate(layer_indices):
         scores = torch.zeros(num_experts, dtype=torch.float64)
-        ids = window.topk_ids[:, layer].reshape(-1).cpu()
+        ids = window.topk_ids[:, axis].reshape(-1).cpu()
         scores.scatter_add_(0, ids, torch.ones_like(ids, dtype=torch.float64))
         utilities[layer] = scores
     return utilities
@@ -39,10 +40,11 @@ def selected_routing_mass_utility(
 ) -> dict[int, Tensor]:
     discounts = _discounts(window.horizon, gamma, device=window.topk_weights.device)
     utilities: dict[int, Tensor] = {}
-    for layer in range(window.topk_ids.shape[1]):
+    layer_indices = window.layer_indices or tuple(range(window.topk_ids.shape[1]))
+    for axis, layer in enumerate(layer_indices):
         scores = torch.zeros(num_experts, dtype=torch.float64)
-        ids = window.topk_ids[:, layer].reshape(-1).cpu()
-        weighted = (window.topk_weights[:, layer] * discounts[:, None]).reshape(-1).double().cpu()
+        ids = window.topk_ids[:, axis].reshape(-1).cpu()
+        weighted = (window.topk_weights[:, axis] * discounts[:, None]).reshape(-1).double().cpu()
         scores.scatter_add_(0, ids, weighted)
         utilities[layer] = scores
     return utilities
@@ -53,9 +55,10 @@ def full_router_mass_utility(window: OracleWindow, *, gamma: float) -> dict[int,
         raise ValueError("full-router-mass oracle requires router logits")
     discounts = _discounts(window.horizon, gamma, device=window.router_logits.device)
     probabilities = window.router_logits.double().softmax(dim=-1)
+    layer_indices = window.layer_indices or tuple(range(probabilities.shape[1]))
     return {
-        layer: (probabilities[:, layer] * discounts[:, None]).sum(dim=0).cpu()
-        for layer in range(probabilities.shape[1])
+        layer: (probabilities[:, axis] * discounts[:, None]).sum(dim=0).cpu()
+        for axis, layer in enumerate(layer_indices)
     }
 
 

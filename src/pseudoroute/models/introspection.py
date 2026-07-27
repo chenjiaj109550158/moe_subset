@@ -22,6 +22,8 @@ def model_manifest(spec: ModelSpec, *, revision: str) -> dict[str, object]:
         "hidden_size": spec.hidden_size,
         "uses_rope": spec.uses_rope,
         "pre_norm": spec.pre_norm,
+        "shared_experts_by_layer": spec.shared_experts_by_layer,
+        "routing_semantics_by_layer": spec.routing_semantics_by_layer,
         "expert_bytes": {
             f"{key.layer_idx}:{key.expert_idx}": size for key, size in spec.expert_bytes.items()
         },
@@ -58,4 +60,12 @@ def load_model_manifest(path: Path) -> ModelSpec:
         uses_rope=bool(payload["uses_rope"]),
         pre_norm=bool(payload["pre_norm"]),
         expert_bytes=expert_bytes,
+        shared_experts_by_layer={
+            int(key): int(value)
+            for key, value in payload.get("shared_experts_by_layer", {}).items()
+        },
+        routing_semantics_by_layer={
+            int(key): str(value)
+            for key, value in payload.get("routing_semantics_by_layer", {}).items()
+        },
     )

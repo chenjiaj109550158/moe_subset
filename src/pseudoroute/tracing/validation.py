@@ -60,15 +60,22 @@ def validate_trace(root: Path, *, require_complete: bool = True) -> TraceManifes
         if not bool((positions == torch.arange(token_count)).all()):
             raise TraceValidationError(f"non-monotonic positions: {record.path}")
         ids = tensors["router_topk_ids"]
+        layer_indices = manifest.moe_layer_indices or tuple(range(manifest.num_moe_layers))
+        if "layer_ids" in tensors and not torch.equal(
+            tensors["layer_ids"], torch.tensor(layer_indices, dtype=torch.int64)
+        ):
+            raise TraceValidationError(f"invalid layer IDs: {record.path}")
+        if manifest.schema_version >= 2 and "router_pre_topk_scores" not in tensors:
+            raise TraceValidationError(f"missing native pre-top-k scores: {record.path}")
         if ids.ndim != 3 or ids.shape[1] != manifest.num_moe_layers:
             raise TraceValidationError(f"invalid top-k shape: {record.path}")
-        for layer in range(manifest.num_moe_layers):
-            layer_ids = ids[:, layer]
-            if bool((layer_ids < 0).any()) or bool(
-                (layer_ids >= manifest.num_experts_by_layer[layer]).any()
+        for axis, layer in enumerate(layer_indices):
+            routed_ids = ids[:, axis]
+            if bool((routed_ids < 0).any()) or bool(
+                (routed_ids >= manifest.num_experts_by_layer[layer]).any()
             ):
                 raise TraceValidationError(f"invalid expert id in layer {layer}: {record.path}")
-            if layer_ids.shape[-1] != manifest.top_k_by_layer[layer]:
+            if routed_ids.shape[-1] != manifest.top_k_by_layer[layer]:
                 raise TraceValidationError(f"invalid top-k count in layer {layer}: {record.path}")
         expected_offset = record.end_offset
         token_total += token_count

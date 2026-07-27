@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -37,6 +37,8 @@ class ModelSpec:
     uses_rope: bool
     pre_norm: bool
     expert_bytes: dict[ExpertKey, int]
+    shared_experts_by_layer: dict[int, int] = field(default_factory=dict)
+    routing_semantics_by_layer: dict[int, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, order=True)

@@ -49,6 +49,7 @@ class MoELayerHandle:
     shared_expert: nn.Module | None
     score_function: str
     has_router_bias: bool
+    shared_expert_count: int = 0
 
 
 class MoEModelAdapter(ABC):

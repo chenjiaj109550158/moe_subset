@@ -16,6 +16,7 @@ class OracleSample:
     topk_ids: Tensor
     topk_weights: Tensor
     router_logits: Tensor | None
+    layer_indices: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         token_count = int(self.token_ids.numel())
@@ -27,6 +28,8 @@ class OracleSample:
             self.router_logits.ndim != 3 or self.router_logits.shape[:2] != self.topk_ids.shape[:2]
         ):
             raise ValueError("router_logits must have shape [tokens, layers, experts]")
+        if self.layer_indices and len(self.layer_indices) != self.topk_ids.shape[1]:
+            raise ValueError("layer_indices must match the compact layer axis")
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,7 @@ class OracleWindow:
     topk_ids: Tensor
     topk_weights: Tensor
     router_logits: Tensor | None
+    layer_indices: tuple[int, ...] = ()
 
     @property
     def end(self) -> int:
@@ -69,6 +73,7 @@ def iter_windows(
                         if sample.router_logits is not None
                         else None
                     ),
+                    layer_indices=sample.layer_indices,
                 )
 
 
@@ -91,6 +96,11 @@ def load_trace_samples(root: Path) -> tuple[OracleSample, ...]:
                 topk_ids=tensors["router_topk_ids"],
                 topk_weights=tensors["router_topk_weights"],
                 router_logits=tensors["router_logits"],
+                layer_indices=(
+                    tuple(int(value) for value in tensors["layer_ids"].tolist())
+                    if "layer_ids" in tensors
+                    else manifest.moe_layer_indices
+                ),
             )
         )
     return tuple(samples)
