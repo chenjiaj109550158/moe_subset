@@ -104,6 +104,16 @@ single-device adapter does not implement. Use it only if OLMoE native-semantic
 adapter validation fails for a model-specific reason; do not silently switch
 to quantized weights or the random tiny Mixtral.
 
+## Cross-architecture expansion
+
+Authorized 2026-07-27 after the initial OLMoE smoke. Staged additions:
+
+- `Qwen/Qwen1.5-MoE-A2.7B` at `1a758c50ecb6350748b9ce0a99d2352fd9fc11c9`: 28,639,598,661 bytes.
+- `openai/gpt-oss-20b` at `6cee5e81ee83917806bbde320786a8fb61efebee`: about 13.8 GB excluding duplicate `original/model.safetensors`. The Hub CLI also fetched `metal/model.bin`, making the observed cache about 26 GiB; it is retained pending explicit cleanup approval.
+- `mistralai/Mixtral-8x7B-v0.1` at `fc7ac94680e38d7348cfa806e51218e6273104b0`: 93,408,096,711 bytes excluding all alternate `consolidated.*` weights.
+
+Qwen uses its repository-specific license (`other` in Hub metadata); gpt-oss and Mixtral are Apache-2.0. gpt-oss uses native MXFP4 MoE weights, so its results remain separate from floating-point residency results. The planned primary payload was 135.9 GB; the retained gpt-oss Metal duplicate raised observed use by about 13.8 GB. After all downloads, 248 GB remains free, preserving 98 GB beyond the 30 GB trace/result reserve, 20 GB temporary reserve, and 100 GB mandatory headroom. All 3 gpt-oss and 19 Mixtral Transformers shards match Hub-published SHA-256 metadata; all 8 Qwen shards were locally hashed and will be matched to published metadata before its smoke run. Every architecture must pass native route regression and a checksum-valid smoke before the common oracle grid. DeepSeek-MoE-16B is deferred because its reference path requires `trust_remote_code=True` and a non-standard model license.
+
 ## Go/no-download gate
 
 The environment passes the resource gate for OLMoE. Download is authorized only
