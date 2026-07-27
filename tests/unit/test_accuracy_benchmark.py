@@ -186,14 +186,14 @@ def test_answer_scorers_use_final_explicit_answers() -> None:
 
 
 def test_accuracy_suite_protocol_is_frozen_and_complete() -> None:
-    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v4.yaml")
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v5.yaml")
     assert suite.policies == ("vanilla", "router_pf", "oracle_pf")
     assert {dataset.expected_samples for dataset in suite.datasets} >= {30, 164, 378, 687, 1319}
-    assert suite.fingerprint() == "225a55988d1236086f3cf93e08002424f1292890f5954ec11b28138c6e9457ba"
+    assert suite.fingerprint() == "6533c5cd17b77427ddbe280b921aab4b3ef68a104b402ad1761c440fda226e8f"
 
 
 def test_oracle_materialization_and_paired_comparison(tmp_path: Path) -> None:
-    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v4.yaml")
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v5.yaml")
     model = suite.models[0]
     model_root = tmp_path / "models" / model.key
     vanilla_path = model_root / "results" / "vanilla" / "humaneval" / "samples.jsonl"
@@ -287,5 +287,23 @@ def test_code_extractor_accepts_complete_fenced_rewrite_after_prefix_close() -> 
     generated = (
         "```\nExplanation before the replacement.\n"
         "```python\ndef identity(value):\n    return value\n```"
+    )
+    assert score_response(example, generated).correct
+
+
+def test_code_extractor_prefers_nonempty_prefix_continuation() -> None:
+    example = BenchmarkExample(
+        task="mbpp_plus",
+        sample_id="continuation",
+        user_prompt="prompt",
+        assistant_prefix="prefix",
+        target="assert square(3) == 9",
+        row={},
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    generated = (
+        "def square(value):\n    return value * value\n```\n"
+        "Explanation with a later fenced example.\n```python\nnot code\n```"
     )
     assert score_response(example, generated).correct

@@ -327,6 +327,90 @@ def _generate(
     return ids, text
 
 
+def _generation_compatibility_payload(config: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(config)
+    payload.pop("protocol_revision", None)
+    payload.pop("suite_id", None)
+    return payload
+
+
+def import_compatible_vanilla_results(
+    suite: AccuracySuiteConfig,
+    output_root: Path,
+    source_root: Path,
+    models: tuple[AccuracyModelConfig, ...],
+    tasks: tuple[str, ...],
+) -> int:
+    source_config_path = source_root / "resolved_config.json"
+    if not source_config_path.is_file():
+        raise ValueError(f"missing source resolved config: {source_config_path}")
+    source_config = cast(dict[str, Any], json.loads(source_config_path.read_text(encoding="utf-8")))
+    current_config = suite.model_dump(mode="json")
+    if _generation_compatibility_payload(source_config) != _generation_compatibility_payload(
+        current_config
+    ):
+        raise ValueError("source and target generation configurations are incompatible")
+    imported = 0
+    for model in models:
+        model_root = output_root / "models" / model.key
+        for task_key in tasks:
+            dataset = next(item for item in suite.datasets if item.key == task_key)
+            examples = load_examples(dataset, cache_dir=suite.dataset_cache_dir)
+            source_path = (
+                source_root
+                / "models"
+                / model.key
+                / "results"
+                / "vanilla"
+                / task_key
+                / "samples.jsonl"
+            )
+            source_rows = [
+                row for row in _read_jsonl(source_path) if row.get("state") == "complete"
+            ]
+            target_root = model_root / "results" / "vanilla" / task_key
+            target_path = target_root / "samples.jsonl"
+            completed = {
+                str(row["sample_id"])
+                for row in _read_jsonl(target_path)
+                if row.get("state") == "complete"
+            }
+            for source in source_rows:
+                sample_id = str(source["sample_id"])
+                if sample_id in completed:
+                    continue
+                index = int(source["row_index"])
+                example = examples[index]
+                if example.sample_id != sample_id:
+                    raise ValueError(f"source row/sample mismatch: {model.key}/{task_key}/{index}")
+                if (
+                    source.get("model_revision") != model.revision
+                    or source.get("dataset_revision") != dataset.revision
+                ):
+                    raise ValueError(f"source revision mismatch: {model.key}/{task_key}/{index}")
+                score = score_response(example, str(source["generated_text"]))
+                row = dict(source)
+                row.update(
+                    {
+                        "suite_id": suite.suite_id,
+                        "config_fingerprint": suite.fingerprint(),
+                        "correct": score.correct,
+                        "parsed_answer": score.parsed_answer,
+                        "score_detail": score.detail,
+                        "derived": True,
+                        "derived_from_suite": source.get("suite_id"),
+                        "derived_from_config_fingerprint": source.get("config_fingerprint"),
+                        "derivation": "generation_compatible_deterministic_rescore",
+                    }
+                )
+                _append_jsonl(target_path, cast(dict[str, object], row))
+                completed.add(sample_id)
+                imported += 1
+            if len(completed) == dataset.expected_samples:
+                (target_root / "DONE").write_text("complete\n", encoding="utf-8")
+    return imported
+
+
 def _run_task(
     root: Path,
     model: nn.Module,
@@ -862,6 +946,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--aggregate-only", action="store_true")
     parser.add_argument("--finalize-only", action="store_true")
     parser.add_argument("--materialize-oracle-only", action="store_true")
+    parser.add_argument("--import-compatible-vanilla-from")
+    parser.add_argument("--import-only", action="store_true")
     parser.add_argument("--validate-envelope-only", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -929,6 +1015,20 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(_software_hardware(), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    if args.import_only and not args.import_compatible_vanilla_from:
+        raise SystemExit("--import-only requires --import-compatible-vanilla-from")
+    if args.import_compatible_vanilla_from:
+        imported = import_compatible_vanilla_results(
+            suite,
+            output_root,
+            Path(args.import_compatible_vanilla_from),
+            models,
+            tasks,
+        )
+        print(json.dumps({"imported_compatible_vanilla_rows": imported}, sort_keys=True))
+    if args.import_only:
+        print(json.dumps(aggregate(suite, output_root), indent=2, sort_keys=True))
+        return 0
     for model in models:
         run_model(
             suite,

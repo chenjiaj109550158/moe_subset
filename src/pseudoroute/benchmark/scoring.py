@@ -83,6 +83,10 @@ def _score_strategyqa(text: str, target: str) -> ScoreResult:
 
 def _extract_code(example: BenchmarkExample, text: str) -> str:
     before_fence = text.split("```", 1)[0]
+    if before_fence.strip():
+        if example.task == "humaneval":
+            return str(example.row["prompt"]) + before_fence
+        return before_fence
     fenced_source = text
     if text.lstrip().startswith("```"):
         # The prompt already opened a fence. Some chat models close it immediately,

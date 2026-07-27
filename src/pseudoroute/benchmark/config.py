@@ -71,7 +71,7 @@ class PaperResult(StrictModel):
 
 class AccuracySuiteConfig(StrictModel):
     schema_version: Literal[1]
-    protocol_revision: Literal[4]
+    protocol_revision: Literal[5]
     code_execution_sandbox_revision: Literal["v2_preload_doctest_ssl_before_socket_block"]
     suite_id: str
     paper_url: str
