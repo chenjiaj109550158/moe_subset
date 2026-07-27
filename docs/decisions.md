@@ -289,3 +289,72 @@ resolved representation has a stable hash.
 **Consequences:** Schema mismatches, checksum changes, and duplicate IDs fail loudly. Incomplete runs are retained and reported but excluded. Every paper-table cell and indexed figure links to a run ID/source artifact. Interrupted suites resume only checksum-valid completed tasks.  
 **Experiments affected:** All M11 primary reproduction and aggregation.  
 **Migration required:** New result kinds must declare their paper metrics and worst-case criterion without changing existing envelopes.
+
+## D-20260727-027 — Extend one common adapter contract for trained MoE semantics
+
+**Status:** accepted
+**Context:** OLMoE, Qwen, Mixtral, DeepSeek and gpt-oss differ in scoring,
+normalization, shared experts, layer indices, placement and weight representation.
+**Decision:** Keep every architecture behind `MoEModelAdapter`; add native logits
+and pre-top-k scores, layer-scoped routed IDs, shared-expert counts, routing
+semantics, physical expert bytes, and reversible native-router policy hooks to the
+common contract. Cache immutable `ModelSpec` metadata. DeepSeek remote code is
+allowed only at its pinned revision and only with restoring in-memory compatibility
+contexts. Mixtral remains full precision on two A100s. gpt-oss remains a separate
+MXFP4 tier.
+**Alternatives considered:** Standalone model-specific analysis scripts, editing
+the Hub cache, silently quantizing Mixtral, or treating shared experts as routed
+residency.
+**Consequences:** Four floating-point checkpoints reproduce native routes and
+policy parity through one runner. gpt-oss direct routing/physical storage is
+inspectable, while its fused forward incompatibility fails explicitly.
+**Experiments affected:** `trained_oracle_gate_v1` and v2.
+**Migration required:** Any new model must add literal/native-reference tests and
+pass the same contract before entering the common sweep.
+
+## D-20260727-028 — Replace the truncated v1 closed-loop sample before final claims
+
+**Status:** accepted
+**Context:** The development v1 protocol used GSM8K row 0 at a 48-token prompt
+limit; every tokenizer truncated the question before `Answer:`, and 12 generated
+tokens could not yield a meaningful answer metric.
+**Decision:** Preserve v1 as protocol-development evidence. For the final v2 run,
+keep checkpoints, dataset revisions and rows, trace length, oracle horizons,
+budgets, methods, bootstrap count, transfer model, and numerical gate thresholds
+unchanged; use row 500, whose complete prompt is 40/42/47/43 tokens across the four
+tokenizers, and predeclare 64-token deterministic decoding before final v2
+aggregates. Run into a fresh output directory.
+**Alternatives considered:** Publish the truncated result, silently replace the
+prompt, or drop GSM answer scoring.
+**Consequences:** Final answer extraction is meaningful and fully disclosed. All
+four natural trajectories still miss the ground-truth answer; the negative gate
+is not rescued by the correction.
+**Experiments affected:** Final trained closed-loop quality only.
+**Migration required:** Future task-quality runs must validate rendered prompt
+completeness per tokenizer before execution.
+
+## D-20260727-029 — The trained-model oracle gate is STOP/PIVOT
+
+**Status:** accepted
+**Context:** The final v2 gate requires below-all-expert residency, mean hit ≥0.90,
+selected mass ≥0.95, P05 and worst hit ≥0.80, simulated transfer reduction ≥0.30,
+and ≥0.05 improvement over previous/static baselines. Closed loop requires hard
+relative-perplexity increase ≤0.05 or lossless fallback ≤0.10 in each domain.
+**Decision:** Classify OLMoE, Qwen, Mixtral, DeepSeek, gpt-oss and the overall
+stage as **STOP/PIVOT**. OLMoE has one qualifying WikiText open-loop point; Qwen
+and DeepSeek have both-domain points; Mixtral has none after worst-tail filtering.
+No floating-point model passes hard quality or fallback. gpt-oss cannot expose a
+common trace through its fused native MXFP4 path. Do not train a predictor and do
+not implement production runtime optimization.
+**Alternatives considered:** Macro-average away model failures, treat lossless
+fallback as quality improvement, ignore worst windows, issue a narrow GO from
+open-loop coverage alone, or delay the primary decision for gpt-oss.
+**Consequences:** The repository preserves a multi-model negative result. Any
+follow-up needs a new predeclared pivot and cannot claim generality beyond the
+exact checkpoints, two datasets, sampled rows, 64-token batch-1 greedy decoding,
+budgets, precision and two-A100 hardware. Planning runtime was not measured, so
+it cannot weaken the STOP decision.
+**Experiments affected:** `trained_oracle_gate_v2` and every proposed post-oracle
+stage.
+**Migration required:** Explicit human authorization plus a versioned new protocol
+for a quality-aware fallback or other revised hypothesis.

@@ -3,10 +3,37 @@
 Research framework for position-conditioned pseudo routing states and
 memory-budgeted mixture-of-experts inference.
 
-The repository has completed **M11 at deterministic primary-suite scope**. It contains a deterministic, accelerator-aware
-tiny causal MoE model, typed configuration loading, route tracing, reproducible
-run-directory utilities, and the complete normative specification in
-`docs/spec/`. It includes M0–M7, the M8 simulator, M9 adaptive residency, the PyTorch-only M10 runtime, and M11 checksummed reproduction, aggregation, paper tables/plots, and failure reporting. Simulated and measured outputs are labeled separately.
+The repository has completed **M11 at deterministic primary-suite scope** and the
+subsequent **multi-model trained-MoE oracle feasibility gate**. It contains a
+deterministic, accelerator-aware tiny causal MoE model, typed configuration
+loading, route tracing, reproducible run-directory utilities, and the complete
+normative specification in `docs/spec/`. The trained gate tested four
+floating-point checkpoints plus a separate native-MXFP4 tier and concluded
+**STOP/PIVOT** under the pinned v2 protocol. Simulated transfer/stall estimates,
+actual model-quality results, and measured adapter memory are labeled separately.
+
+## Trained-model oracle gate
+
+The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is
+recreated by the versioned `configs/trained/oracle_gate_v2.yaml`. It uses four
+independent WikiText-2 validation rows and four GSM8K test rows per tokenizer,
+horizons 1/2/4/8/16, absolute and native-top-k-multiple budgets, eight oracle or
+cache methods, and 1,000-sample bootstrap confidence intervals. Closed-loop
+quality uses complete prompts and 64-token deterministic greedy continuations.
+
+| Checkpoint | Final decision | Decisive result |
+|---|---|---|
+| OLMoE-1B-7B-0125 | STOP/PIVOT | One WikiText open-loop point passes, but hard quality and 47.97% mean lossless fallback fail |
+| Qwen1.5-MoE-A2.7B | STOP/PIVOT | Both-domain B=32/H=16 open-loop points pass, but hard quality and 80.22% fallback fail |
+| Mixtral-8x7B-v0.1 | STOP/PIVOT | No point jointly passes the P05 and worst-window open-loop gate; hard quality also fails |
+| DeepSeek-V2-Lite-Chat | STOP/PIVOT | Both-domain B=32/H=8 points pass, but hard quality and 70.70% fallback fail |
+| gpt-oss-20b (MXFP4) | STOP/PIVOT | Direct native router inspection passes; fused MXFP4 forward bypasses the common trace hook |
+
+The overall result is scoped to these revisions, two datasets, sampled rows,
+64-token batch-1 greedy decoding, checkpoint precision, budgets, and two A100s.
+It does not authorize predictor training or production runtime optimization. See
+[the trained-model plan](docs/trained_model_plan.md) and
+[decision log](docs/decisions.md).
 
 ## Development
 
@@ -29,6 +56,7 @@ pseudoroute simulate-offload --config configs/experiment/simulate_offload_tiny.y
 pseudoroute benchmark-offload --config configs/experiment/benchmark_offload_tiny.yaml --output-dir artifacts/m10_benchmark_offload_tiny_definitive_v2
 pseudoroute reproduce --suite primary --config-root configs/paper --output-dir artifacts/reproduction/m11_primary_definitive_v2
 pseudoroute aggregate-results --input-root artifacts/reproduction/m11_primary_definitive_v2/runs --output-dir artifacts/reproduction/m11_primary_definitive_v2/paper
+pseudoroute trained-suite --config configs/trained/oracle_gate_v2.yaml --output-dir artifacts/trained_gate/suite_v2_final
 ```
 
 See [docs/reproducibility.md](docs/reproducibility.md) for manifest guarantees, individual benchmark runners, failure retention, and hardware requirements.

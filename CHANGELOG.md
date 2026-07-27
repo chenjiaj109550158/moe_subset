@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Complete the multi-model trained-MoE oracle gate with common OLMoE/Qwen/Mixtral/DeepSeek/gpt-oss adapters, trace schema v2, pinned real-text traces, oracle/cache sweeps, context/margin bootstrap summaries, 64-token closed loop, resumable envelopes, and a preserved overall STOP/PIVOT result.
+
 - Implement M11 benchmark runners, checksummed run envelopes, strict aggregation, Tables A–F, plot index/regeneration, concrete failure-case and negative-result reports, resumable primary reproduction, and `aggregate-results`/`reproduce`.
 
 - Implement M10 CPU-resident expert handles, optional pinned memory, fixed GPU slots, synchronous/asynchronous CUDA transfer paths, event dependencies, subset-plan execution, measured runtime artifacts, and `benchmark-offload`.
