@@ -1,0 +1,17 @@
+schema_version: 1
+experiment:
+  name: hf_tiny_mixtral_oracle_sweep
+  seed: 1234
+  information_regime: oracle
+trace_dir: artifacts/traces/hf_tiny_mixtral
+window:
+  horizons: [1, 2, 4, 8]
+  budget_ratios: [1.0, 1.5, 2.0]
+  gamma: 0.9
+oracle:
+  selectors:
+    - binary_count
+    - selected_routing_mass
+    - full_router_mass
+    - cost_aware_selected_mass
+  load_cost_lambda: 0.0001

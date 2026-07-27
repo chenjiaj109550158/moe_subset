@@ -1,0 +1,26 @@
+schema_version: 1
+experiment:
+  name: tiny_m4_dapq_factorial
+  seed: 1234
+  information_regime: offline_teacher_forced
+tiny_model_config: configs/model/tiny_moe.yaml
+documents:
+  - [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  - [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+  - [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 0, 3]
+  - [31, 28, 25, 22, 19, 16, 13, 10, 7, 4, 1, 0]
+boundary: 4
+horizons: [1, 2, 4]
+content_seed: 41
+position_offsets: [3, 7]
+context_swap: true
+capture:
+  pre_rope_query: true
+  post_rope_query: true
+  post_attention_state: true
+  router_input: true
+  router_logits: true
+  topk: true
+bootstrap:
+  samples: 200
+  confidence: 0.95

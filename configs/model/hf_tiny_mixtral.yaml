@@ -1,0 +1,19 @@
+schema_version: 1
+model:
+  adapter: hf_mixtral
+  model_id: hf-internal-testing/tiny-random-MixtralForCausalLM
+  revision: ccb12fe2fc142cb752085506c3db22572290e90c
+  device: auto
+  trust_remote_code: false
+  cache_dir: .cache/pseudoroute/huggingface/hub
+  local_files_only: true
+data:
+  dataset_id: Salesforce/wikitext
+  revision: b08601e04326c79dfdd32d625aee71d232d685c3
+  config: wikitext-2-raw-v1
+  split: validation
+trace:
+  level: router_logits
+  storage_dtype: float32
+  max_samples: 1
+information_regime: offline_teacher_forced

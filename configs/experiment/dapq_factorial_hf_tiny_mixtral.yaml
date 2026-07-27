@@ -1,0 +1,24 @@
+schema_version: 1
+experiment:
+  name: hf_tiny_mixtral_m4_factorial
+  seed: 1234
+  information_regime: offline_teacher_forced
+hf_trace_config: configs/model/hf_tiny_mixtral.yaml
+documents:
+  - [1, 327, 11537, 283, 381, 11129, 3479, 381]
+  - [381, 3479, 11129, 381, 283, 11537, 327, 1]
+boundary: 3
+horizons: [1, 2]
+content_seed: 41
+position_offsets: [3]
+context_swap: false
+capture:
+  pre_rope_query: true
+  post_rope_query: false
+  post_attention_state: true
+  router_input: true
+  router_logits: true
+  topk: true
+bootstrap:
+  samples: 50
+  confidence: 0.95

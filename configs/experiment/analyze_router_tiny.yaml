@@ -1,0 +1,24 @@
+schema_version: 1
+experiment:
+  name: tiny_m5_router_geometry
+  seed: 1234
+  information_regime: offline_teacher_forced
+tiny_model_config: configs/model/tiny_moe.yaml
+documents:
+  - [1, 2, 3, 4, 5, 6, 7, 8]
+  - [8, 7, 6, 5, 4, 3, 2, 1]
+  - [2, 5, 8, 11, 14, 17, 20, 23]
+  - [31, 28, 25, 22, 19, 16, 13, 10]
+randomized_svd:
+  rank: 3
+  oversample: 1
+  power_iterations: 2
+covariance_rank: 4
+boundary_epsilon: 0.1
+top_b: 3
+interventions:
+  max_targets: 12
+  kinds:
+    - zero_selected_contribution
+    - remove_and_renormalize
+    - substitute_next_available

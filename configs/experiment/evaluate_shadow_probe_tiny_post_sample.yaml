@@ -1,0 +1,13 @@
+schema_version: 1
+experiment:
+  name: tiny_m7_shadow_probe_post_sample
+  seed: 1234
+  information_regime: online_post_sample
+training_config: configs/experiment/train_predictor_tiny.yaml
+predictor_dataset_dir: artifacts/m6_predictors/dataset
+default_vectors_dir: artifacts/m7_default_vectors
+anchors: [1, 2, 4]
+top_b: 2
+latency_repetitions: 3
+wrong_position_offset: 2
+fixed_token_id: 0

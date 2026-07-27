@@ -1,0 +1,18 @@
+schema_version: 1
+experiment:
+  name: tiny_m10_real_offload
+  seed: 1234
+  information_regime: online_pre_sample
+tiny_model_config: configs/model/tiny_moe.yaml
+prompt_tokens: [1, 2, 3]
+gpu_slots_per_layer: 2
+pinned_memory: true
+warmup_tokens: 2
+measured_tokens: 4
+repetitions: 5
+subset_experts_by_layer:
+  0: [0, 1]
+  1: [0, 1]
+subset_miss_policy: lossless_fallback
+atol: 1.0e-6
+rtol: 1.0e-5

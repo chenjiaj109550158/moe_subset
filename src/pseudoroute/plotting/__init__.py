@@ -1,0 +1,1 @@
+"""Paper-artifact plotting helpers."""

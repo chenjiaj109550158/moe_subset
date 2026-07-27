@@ -1,0 +1,21 @@
+schema_version: 1
+experiment:
+  name: tiny_m3_gate_a
+  seed: 1234
+  information_regime: oracle
+tiny_model_config: configs/model/tiny_moe.yaml
+prompt_tokens: [1, 2, 3]
+max_new_tokens: 8
+grid:
+  horizons: [1, 2, 4]
+  budget_ratios: [1.0, 1.5, 2.0]
+  gamma: 0.9
+  policies:
+    - natural
+    - lossless_fallback
+    - masked_substitution
+    - masked_truncation_preserve
+    - masked_truncation_renormalize
+gate_a:
+  minimum_exact_token_rate: 1.0
+  minimum_transfer_reduction: 0.25

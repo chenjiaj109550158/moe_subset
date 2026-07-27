@@ -1,0 +1,11 @@
+schema_version: 1
+experiment:
+  name: tiny_m6_probe_evaluation
+  seed: 1234
+  information_regime: online_pre_sample
+training_config: configs/experiment/train_predictor_tiny.yaml
+predictor_dir: artifacts/m6_predictors
+top_b: 2
+latency_repetitions: 10
+rolling_lookback: 3
+rolling_decay: 0.9

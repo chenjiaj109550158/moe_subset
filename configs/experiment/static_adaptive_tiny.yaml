@@ -1,0 +1,30 @@
+schema_version: 1
+experiment:
+  name: tiny_m9_static_adaptive
+  seed: 1234
+  information_regime: oracle
+tiny_model_config: configs/model/tiny_moe.yaml
+calibration_documents:
+  - [1, 2, 3, 4, 5, 6, 7, 8]
+  - [2, 4, 6, 8, 10, 12, 14, 16]
+  - [3, 6, 9, 12, 15, 18, 21, 24]
+  - [4, 7, 10, 13, 16, 19, 22, 25]
+max_interventions: 12
+prompt_tokens: [1, 2, 3]
+max_new_tokens: 6
+horizons: [2, 4]
+total_experts_per_layer: 3
+static_fractions: [0.0, 0.5, 1.0]
+ranking_methods:
+  - frequency
+  - covariance_variance
+  - quality_sensitivity
+  - downstream_influence
+  - miss_risk
+  - combined
+out_of_subset_threshold: 0.35
+hardware:
+  name: reference_pcie_serial
+  bandwidth_bytes_per_us: 12000.0
+  fixed_latency_us: 10.0
+  compute_us_per_token: 50.0

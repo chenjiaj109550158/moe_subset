@@ -1,0 +1,96 @@
+"""Command-line surface for PseudoRoute-MoE."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from collections.abc import Sequence
+
+import torch
+
+from pseudoroute.config import load_config
+from pseudoroute.models.tiny_moe import TinyMoE
+from pseudoroute.utils.determinism import seed_everything
+
+FUTURE_COMMANDS = (
+    "collect-traces",
+    "oracle-sweep",
+    "closed-loop-eval",
+    "dapq-factorial",
+    "analyze-router",
+    "build-default-vectors",
+    "evaluate-probe",
+    "train-predictor",
+    "simulate-offload",
+    "benchmark-offload",
+    "aggregate-results",
+)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="pseudoroute")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    for command in ("inspect-model", *FUTURE_COMMANDS):
+        subparser = subparsers.add_parser(command)
+        subparser.add_argument("--config", required=True)
+        subparser.add_argument("--output-dir")
+        subparser.add_argument("--dry-run", action="store_true")
+    return parser
+
+
+def inspect_model(config_path: str, *, dry_run: bool) -> int:
+    config = load_config(config_path)
+    if dry_run:
+        print(
+            json.dumps(
+                {
+                    "command": "inspect-model",
+                    "information_regime": config.experiment.information_regime.value,
+                    "config_fingerprint": config.fingerprint(),
+                    "synthetic_expert_bytes_total": (
+                        config.model.num_layers
+                        * config.model.num_experts
+                        * config.model.synthetic_expert_bytes
+                    ),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+    seed_everything(config.experiment.seed)
+    model = TinyMoE(config.model, seed=config.experiment.seed)
+    sample = torch.tensor([[1, 2, 3]], dtype=torch.long)
+    output = model(sample)
+    generated = model.generate(
+        sample,
+        max_new_tokens=config.decode.max_new_tokens,
+        eos_token_id=config.decode.eos_token_id,
+    )
+    result = {
+        "information_regime": config.experiment.information_regime.value,
+        "config_fingerprint": config.fingerprint(),
+        "model": model.manifest(),
+        "inspection": {
+            "input_shape": list(sample.shape),
+            "logits_shape": list(output.logits.shape),
+            "route_records": len(output.traces),
+            "generated_token_ids": generated.tolist(),
+        },
+    }
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    arguments = build_parser().parse_args(argv)
+    if arguments.command == "inspect-model":
+        return inspect_model(arguments.config, dry_run=arguments.dry_run)
+    raise SystemExit(
+        f"{arguments.command} belongs to a later milestone "
+        "and is intentionally not implemented in M0"
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

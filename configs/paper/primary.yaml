@@ -1,0 +1,32 @@
+schema_version: 1
+tasks:
+  - name: oracle
+    command: oracle-sweep
+    result_kind: oracle
+    config: configs/experiment/oracle_tiny.yaml
+  - name: factorial
+    command: dapq-factorial
+    result_kind: factorial
+    config: configs/experiment/dapq_factorial_tiny.yaml
+  - name: train_predictor
+    command: train-predictor
+    result_kind: support
+    config: configs/experiment/train_predictor_tiny.yaml
+  - name: probe
+    command: evaluate-probe
+    result_kind: probe
+    config: configs/experiment/evaluate_probe_tiny.yaml
+    path_overrides:
+      predictor_dir: train_predictor
+  - name: simulator
+    command: simulate-offload
+    result_kind: simulator
+    config: configs/experiment/simulate_offload_tiny.yaml
+  - name: static_residency
+    command: simulate-offload
+    result_kind: static
+    config: configs/experiment/static_adaptive_tiny.yaml
+  - name: runtime
+    command: benchmark-offload
+    result_kind: runtime
+    config: configs/experiment/benchmark_offload_tiny.yaml
