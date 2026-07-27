@@ -227,6 +227,20 @@ def test_accuracy_v7_changes_only_scorer_protocol_identity() -> None:
     assert v7.decode == v6.decode
 
 
+def test_accuracy_v8_selects_medium_gpt_and_finite_aime_budget() -> None:
+    v7 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v7.yaml")
+    v8 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v8.yaml")
+    assert v8.protocol_revision == v7.protocol_revision == 7
+    assert v8.models[0] == v7.models[0]
+    assert v8.models[1].reasoning_effort == "medium"
+    assert v8.models[1].max_new_tokens_overrides == {
+        "gsm8k": 4096,
+        "strategyqa": 4096,
+        "aime24": 4096,
+        "aime25": 4096,
+    }
+
+
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:
     assert _can_reuse_imported_score(5, 7, "humaneval")
     assert _can_reuse_imported_score(6, 7, "strategyqa")
