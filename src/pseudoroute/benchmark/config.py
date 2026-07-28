@@ -51,7 +51,7 @@ class CalibrationConfig(StrictModel):
 
 class DecodeConfig(StrictModel):
     deterministic: Literal[True]
-    do_sample: Literal[False]
+    do_sample: bool
     seed: int = Field(ge=0)
     batch_size: Literal[1]
     use_cache: Literal[True]
@@ -72,7 +72,7 @@ class PaperResult(StrictModel):
 
 class AccuracySuiteConfig(StrictModel):
     schema_version: Literal[1]
-    protocol_revision: Literal[5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    protocol_revision: Literal[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     code_execution_sandbox_revision: Literal[
         "v2_preload_doctest_ssl_before_socket_block",
         "v3_candidate_source_unit_non_main",

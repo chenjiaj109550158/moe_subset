@@ -27,6 +27,8 @@ An MBPP+ fenced-code scorer correction is v14, fingerprint
 `e85cf403a078ad416ded894fda93ada30c498e28bd734a752c12c8879f191fe2`.
 A finite GPT HumanEval cap-extension candidate is v15, fingerprint
 `dac2637dcce7c6c9cbbff44204a011969c66017b552194090206254457cb1c01`.
+A checkpoint-native sampling candidate is v16, fingerprint
+`869d7056182cfc096cd3f84567eddc4988dbe61c976fc9f15b052ad3574f1445`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -128,6 +130,20 @@ only GPT-OSS HumanEval `max_new_tokens` from 4096 to a finite 16384 and reruns a
 the predeclared vanilla alignment gate. Every other model/task generation is
 byte-compatible with v14.
 
+V16 was declared after complete Qwen AIME24 v10 generation scored 18/30 versus
+the paper's 24/30, and a raw-output audit showed that the mismatch was not an
+answer-extraction error. The pinned lm-eval task requests greedy decoding, but
+the Table 1 benchmark driver and decoding settings are not public. In contrast,
+both pinned checkpoint `generation_config.json` files publish
+`do_sample=true`; Qwen additionally publishes `temperature=0.7`, `top_p=0.8`,
+and `top_k=20`. The pinned public YALIS engine also samples by default with
+temperature 1.0 and top-p 1.0. V16 changes only `decode.do_sample` from false
+to true and otherwise inherits each pinned checkpoint's generation config.
+It is evaluated as a complete protocol candidate rather than selecting
+individual rows or tasks. The fixed adoption rule is unchanged: both models
+must pass all six vanilla alignment gates before oracle materialization or any
+paper-comparable Router-PF claim.
+
 ## Disclosure boundary
 
 The paper and public branch do not publish the Table 1 benchmark driver,
@@ -140,10 +156,12 @@ an exact execution of unpublished author artifacts.
 ## Fixed comparison
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
-  paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v15.yaml`.
-- Decoding is batch one and greedy (`do_sample=false`) for deterministic
-  paired comparisons. Qwen uses its non-thinking Instruct chat template.
+  paper values are fixed in the versioned v15 and v16 suite configs.
+- Decoding is batch one. V15 is greedy (`do_sample=false`); v16 uses seeded,
+  checkpoint-native sampling (`do_sample=true`) and inherits the pinned
+  checkpoint's temperature/top-p/top-k. Both remain exactly replayable because
+  the runner resets the frozen seed before every sample. Qwen uses its
+  non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.
   All six GPT tasks use a 4096-token cap so that the
   Harmony analysis channel has a meaningful but finite allowance; only the

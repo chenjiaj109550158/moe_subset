@@ -18,6 +18,7 @@ from pseudoroute.benchmark.prefetch import (
 )
 from pseudoroute.benchmark.runner import (
     _can_reuse_imported_score,
+    _generate,
     _generation_compatibility_payload,
     _materialize_oracle_task,
     _merge_task_shards,
@@ -453,6 +454,68 @@ def test_accuracy_v15_only_extends_gpt_humaneval_cap() -> None:
     assert _can_reuse_imported_score(13, 14, "gsm8k")
     assert _can_reuse_imported_score(13, 14, "humaneval")
     assert v15.fingerprint() == "dac2637dcce7c6c9cbbff44204a011969c66017b552194090206254457cb1c01"
+
+
+def test_accuracy_v16_only_adopts_checkpoint_native_sampling() -> None:
+    v15 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v15.yaml")
+    v16 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v16.yaml")
+    assert v16.protocol_revision == 15
+    assert v16.models == v15.models
+    assert v16.datasets == v15.datasets
+    assert v16.decode.model_copy(update={"do_sample": False}) == v15.decode
+    assert v16.decode.do_sample
+    for model in v16.models:
+        for dataset in v16.datasets:
+            assert _generation_compatibility_payload(
+                v15.model_dump(mode="json"), model.key, dataset.key
+            ) != _generation_compatibility_payload(
+                v16.model_dump(mode="json"), model.key, dataset.key
+            )
+    assert v16.fingerprint() == "869d7056182cfc096cd3f84567eddc4988dbe61c976fc9f15b052ad3574f1445"
+
+
+def test_generate_forwards_protocol_sampling_without_overriding_checkpoint_params() -> None:
+    class RecordingModel(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.kwargs: dict[str, Any] = {}
+
+        def generate(self, **kwargs: Any) -> Tensor:
+            self.kwargs = kwargs
+            return torch.tensor([[10, 11, 12]])
+
+    class Tokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
+
+        @staticmethod
+        def decode(tokens: Tensor, *, skip_special_tokens: bool) -> str:
+            assert skip_special_tokens
+            return "answer"
+
+    suite = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v16.yaml")
+    model = RecordingModel()
+    example = BenchmarkExample(
+        task="aime24",
+        sample_id="sample",
+        user_prompt="Question: sample\nAnswer:",
+        assistant_prefix=None,
+        target="12",
+        row={},
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    ids, text = _generate(
+        model,
+        Tokenizer(),
+        {"input_ids": torch.tensor([[10, 11]])},
+        example,
+        suite.models[0],
+        do_sample=suite.decode.do_sample,
+    )
+    assert ids == [12] and text == "answer"
+    assert model.kwargs["do_sample"] is True
+    assert not {"temperature", "top_p", "top_k"} & model.kwargs.keys()
 
 
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:

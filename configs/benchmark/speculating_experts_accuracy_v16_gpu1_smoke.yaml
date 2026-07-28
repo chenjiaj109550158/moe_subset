@@ -1,0 +1,107 @@
+schema_version: 1
+protocol_revision: 15
+code_execution_sandbox_revision: v4_prompt_helpers_candidate_source_unit_non_main
+suite_id: speculating_experts_accuracy_v16_gpu1_smoke
+paper_url: https://arxiv.org/abs/2603.19289
+paper_code_url: https://github.com/axonn-ai/yalis/tree/offload_prefetch
+paper_code_revision: b1970f7881129d92448e2f83b0702fea48644b92
+harness_revision: d800e04dcb1ce96791d8b2926cf0cc7703d58457
+evalplus_revision: 26d6d00bb1fd0fa37f39c99d5290da67891d1c5e
+cache_dir: .cache/pseudoroute/huggingface/hub
+dataset_cache_dir: .cache/pseudoroute/datasets
+models:
+  - key: qwen3_30b_a3b
+    architecture: qwen3_moe
+    model_id: Qwen/Qwen3-30B-A3B-Instruct-2507
+    revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+    precision_tier: bfloat16
+    device: cuda:1
+    reasoning_effort: none
+    max_new_tokens_overrides: {}
+    honor_task_stop_strings: true
+    code_assistant_prefill: true
+  - key: gpt_oss_20b
+    architecture: gpt_oss
+    model_id: openai/gpt-oss-20b
+    revision: 6cee5e81ee83917806bbde320786a8fb61efebee
+    precision_tier: mxfp4
+    device: cuda:1
+    reasoning_effort: medium
+    max_new_tokens_overrides: {humaneval: 16384, mbpp_plus: 4096, gsm8k: 4096, strategyqa: 4096, aime24: 4096, aime25: 4096}
+    honor_task_stop_strings: false
+    code_assistant_prefill: false
+datasets:
+  - key: humaneval
+    dataset_id: openai/openai_humaneval
+    split: test
+    revision: 7dce6050a7d6d172f3cc5c32aa97f52fa1a2e544
+    expected_samples: 164
+    max_new_tokens: 1024
+  - key: mbpp_plus
+    dataset_id: evalplus/mbppplus
+    split: test
+    revision: b2d74c91837c3f2a20c1299ae98133cbe7cfa077
+    expected_samples: 378
+    max_new_tokens: 1024
+  - key: gsm8k
+    dataset_id: openai/gsm8k
+    config: main
+    split: test
+    revision: 740312add88f781978c0658806c59bc2815b9866
+    expected_samples: 1319
+    max_new_tokens: 512
+  - key: aime24
+    dataset_id: Maxwell-Jia/AIME_2024
+    split: train
+    revision: 8d88b2876a82a080e2f172cc9b25d0d9d2cb4792
+    expected_samples: 30
+    max_new_tokens: 32768
+  - key: aime25
+    dataset_id: math-ai/aime25
+    split: test
+    revision: 563bb8404243c5f09de6ec262f2db674fe5bce9b
+    expected_samples: 30
+    max_new_tokens: 32768
+  - key: strategyqa
+    dataset_id: ChilleD/StrategyQA
+    split: test
+    revision: 705562638fe1d8ca6bb98c66fc8f94d45fda8c83
+    expected_samples: 687
+    max_new_tokens: 128
+calibration:
+  dataset_id: Salesforce/wikitext
+  config: wikitext-2-raw-v1
+  split: validation
+  revision: b08601e04326c79dfdd32d625aee71d232d685c3
+  row_ids: [3, 7, 8, 9, 10, 11, 12, 13, 17, 18, 22, 23, 24, 28, 29, 30, 31, 35, 36, 37, 41, 42, 43, 44, 49, 50, 54, 55, 56, 60, 61, 62, 63, 67, 68, 69, 70, 71, 75, 80, 84, 85, 92, 96, 97, 105, 106, 110, 117, 118, 119, 123, 124, 128, 129, 134, 135, 136, 137, 138, 139, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 158, 159, 160, 161, 165, 166, 168, 169, 170, 173, 174, 178, 179, 180, 181, 182, 183, 184, 185, 189, 190, 191, 192, 193, 197, 198, 202, 203, 204, 205, 209, 210, 211, 212, 213, 214, 215, 222, 223, 224, 225, 226, 227, 228, 229, 233, 234, 235, 236, 243, 247, 248, 254, 255, 258]
+  max_tokens_per_row: 128
+  definition: mean_unweighted_selected_expert_output
+  unobserved_expert_value: zero
+decode:
+  deterministic: true
+  do_sample: true
+  seed: 20260727
+  batch_size: 1
+  use_cache: true
+  chat_template_current_date: "2026-03-09"
+policies: [vanilla, router_pf, oracle_pf]
+oracle_evaluation: validated_identity_materialization
+alignment:
+  standard_errors: 2.0
+  minimum_discrete_questions: 1
+  require_all_tasks: true
+paper_results:
+  qwen3_30b_a3b:
+    humaneval: {vanilla_accuracy: 0.939, vanilla_standard_error: 0.019, router_pf_accuracy: 0.860}
+    mbpp_plus: {vanilla_accuracy: 0.762, vanilla_standard_error: 0.022, router_pf_accuracy: 0.659}
+    gsm8k: {vanilla_accuracy: 0.950, vanilla_standard_error: 0.006, router_pf_accuracy: 0.576}
+    aime24: {vanilla_accuracy: 0.800, vanilla_standard_error: 0.073, router_pf_accuracy: 0.467}
+    aime25: {vanilla_accuracy: 0.733, vanilla_standard_error: 0.081, router_pf_accuracy: 0.600}
+    strategyqa: {vanilla_accuracy: 0.719, vanilla_standard_error: 0.017, router_pf_accuracy: 0.683}
+  gpt_oss_20b:
+    humaneval: {vanilla_accuracy: 0.970, vanilla_standard_error: 0.013, router_pf_accuracy: 0.933}
+    mbpp_plus: {vanilla_accuracy: 0.794, vanilla_standard_error: 0.021, router_pf_accuracy: 0.804}
+    gsm8k: {vanilla_accuracy: 0.942, vanilla_standard_error: 0.006, router_pf_accuracy: 0.929}
+    aime24: {vanilla_accuracy: 0.667, vanilla_standard_error: 0.086, router_pf_accuracy: 0.667}
+    aime25: {vanilla_accuracy: 0.667, vanilla_standard_error: 0.086, router_pf_accuracy: 0.600}
+    strategyqa: {vanilla_accuracy: 0.753, vanilla_standard_error: 0.016, router_pf_accuracy: 0.738}

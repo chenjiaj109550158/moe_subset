@@ -357,12 +357,16 @@ def _generate(
     inputs: dict[str, Tensor],
     example: BenchmarkExample,
     model_config: AccuracyModelConfig,
+    *,
+    do_sample: bool,
 ) -> tuple[list[int], str]:
     input_length = int(inputs["input_ids"].shape[-1])
     kwargs: dict[str, object] = {
         **inputs,
         "max_new_tokens": example.max_new_tokens,
-        "do_sample": False,
+        # Sampling inherits temperature/top-p/top-k from the pinned
+        # checkpoint's generation_config.json.
+        "do_sample": do_sample,
         "use_cache": True,
         "pad_token_id": tokenizer.pad_token_id or tokenizer.eos_token_id,
     }
@@ -580,7 +584,14 @@ def _run_task(
             before = _copy_stats(active.stats) if active is not None else PrefetchStats()
             torch.cuda.reset_peak_memory_stats(torch.device(model_config.device))
             started = time.time()
-            token_ids, text = _generate(model, tokenizer, inputs, example, model_config)
+            token_ids, text = _generate(
+                model,
+                tokenizer,
+                inputs,
+                example,
+                model_config,
+                do_sample=suite.decode.do_sample,
+            )
             elapsed = time.time() - started
             after = _copy_stats(active.stats) if active is not None else PrefetchStats()
             score = score_response(example, text)
