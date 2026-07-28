@@ -298,6 +298,28 @@ def test_accuracy_v11_is_a_scorer_only_revision() -> None:
     assert v11.fingerprint() == "4c2b60dbb4cc6cc2aa1ebd6b3f8bad936b6ca6ee423166229fc12aed4cc5576d"
 
 
+def test_accuracy_v12_is_a_scorer_only_revision() -> None:
+    v11 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v11.yaml")
+    v12 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v12.yaml")
+    assert v12.protocol_revision == 11
+    assert v12.models == v11.models
+    assert v12.datasets == v11.datasets
+    assert v12.decode == v11.decode
+    for model in v12.models:
+        for dataset in v12.datasets:
+            assert _generation_compatibility_payload(
+                v11.model_dump(mode="json"), model.key, dataset.key
+            ) == _generation_compatibility_payload(
+                v12.model_dump(mode="json"), model.key, dataset.key
+            )
+    assert not _can_reuse_imported_score(10, 11, "humaneval")
+    assert not _can_reuse_imported_score(10, 11, "mbpp_plus")
+    assert _can_reuse_imported_score(10, 11, "gsm8k")
+    assert not _can_reuse_imported_score(9, 11, "humaneval")
+    assert _can_reuse_imported_score(9, 11, "gsm8k")
+    assert v12.fingerprint() == "beaf89e1a035fc093358433ce3a01758f03919f291e3af00542805e552dc29fc"
+
+
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:
     assert _can_reuse_imported_score(5, 7, "humaneval")
     assert _can_reuse_imported_score(6, 7, "strategyqa")
@@ -507,6 +529,34 @@ def test_standalone_fenced_program_is_a_separate_source_unit() -> None:
         "def identity(value):\n    return value\n\n"
         'if __name__ == "__main__":\n'
         '    raise AssertionError("candidate-only test block ran")\n'
+        "```"
+    )
+    assert score_response(example, generated).correct
+
+
+def test_standalone_humaneval_program_retains_prompt_helpers() -> None:
+    example = BenchmarkExample(
+        task="humaneval",
+        sample_id="prompt-helper",
+        user_prompt="prompt",
+        assistant_prefix=None,
+        target="assert decode_shift(encode_shift('abc')) == 'abc'",
+        row={
+            "prompt": (
+                "def encode_shift(value):\n"
+                "    return ''.join(chr((ord(char) - 92) % 26 + 97) for char in value)\n\n"
+                "def decode_shift(value):\n"
+            ),
+            "entry_point": "decode_shift",
+        },
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    generated = (
+        "analysisInvert the shift.assistantfinal"
+        "```python\n"
+        "def decode_shift(value):\n"
+        "    return ''.join(chr((ord(char) - 102) % 26 + 97) for char in value)\n"
         "```"
     )
     assert score_response(example, generated).correct

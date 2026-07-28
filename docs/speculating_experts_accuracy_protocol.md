@@ -19,6 +19,8 @@ A finite-code-cap candidate is v10, fingerprint
 `0d4fbb451a55f8fab39dabb8ab55c4e798f24f1489f8c94a10d717aced612fdc`.
 A scorer-only correction is v11, fingerprint
 `4c2b60dbb4cc6cc2aa1ebd6b3f8bad936b6ca6ee423166229fc12aed4cc5576d`.
+A prompt-helper scorer correction is v12, fingerprint
+`beaf89e1a035fc093358433ce3a01758f03919f291e3af00542805e552dc29fc`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -84,6 +86,14 @@ compiles a complete fenced replacement as a separate non-main source unit and
 deterministically rescores both code tasks; all other v10 scores are reusable.
 The raw v10 rows remain protocol-history evidence.
 
+V12 was declared after the complete v11 HumanEval audit found one remaining
+demonstrable harness false negative: the standalone target function called a
+helper defined before the target stub in the HumanEval prompt, but v11 executed
+only the replacement block. V12 executes that prompt prelude and the candidate
+as separate non-main source units before the official tests. It changes no
+generation input or token and deterministically rescores both code tasks; the
+other scores remain reusable.
+
 ## Disclosure boundary
 
 The paper and public branch do not publish the Table 1 benchmark driver,
@@ -97,7 +107,7 @@ an exact execution of unpublished author artifacts.
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
   paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v11.yaml`.
+  `configs/benchmark/speculating_experts_accuracy_v12.yaml`.
 - Decoding is batch one and greedy (`do_sample=false`) for deterministic
   paired comparisons. Qwen uses its non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.

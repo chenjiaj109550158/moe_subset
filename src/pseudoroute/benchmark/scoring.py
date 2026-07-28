@@ -199,6 +199,19 @@ socket.socket = _blocked
 """
 
 
+def _humaneval_prompt_prelude(example: BenchmarkExample) -> str:
+    """Retain helper definitions that precede the target HumanEval function."""
+    if example.task != "humaneval":
+        return ""
+    prompt = str(example.row.get("prompt", ""))
+    entry_point = str(example.row.get("entry_point", ""))
+    target = re.search(
+        rf"(?m)^(?:async[ ]+)?def[ ]+{re.escape(entry_point)}[ ]*[(]",
+        prompt,
+    )
+    return prompt[: target.start()] if target is not None else ""
+
+
 def _score_code(example: BenchmarkExample, text: str) -> ScoreResult:
     code = _extract_code(example, text)
     if not code.strip():
@@ -207,9 +220,11 @@ def _score_code(example: BenchmarkExample, text: str) -> ScoreResult:
     # ``from __future__`` legal even though the safety preamble must execute
     # first, and prevents candidate-only ``if __name__ == "__main__"`` blocks
     # from running as part of the benchmark.
+    prelude = _humaneval_prompt_prelude(example)
     program = (
         f"{_SAFETY_PREAMBLE}\n"
         f"__name__ = '__candidate__'\n"
+        f"exec(compile({prelude!r}, '<prompt-prelude>', 'exec'), globals())\n"
         f"exec(compile({code!r}, '<candidate>', 'exec'), globals())\n"
         f"{example.target}\n"
     )
