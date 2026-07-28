@@ -28,7 +28,7 @@ An MBPP+ fenced-code scorer correction is v14, fingerprint
 A finite GPT HumanEval cap-extension candidate is v15, fingerprint
 `dac2637dcce7c6c9cbbff44204a011969c66017b552194090206254457cb1c01`.
 A checkpoint-native sampling candidate is v16, fingerprint
-`869d7056182cfc096cd3f84567eddc4988dbe61c976fc9f15b052ad3574f1445`.
+`46f764f29c0ff97b9300c3d5f80dc0d60c37f9bef0678d3914d3c2c8b67a3698`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -143,6 +143,9 @@ It is evaluated as a complete protocol candidate rather than selecting
 individual rows or tasks. The fixed adoption rule is unchanged: both models
 must pass all six vanilla alignment gates before oracle materialization or any
 paper-comparable Router-PF claim.
+The formal v16 run assigns Qwen to GPU1 and GPT-OSS to the identical-model GPU0
+so that the two complete model suites can execute concurrently after all v15
+workers exit; device assignment does not mix rows within a model/task.
 
 ## Disclosure boundary
 

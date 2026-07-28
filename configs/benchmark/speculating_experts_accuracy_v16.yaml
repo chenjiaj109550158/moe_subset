@@ -15,7 +15,7 @@ models:
     model_id: Qwen/Qwen3-30B-A3B-Instruct-2507
     revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
     precision_tier: bfloat16
-    device: cuda:0
+    device: cuda:1
     reasoning_effort: none
     max_new_tokens_overrides: {}
     honor_task_stop_strings: true
@@ -25,7 +25,7 @@ models:
     model_id: openai/gpt-oss-20b
     revision: 6cee5e81ee83917806bbde320786a8fb61efebee
     precision_tier: mxfp4
-    device: cuda:1
+    device: cuda:0
     reasoning_effort: medium
     max_new_tokens_overrides: {humaneval: 16384, mbpp_plus: 4096, gsm8k: 4096, strategyqa: 4096, aime24: 4096, aime25: 4096}
     honor_task_stop_strings: false

@@ -456,11 +456,16 @@ def test_accuracy_v15_only_extends_gpt_humaneval_cap() -> None:
     assert v15.fingerprint() == "dac2637dcce7c6c9cbbff44204a011969c66017b552194090206254457cb1c01"
 
 
-def test_accuracy_v16_only_adopts_checkpoint_native_sampling() -> None:
+def test_accuracy_v16_adopts_checkpoint_sampling_and_schedules_models() -> None:
     v15 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v15.yaml")
     v16 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v16.yaml")
     assert v16.protocol_revision == 15
-    assert v16.models == v15.models
+    for before, after in zip(v15.models, v16.models, strict=True):
+        assert after.model_copy(update={"device": before.device}) == before
+    assert [(model.key, model.device) for model in v16.models] == [
+        ("qwen3_30b_a3b", "cuda:1"),
+        ("gpt_oss_20b", "cuda:0"),
+    ]
     assert v16.datasets == v15.datasets
     assert v16.decode.model_copy(update={"do_sample": False}) == v15.decode
     assert v16.decode.do_sample
@@ -471,7 +476,15 @@ def test_accuracy_v16_only_adopts_checkpoint_native_sampling() -> None:
             ) != _generation_compatibility_payload(
                 v16.model_dump(mode="json"), model.key, dataset.key
             )
-    assert v16.fingerprint() == "869d7056182cfc096cd3f84567eddc4988dbe61c976fc9f15b052ad3574f1445"
+    smoke = load_accuracy_suite_config(
+        "configs/benchmark/speculating_experts_accuracy_v16_gpu1_smoke.yaml"
+    )
+    assert _generation_compatibility_payload(
+        v16.model_dump(mode="json"), "qwen3_30b_a3b", "aime24"
+    ) == _generation_compatibility_payload(
+        smoke.model_dump(mode="json"), "qwen3_30b_a3b", "aime24"
+    )
+    assert v16.fingerprint() == "46f764f29c0ff97b9300c3d5f80dc0d60c37f9bef0678d3914d3c2c8b67a3698"
 
 
 def test_generate_forwards_protocol_sampling_without_overriding_checkpoint_params() -> None:
