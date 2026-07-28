@@ -412,6 +412,18 @@ def _can_reuse_imported_score(source_protocol: int, target_protocol: int, task_k
         return task_key not in {"humaneval", "mbpp_plus"}
     if target_protocol == 11 and source_protocol in {9, 10}:
         return task_key not in {"humaneval", "mbpp_plus"}
+    if target_protocol == 12 and source_protocol in {9, 10, 11}:
+        if task_key == "gsm8k":
+            return False
+        return source_protocol == 11 or task_key not in {"humaneval", "mbpp_plus"}
+    if target_protocol == 13 and source_protocol in {9, 10, 11, 12}:
+        if task_key == "mbpp_plus":
+            return False
+        if task_key == "gsm8k":
+            return source_protocol == 12
+        return source_protocol >= 11 or task_key != "humaneval"
+    if (source_protocol, target_protocol) == (13, 14):
+        return True
     return source_protocol in {5, 6} and target_protocol == 7 and task_key != "gsm8k"
 
 

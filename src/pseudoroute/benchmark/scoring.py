@@ -70,24 +70,67 @@ def _score_aime(text: str, target: str) -> ScoreResult:
 def _score_gsm8k(text: str, target: str) -> ScoreResult:
     number_pattern = r"-?\$?[0-9][0-9,]*(?:\.[0-9]+)?"
     boxed = _last_boxed(text)
-    boxed_numbers = re.findall(number_pattern, boxed) if boxed is not None else []
-    final_sections = re.split(r"final\s+answer\s*:?\s*", text, flags=re.IGNORECASE)
-    final_numbers = (
-        re.findall(number_pattern, final_sections[-1]) if len(final_sections) > 1 else []
+    # LaTeX commonly renders thousands separators as ``{,}`` and escaped
+    # currency as ``\$``. Normalize those before looking for a numeric answer.
+    normalized = text.replace(r"{,}", ",").replace(r"\$", "$")
+    normalized_boxed = boxed.replace(r"{,}", ",").replace(r"\$", "$") if boxed else ""
+    boxed_numbers = re.findall(number_pattern, normalized_boxed)
+    # Prefer the first number following the *last* explicit answer label. The
+    # first number after a leading "Final Answer" heading is not necessarily the
+    # answer when a verbose model subsequently shows its work, while the last
+    # number in an answer sentence can be a unit conversion or explanation.
+    answer_labels = list(
+        re.finditer(
+            r"(?:\*\*|__)?(?:final\s+)?answer(?:\*\*|__)?"
+            r"\s*(?:is|:)(?:\*\*|__)?\s*",
+            normalized,
+            flags=re.IGNORECASE,
+        )
     )
-    explicit = re.findall(
-        rf"(?:the\s+)?answer\s+is\s+({number_pattern})",
-        text,
+    answer_section = normalized[answer_labels[-1].end() :] if answer_labels else ""
+    # Keep only the answer lead-in when the model follows it with a separately
+    # styled explanation. This avoids treating worked-example values as answers.
+    answer_intro = re.split(
+        r"(?:\r?\n[ \t]*){2,}(?=(?:\*\*|__))",
+        answer_section,
+        maxsplit=1,
+    )[0]
+    answer_intro = re.split(
+        r"(?:\*\*|__)(?:explanation|reasoning)(?:\*\*|__)",
+        answer_intro,
+        maxsplit=1,
         flags=re.IGNORECASE,
-    )
-    candidates = re.findall(number_pattern, text)
+    )[0]
+    answer_numbers = re.findall(number_pattern, answer_intro)
+    answer_emphasized = [
+        numbers
+        for section in re.findall(
+            r"(?:\*\*|__)(.*?)(?:\*\*|__)",
+            answer_intro,
+            flags=re.DOTALL,
+        )
+        if (numbers := re.findall(number_pattern, section))
+    ]
+    emphasized_numbers = [
+        numbers
+        for section in re.findall(
+            r"(?:\*\*|__)(.*?)(?:\*\*|__)",
+            normalized,
+            flags=re.DOTALL,
+        )
+        if "step" not in section.casefold()
+        if (numbers := re.findall(number_pattern, section))
+    ]
+    candidates = re.findall(number_pattern, normalized)
     raw = (
         boxed_numbers[-1]
         if boxed_numbers
-        else final_numbers[0]
-        if final_numbers
-        else explicit[-1]
-        if explicit
+        else answer_emphasized[0][0]
+        if answer_emphasized
+        else answer_numbers[0]
+        if answer_numbers
+        else emphasized_numbers[-1][0]
+        if emphasized_numbers
         else candidates[-1]
         if candidates
         else ""
@@ -110,27 +153,45 @@ def _score_strategyqa(text: str, target: str) -> ScoreResult:
 
 def _extract_code(example: BenchmarkExample, text: str) -> str:
     if example.assistant_prefix is None:
-        blocks = cast(
-            list[str],
+        tagged_blocks = cast(
+            list[tuple[str, str]],
             re.findall(
-                r"```(?:python)?\s*(.*?)```",
+                r"```[ \t]*(?:(python(?:3)?|py)(?=\s)[ \t]*)?(?:\r?\n)?(.*?)```",
                 text,
                 flags=re.DOTALL | re.IGNORECASE,
             ),
         )
+        blocks = [block for _, block in tagged_blocks]
         if example.task == "humaneval":
-            entry_point = str(example.row["entry_point"])
-            complete = next(
-                (
-                    block
-                    for block in blocks
-                    if re.search(rf"\bdef\s+{re.escape(entry_point)}\b", block)
-                ),
-                None,
+            entry_points = (str(example.row["entry_point"]),)
+        else:
+            entry_points = tuple(
+                re.findall(r"\bdef\s+([A-Za-z_]\w*)\s*\(", str(example.row.get("code", "")))
             )
-            if complete is not None:
-                return complete
-        elif blocks:
+        complete = next(
+            (
+                block
+                for block in blocks
+                if any(
+                    re.search(rf"\bdef\s+{re.escape(entry_point)}\b", block)
+                    for entry_point in entry_points
+                )
+            ),
+            None,
+        )
+        if complete is not None:
+            return complete
+        python_block = next(
+            (
+                block
+                for language, block in tagged_blocks
+                if language.casefold() in {"python", "python3", "py"}
+            ),
+            None,
+        )
+        if python_block is not None:
+            return python_block
+        if blocks:
             return blocks[0]
     before_fence = text.split("```", 1)[0]
     if before_fence.strip():

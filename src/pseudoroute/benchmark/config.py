@@ -72,7 +72,7 @@ class PaperResult(StrictModel):
 
 class AccuracySuiteConfig(StrictModel):
     schema_version: Literal[1]
-    protocol_revision: Literal[5, 6, 7, 8, 9, 10, 11]
+    protocol_revision: Literal[5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     code_execution_sandbox_revision: Literal[
         "v2_preload_doctest_ssl_before_socket_block",
         "v3_candidate_source_unit_non_main",

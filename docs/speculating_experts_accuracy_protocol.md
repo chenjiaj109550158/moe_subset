@@ -21,6 +21,12 @@ A scorer-only correction is v11, fingerprint
 `4c2b60dbb4cc6cc2aa1ebd6b3f8bad936b6ca6ee423166229fc12aed4cc5576d`.
 A prompt-helper scorer correction is v12, fingerprint
 `beaf89e1a035fc093358433ce3a01758f03919f291e3af00542805e552dc29fc`.
+A GSM8K final-answer scorer correction is v13, fingerprint
+`1a11f813076b50c4ef8b47d635da578f5ab2237c68f9964ceb08e67bbbb6ade1`.
+An MBPP+ fenced-code scorer correction is v14, fingerprint
+`e85cf403a078ad416ded894fda93ada30c498e28bd734a752c12c8879f191fe2`.
+A finite GPT HumanEval cap-extension candidate is v15, fingerprint
+`dac2637dcce7c6c9cbbff44204a011969c66017b552194090206254457cb1c01`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -94,6 +100,34 @@ as separate non-main source units before the official tests. It changes no
 generation input or token and deterministically rescores both code tasks; the
 other scores remain reusable.
 
+V13 was declared during the in-progress GSM8K vanilla audit after raw GPT-OSS
+final responses exposed false negatives in v7's first-number-after-`Final
+Answer` rule. Verbose correct responses could repeat problem values before the
+conclusion, express a thousands separator as `\boxed{8{,}000}`, or give an
+answer in one unit followed by a conversion. V13 prioritizes normalized boxed
+answers, explicit answer lead-ins, and emphasized conclusions, with regression
+cases taken from the audited raw responses. It changes no model, prompt,
+decoding, dataset, or generated token. GSM8K is deterministically rescored;
+all generation-compatible non-GSM scores retain their prior scorer result.
+
+V14 was declared after the complete GPT-OSS MBPP+ failure audit found that the
+standalone-code extractor selected the first Markdown fence even when it was an
+unlabelled derivation or pseudocode block and a later `python` fence defined the
+canonical MBPP entry point. V14 selects a fenced definition of a function from
+the pinned canonical solution, then a Python-labelled fence, before falling
+back to the first fence. Seven previously failed raw generations pass the same
+pinned augmented tests under this correction. It changes no generation input or
+token and deterministically rescores MBPP+ only.
+
+V15 was declared after the complete v12/v14 HumanEval scorer audit retained 13
+GPT-OSS failures, five of which ended exactly at the 4096-token cap without a
+complete target-function fence. The official checkpoint supports substantially
+longer outputs, while the paper does not disclose its code-task cap. V15 changes
+only GPT-OSS HumanEval `max_new_tokens` from 4096 to a finite 16384 and reruns all
+164 rows; no capped-row-only selection is permitted. The adoption rule remains
+the predeclared vanilla alignment gate. Every other model/task generation is
+byte-compatible with v14.
+
 ## Disclosure boundary
 
 The paper and public branch do not publish the Table 1 benchmark driver,
@@ -107,7 +141,7 @@ an exact execution of unpublished author artifacts.
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
   paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v12.yaml`.
+  `configs/benchmark/speculating_experts_accuracy_v15.yaml`.
 - Decoding is batch one and greedy (`do_sample=false`) for deterministic
   paired comparisons. Qwen uses its non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.

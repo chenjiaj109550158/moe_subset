@@ -184,6 +184,63 @@ def test_answer_scorers_use_final_explicit_answers() -> None:
         _example("gsm8k", "6"),
         r"work 12 and 4. Final Answer: \boxed{6}. Remaining 6 at 4 mph.",
     )
+    gsm_verbose = score_response(
+        _example("gsm8k", "230"),
+        (
+            "assistantfinalDay 1: 80 miles. Day 2: 150 miles. "
+            "So answer: Each train covers **230 miles**."
+        ),
+    )
+    gsm_emphasized = score_response(
+        _example("gsm8k", "70"),
+        (
+            "assistantfinalTotal time is 30 + 40 = 70 minutes. "
+            "So Carmen spent **70 minutes** (1 hour and 10 minutes)."
+        ),
+    )
+    gsm_latex_comma = score_response(
+        _example("gsm8k", "8000"),
+        r"assistantfinalThus \boxed{8{,}000}.",
+    )
+    gsm_labeled_sentence = score_response(
+        _example("gsm8k", "3"),
+        "assistantfinal**Answer:** A 42 kg bag lasts **3 weeks**.",
+    )
+    gsm_word_answer = score_response(
+        _example("gsm8k", "2"),
+        (
+            "assistantfinal**Step 3: Determine truckloads** "
+            "4500 / 2250 = 2 trips. The farmer needs **two trips**."
+        ),
+    )
+    gsm_converted_units = score_response(
+        _example("gsm8k", "216"),
+        (
+            "assistantfinal**Final Answer:** It takes **216 seconds**, "
+            "or **3 minutes and 36 seconds**."
+        ),
+    )
+    gsm_answer_before_explanation = score_response(
+        _example("gsm8k", "25000"),
+        (
+            "assistantfinal**Answer: $25,000 per year**\n\n**Explanation** "
+            "After 30 years, 50% of $50,000 is **$25,000**."
+        ),
+    )
+    gsm_answer_before_steps = score_response(
+        _example("gsm8k", "48"),
+        (
+            "assistantfinal**Answer: 48 french fries**\n\n"
+            "**Step-by-step reasoning** Step 1 starts with one example."
+        ),
+    )
+    gsm_wrong_conclusion = score_response(
+        _example("gsm8k", "6"),
+        (
+            "assistantfinalThey read **3 distinct books**. "
+            "Counting reading events would instead give 6."
+        ),
+    )
     aime = score_response(_example("aime24", "123"), r"work \boxed{123}")
     strategy = score_response(_example("strategyqa", "yes"), "Maybe no. Final answer: yes")
     harmony = score_response(_example("strategyqa", "yes"), "analysisMaybe no.assistantfinalYes")
@@ -192,6 +249,17 @@ def test_answer_scorers_use_final_explicit_answers() -> None:
     assert gsm_final.correct and gsm_final.parsed_answer == "45"
     assert gsm_decimal.correct and gsm_decimal.parsed_answer == "26.00"
     assert gsm_boxed.correct and gsm_boxed.parsed_answer == "6"
+    assert gsm_verbose.correct and gsm_verbose.parsed_answer == "230"
+    assert gsm_emphasized.correct and gsm_emphasized.parsed_answer == "70"
+    assert gsm_latex_comma.correct and gsm_latex_comma.parsed_answer == "8000"
+    assert gsm_labeled_sentence.correct and gsm_labeled_sentence.parsed_answer == "3"
+    assert gsm_word_answer.correct and gsm_word_answer.parsed_answer == "2"
+    assert gsm_converted_units.correct and gsm_converted_units.parsed_answer == "216"
+    assert gsm_answer_before_explanation.correct
+    assert gsm_answer_before_explanation.parsed_answer == "25000"
+    assert gsm_answer_before_steps.correct
+    assert gsm_answer_before_steps.parsed_answer == "48"
+    assert not gsm_wrong_conclusion.correct and gsm_wrong_conclusion.parsed_answer == "3"
     assert aime.correct and aime.parsed_answer == "123"
     assert not score_response(_example("aime24", "123"), "reasoning 5; final 123").correct
     assert strategy.correct and strategy.parsed_answer == "yes"
@@ -318,6 +386,73 @@ def test_accuracy_v12_is_a_scorer_only_revision() -> None:
     assert not _can_reuse_imported_score(9, 11, "humaneval")
     assert _can_reuse_imported_score(9, 11, "gsm8k")
     assert v12.fingerprint() == "beaf89e1a035fc093358433ce3a01758f03919f291e3af00542805e552dc29fc"
+
+
+def test_accuracy_v13_is_a_gsm_scorer_only_revision() -> None:
+    v12 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v12.yaml")
+    v13 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v13.yaml")
+    assert v13.protocol_revision == 12
+    assert v13.models == v12.models
+    assert v13.datasets == v12.datasets
+    assert v13.decode == v12.decode
+    for model in v13.models:
+        for dataset in v13.datasets:
+            assert _generation_compatibility_payload(
+                v12.model_dump(mode="json"), model.key, dataset.key
+            ) == _generation_compatibility_payload(
+                v13.model_dump(mode="json"), model.key, dataset.key
+            )
+    assert not _can_reuse_imported_score(11, 12, "gsm8k")
+    assert _can_reuse_imported_score(11, 12, "humaneval")
+    assert not _can_reuse_imported_score(9, 12, "gsm8k")
+    assert not _can_reuse_imported_score(9, 12, "humaneval")
+    assert _can_reuse_imported_score(9, 12, "strategyqa")
+    assert v13.fingerprint() == "1a11f813076b50c4ef8b47d635da578f5ab2237c68f9964ceb08e67bbbb6ade1"
+
+
+def test_accuracy_v14_is_an_mbpp_scorer_only_revision() -> None:
+    v13 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v13.yaml")
+    v14 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v14.yaml")
+    assert v14.protocol_revision == 13
+    assert v14.models == v13.models
+    assert v14.datasets == v13.datasets
+    assert v14.decode == v13.decode
+    for model in v14.models:
+        for dataset in v14.datasets:
+            assert _generation_compatibility_payload(
+                v13.model_dump(mode="json"), model.key, dataset.key
+            ) == _generation_compatibility_payload(
+                v14.model_dump(mode="json"), model.key, dataset.key
+            )
+    assert not _can_reuse_imported_score(12, 13, "mbpp_plus")
+    assert _can_reuse_imported_score(12, 13, "humaneval")
+    assert _can_reuse_imported_score(12, 13, "gsm8k")
+    assert not _can_reuse_imported_score(11, 13, "gsm8k")
+    assert not _can_reuse_imported_score(9, 13, "humaneval")
+    assert _can_reuse_imported_score(9, 13, "strategyqa")
+    assert v14.fingerprint() == "e85cf403a078ad416ded894fda93ada30c498e28bd734a752c12c8879f191fe2"
+
+
+def test_accuracy_v15_only_extends_gpt_humaneval_cap() -> None:
+    v14 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v14.yaml")
+    v15 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v15.yaml")
+    assert v15.protocol_revision == 14
+    assert v15.models[0] == v14.models[0]
+    assert v15.models[1].max_new_tokens_overrides == {
+        **v14.models[1].max_new_tokens_overrides,
+        "humaneval": 16384,
+    }
+    assert v15.datasets == v14.datasets
+    assert v15.decode == v14.decode
+    assert _generation_compatibility_payload(
+        v14.model_dump(mode="json"), "gpt_oss_20b", "gsm8k"
+    ) == _generation_compatibility_payload(v15.model_dump(mode="json"), "gpt_oss_20b", "gsm8k")
+    assert _generation_compatibility_payload(
+        v14.model_dump(mode="json"), "gpt_oss_20b", "humaneval"
+    ) != _generation_compatibility_payload(v15.model_dump(mode="json"), "gpt_oss_20b", "humaneval")
+    assert _can_reuse_imported_score(13, 14, "gsm8k")
+    assert _can_reuse_imported_score(13, 14, "humaneval")
+    assert v15.fingerprint() == "dac2637dcce7c6c9cbbff44204a011969c66017b552194090206254457cb1c01"
 
 
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:
@@ -506,6 +641,25 @@ def test_gpt_code_without_assistant_prefill_scores_standalone_fence() -> None:
         "```python\ndef identity(value):\n    return value\n```"
     )
     assert score_response(rendered_example, generated).correct
+
+
+def test_gpt_mbpp_prefers_relevant_python_fence_after_math_fences() -> None:
+    example = BenchmarkExample(
+        task="mbpp_plus",
+        sample_id="standalone-multiple-fences",
+        user_prompt="prompt",
+        assistant_prefix=None,
+        target="assert square(3) == 9",
+        row={"code": "def square(value):\n    return value * value\n"},
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    generated = (
+        "analysisDerive the formula.assistantfinal"
+        "The recurrence is:\n```\nP[k] = P[k-1] + 1\n```\n"
+        "```python\ndef square(value):\n    return value * value\n```"
+    )
+    assert score_response(example, generated).correct
 
 
 def test_standalone_fenced_program_is_a_separate_source_unit() -> None:
