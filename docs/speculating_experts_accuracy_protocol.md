@@ -166,9 +166,9 @@ an exact execution of unpublished author artifacts.
   the runner resets the frozen seed before every sample. Qwen uses its
   non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.
-  All six GPT tasks use a 4096-token cap so that the
-  Harmony analysis channel has a meaningful but finite allowance; only the
-  final channel is scored. Raw task stop strings remain enabled for Qwen, but
+  GPT-OSS HumanEval uses a 16384-token cap and its other five tasks use 4096 so
+  that the Harmony analysis channel has a meaningful but finite allowance; only
+  the final channel is scored. Raw task stop strings remain enabled for Qwen, but
   are disabled for GPT-OSS because Harmony analysis can quote
   `Q:`/`Question:` before its final channel; GPT-OSS terminates by EOS or the
   recorded token cap.
