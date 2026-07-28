@@ -408,6 +408,8 @@ def _can_reuse_imported_score(source_protocol: int, target_protocol: int, task_k
         return True
     if (source_protocol, target_protocol) in {(7, 8), (8, 9)}:
         return True
+    if (source_protocol, target_protocol) == (9, 10):
+        return task_key not in {"humaneval", "mbpp_plus"}
     return source_protocol in {5, 6} and target_protocol == 7 and task_key != "gsm8k"
 
 
@@ -460,7 +462,7 @@ def import_compatible_vanilla_results(
                 if sample_id in completed:
                     continue
                 index = int(source["row_index"])
-                example = examples[index]
+                example = _model_example(examples[index], model)
                 if example.sample_id != sample_id:
                     raise ValueError(f"source row/sample mismatch: {model.key}/{task_key}/{index}")
                 if (

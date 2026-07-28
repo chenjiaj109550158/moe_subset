@@ -17,6 +17,8 @@ A targeted GPT code-alignment candidate is v9, fingerprint
 `8cf30430b17b2e82a23adb573872d2fb440c0bf31a22eb2d2e5d5264f6974d1d`.
 A finite-code-cap candidate is v10, fingerprint
 `0d4fbb451a55f8fab39dabb8ab55c4e798f24f1489f8c94a10d717aced612fdc`.
+A scorer-only correction is v11, fingerprint
+`4c2b60dbb4cc6cc2aa1ebd6b3f8bad936b6ca6ee423166229fc12aed4cc5576d`.
 An interrupted v1 HumanEval smoke revealed that replacing `socket.socket` before
 a candidate's benign `import doctest` caused Python's `ssl` module to fail while
 loading. The generated functions were correct, but the harness reported false
@@ -73,6 +75,15 @@ and math tasks. The v9 rows and interruption envelopes remain diagnostics. The
 same adoption rule applies to complete v10 HumanEval and MBPP+; no individual
 task may be selected from another protocol.
 
+V11 was declared after a completed v10 HumanEval shard audit found three
+demonstrable harness false negatives: standalone programs were appended to the
+HumanEval stub, generated `from __future__` statements followed the safety
+preamble, and candidate-only `if __name__ == "__main__"` blocks executed during
+scoring. V11 changes no model, prompt, decoding, dataset, or generated token. It
+compiles a complete fenced replacement as a separate non-main source unit and
+deterministically rescores both code tasks; all other v10 scores are reusable.
+The raw v10 rows remain protocol-history evidence.
+
 ## Disclosure boundary
 
 The paper and public branch do not publish the Table 1 benchmark driver,
@@ -86,7 +97,7 @@ an exact execution of unpublished author artifacts.
 
 - Checkpoints, dataset revisions, sample counts, decoding limits, and reported
   paper values are fixed in
-  `configs/benchmark/speculating_experts_accuracy_v10.yaml`.
+  `configs/benchmark/speculating_experts_accuracy_v11.yaml`.
 - Decoding is batch one and greedy (`do_sample=false`) for deterministic
   paired comparisons. Qwen uses its non-thinking Instruct chat template.
   GPT-OSS uses its pinned Harmony template with `reasoning_effort=medium`.

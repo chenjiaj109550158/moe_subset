@@ -278,6 +278,26 @@ def test_accuracy_v10_raises_only_gpt_code_caps() -> None:
     assert v10.fingerprint() == "0d4fbb451a55f8fab39dabb8ab55c4e798f24f1489f8c94a10d717aced612fdc"
 
 
+def test_accuracy_v11_is_a_scorer_only_revision() -> None:
+    v10 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v10.yaml")
+    v11 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v11.yaml")
+    assert v11.protocol_revision == 10
+    assert v11.models == v10.models
+    assert v11.datasets == v10.datasets
+    assert v11.decode == v10.decode
+    for model in v11.models:
+        for dataset in v11.datasets:
+            assert _generation_compatibility_payload(
+                v10.model_dump(mode="json"), model.key, dataset.key
+            ) == _generation_compatibility_payload(
+                v11.model_dump(mode="json"), model.key, dataset.key
+            )
+    assert not _can_reuse_imported_score(9, 10, "humaneval")
+    assert not _can_reuse_imported_score(9, 10, "mbpp_plus")
+    assert _can_reuse_imported_score(9, 10, "gsm8k")
+    assert v11.fingerprint() == "4c2b60dbb4cc6cc2aa1ebd6b3f8bad936b6ca6ee423166229fc12aed4cc5576d"
+
+
 def test_v7_import_score_reuse_matrix_is_explicit() -> None:
     assert _can_reuse_imported_score(5, 7, "humaneval")
     assert _can_reuse_imported_score(6, 7, "strategyqa")
@@ -464,6 +484,32 @@ def test_gpt_code_without_assistant_prefill_scores_standalone_fence() -> None:
         "```python\ndef identity(value):\n    return value\n```"
     )
     assert score_response(rendered_example, generated).correct
+
+
+def test_standalone_fenced_program_is_a_separate_source_unit() -> None:
+    example = BenchmarkExample(
+        task="humaneval",
+        sample_id="standalone-program",
+        user_prompt="prompt",
+        assistant_prefix=None,
+        target="assert identity(3) == 3",
+        row={
+            "prompt": "def identity(value):\n",
+            "entry_point": "identity",
+        },
+        stop_strings=(),
+        max_new_tokens=32,
+    )
+    generated = (
+        "analysisUse a direct return.assistantfinal"
+        "```python\n"
+        "from __future__ import annotations\n\n"
+        "def identity(value):\n    return value\n\n"
+        'if __name__ == "__main__":\n'
+        '    raise AssertionError("candidate-only test block ran")\n'
+        "```"
+    )
+    assert score_response(example, generated).correct
 
 
 def test_code_extractor_prefers_nonempty_prefix_continuation() -> None:

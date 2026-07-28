@@ -129,7 +129,7 @@ def _extract_code(example: BenchmarkExample, text: str) -> str:
                 None,
             )
             if complete is not None:
-                return str(example.row["prompt"]) + "\n" + complete
+                return complete
         elif blocks:
             return blocks[0]
     before_fence = text.split("```", 1)[0]
@@ -157,7 +157,7 @@ def _extract_code(example: BenchmarkExample, text: str) -> str:
             None,
         )
         if complete is not None:
-            return str(example.row["prompt"]) + "\n" + complete
+            return complete
         return str(example.row["prompt"]) + before_fence
     if blocks:
         return blocks[0]
@@ -203,10 +203,16 @@ def _score_code(example: BenchmarkExample, text: str) -> ScoreResult:
     code = _extract_code(example, text)
     if not code.strip():
         return ScoreResult(False, "", "empty code")
-    if example.task == "humaneval":
-        program = f"{_SAFETY_PREAMBLE}\n{code}\n{example.target}\n"
-    else:
-        program = f"{_SAFETY_PREAMBLE}\n{code}\n{example.target}\n"
+    # Compile the candidate as a separate source unit. This keeps a generated
+    # ``from __future__`` legal even though the safety preamble must execute
+    # first, and prevents candidate-only ``if __name__ == "__main__"`` blocks
+    # from running as part of the benchmark.
+    program = (
+        f"{_SAFETY_PREAMBLE}\n"
+        f"__name__ = '__candidate__'\n"
+        f"exec(compile({code!r}, '<candidate>', 'exec'), globals())\n"
+        f"{example.target}\n"
+    )
     with tempfile.TemporaryDirectory(prefix="pseudoroute-code-") as directory:
         script = Path(directory) / "candidate.py"
         script.write_text(program, encoding="utf-8")
