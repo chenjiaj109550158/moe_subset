@@ -18,6 +18,7 @@ models:
     device: cuda:1
     reasoning_effort: none
     max_new_tokens_overrides: {}
+    do_sample_overrides: {aime24: true, aime25: true}
     honor_task_stop_strings: true
     code_assistant_prefill: true
   - key: gpt_oss_20b
@@ -28,7 +29,7 @@ models:
     device: cuda:0
     reasoning_effort: medium
     max_new_tokens_overrides: {humaneval: 16384, mbpp_plus: 4096, gsm8k: 4096, strategyqa: 4096, aime24: 4096, aime25: 4096}
-    do_sample_overrides: {mbpp_plus: false}
+    do_sample_overrides: {humaneval: true, aime24: true, aime25: true}
     honor_task_stop_strings: false
     code_assistant_prefill: false
 datasets:
@@ -80,7 +81,7 @@ calibration:
   unobserved_expert_value: zero
 decode:
   deterministic: true
-  do_sample: true
+  do_sample: false
   seed: 20260727
   batch_size: 1
   use_cache: true

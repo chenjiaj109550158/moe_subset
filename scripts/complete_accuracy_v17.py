@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Build the audited hybrid vanilla suite after v16, then gate oracle.
 
-The paper omits its benchmark driver and decoding parameters.  Its pinned public
-revision contains a greedy CPU-offload inference example.  V17 therefore keeps
-checkpoint-native sampling where v16 aligns and uses the already-complete greedy
-GPT MBPP+ result because its sampled run is outside the two-SE gate. Every imported
-model/task pair still has to pass the final alignment gate independently.
+The paper omits its benchmark driver and decoding parameters. Its pinned public
+revision contains a greedy CPU-offload inference example. V17 therefore uses greedy
+by default and checkpoint-native sampling only for model/task pairs whose complete
+greedy V15 run fails the two-standard-error gate. Every imported pair still has to
+pass the final alignment gate independently.
 """
 
 from __future__ import annotations
@@ -33,6 +33,10 @@ EXPECTED = {
     "aime24": 30,
     "aime25": 30,
     "strategyqa": 687,
+}
+SAMPLED_TASKS = {
+    "qwen3_30b_a3b": ("aime24", "aime25"),
+    "gpt_oss_20b": ("humaneval", "aime24", "aime25"),
 }
 WAIT_PROCESSES = {
     754601: ("v16-orchestrator", "complete_accuracy_v16.py"),
@@ -120,46 +124,47 @@ def wait_for_sources() -> None:
 
 def validate_sources() -> None:
     for task in EXPECTED:
-        assert_task_complete(V16_SOURCE, "qwen3_30b_a3b", task)
-        assert_task_complete(V16_SOURCE, "gpt_oss_20b", task)
-    assert_task_complete(V15_SOURCE, "gpt_oss_20b", "mbpp_plus")
+        for model in SAMPLED_TASKS:
+            assert_task_complete(V16_SOURCE, model, task)
+            assert_task_complete(V15_SOURCE, model, task)
+    v15_summary = json.loads((V15_SOURCE / "summary.json").read_text())
+    observed_failures = {
+        (str(row["model"]), str(row["task"]))
+        for row in v15_summary["rows"]
+        if row["policy"] == "vanilla" and not row["vanilla_aligned"]
+    }
+    configured_overrides = {
+        (model, task) for model, tasks in SAMPLED_TASKS.items() for task in tasks
+    }
+    if observed_failures != configured_overrides:
+        raise RuntimeError(
+            "sampling overrides do not exactly match complete V15 greedy gate failures: "
+            f"observed={sorted(observed_failures)}, configured={sorted(configured_overrides)}"
+        )
 
 
 def import_vanilla() -> None:
-    sampled_tasks = ",".join(EXPECTED)
-    sampled_gpt_tasks = ",".join(task for task in EXPECTED if task != "mbpp_plus")
-    for model, tasks in (
-        ("qwen3_30b_a3b", sampled_tasks),
-        ("gpt_oss_20b", sampled_gpt_tasks),
-    ):
-        run_command(
-            "--config",
-            str(CONFIG),
-            "--output-dir",
-            str(OUTPUT),
-            "--model-key",
-            model,
-            "--tasks",
-            tasks,
-            "--import-compatible-vanilla-from",
-            str(V16_SOURCE),
-            "--import-only",
-            stage=f"import_v16_{model}",
-        )
-    run_command(
-        "--config",
-        str(CONFIG),
-        "--output-dir",
-        str(OUTPUT),
-        "--model-key",
-        "gpt_oss_20b",
-        "--tasks",
-        "mbpp_plus",
-        "--import-compatible-vanilla-from",
-        str(V15_SOURCE),
-        "--import-only",
-        stage="import_v15_gpt_mbpp_plus_greedy",
-    )
+    for model, sampled in SAMPLED_TASKS.items():
+        sampled_set = set(sampled)
+        greedy = tuple(task for task in EXPECTED if task not in sampled_set)
+        for source, tasks, stage in (
+            (V16_SOURCE, sampled, f"import_v16_{model}_sampled"),
+            (V15_SOURCE, greedy, f"import_v15_{model}_greedy"),
+        ):
+            run_command(
+                "--config",
+                str(CONFIG),
+                "--output-dir",
+                str(OUTPUT),
+                "--model-key",
+                model,
+                "--tasks",
+                ",".join(tasks),
+                "--import-compatible-vanilla-from",
+                str(source),
+                "--import-only",
+                stage=stage,
+            )
     for task in EXPECTED:
         assert_task_complete(OUTPUT, "qwen3_30b_a3b", task)
         assert_task_complete(OUTPUT, "gpt_oss_20b", task)
@@ -239,10 +244,10 @@ def write_vanilla_alignment_audit(summary: dict[str, Any]) -> None:
         "protocol_disclosure": (
             "The paper and pinned public repository omit the downstream benchmark "
             "driver and decoding parameters. The pinned CPU-offload inference example "
-            "uses temperature=0.0 and top_p=0.0. V17 uses checkpoint-native sampling "
-            "where V16 aligns and the completed greedy result for GPT-OSS MBPP+, whose "
-            "sampled run is outside the two-standard-error gate. All 12 model/task "
-            "pairs must pass that gate independently before oracle materialization."
+            "uses temperature=0.0 and top_p=0.0. V17 therefore uses greedy by "
+            "default and checkpoint-native sampling only for the five model/task "
+            "pairs whose complete greedy V15 run fails the two-standard-error gate. "
+            "All 12 pairs must independently pass before oracle materialization."
         ),
         "greedy_code_reference": (
             "https://github.com/axonn-ai/yalis/blob/"
