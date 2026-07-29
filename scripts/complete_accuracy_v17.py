@@ -51,10 +51,11 @@ V15_FAILURES = {
     ("gpt_oss_20b", "aime24"),
     ("gpt_oss_20b", "aime25"),
 }
-# Four simultaneous 32768-token KV caches exceeded the safe memory envelope on
-# an 80GB GPU. Two waves preserve all four dataset shards while limiting each
-# physical GPU to two concurrent long sequences.
-CORRECTED_SHARD_WAVES = ((0, 1), (2, 3))
+# A completed 32768-token response left roughly 47GB reserved by PyTorch's
+# caching allocator. Even two concurrent workers can therefore exceed an 80GB
+# GPU after either worker reaches the cap. Four waves preserve all dataset
+# shards while limiting each physical GPU to one long-sequence worker.
+CORRECTED_SHARD_WAVES = ((0,), (1,), (2,), (3,))
 WAIT_PROCESSES = {
     754601: ("v16-orchestrator", "complete_accuracy_v16.py"),
 }
@@ -188,7 +189,7 @@ def import_vanilla() -> None:
 
 
 def run_corrected_gpt_aime() -> None:
-    """Run cap-corrected AIME with at most two long sequences per GPU."""
+    """Run cap-corrected AIME with one long-sequence worker per GPU."""
     sources = (
         ("aime24", GPT_AIME24_SOURCE, "0"),
         ("aime25", GPT_AIME25_SOURCE, "1"),
@@ -231,7 +232,7 @@ def run_corrected_gpt_aime() -> None:
             "running",
             "regenerate_gpt_aime_32768",
             wave=wave_index,
-            max_concurrent_long_sequences_per_gpu=2,
+            max_concurrent_long_sequences_per_gpu=1,
             commands=[
                 {"command": command, "placement": placement} for command, _, placement in commands
             ],

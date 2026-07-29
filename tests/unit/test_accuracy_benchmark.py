@@ -501,8 +501,8 @@ def test_accuracy_v17_uses_greedy_unless_complete_v15_fails_gate() -> None:
     }
 
     assert v17.protocol_revision == 16
-    assert CORRECTED_SHARD_WAVES == ((0, 1), (2, 3))
-    assert max(map(len, CORRECTED_SHARD_WAVES)) == 2
+    assert CORRECTED_SHARD_WAVES == ((0,), (1,), (2,), (3,))
+    assert max(map(len, CORRECTED_SHARD_WAVES)) == 1
     assert sorted(shard for wave in CORRECTED_SHARD_WAVES for shard in wave) == list(range(4))
     assert not v17.decode.do_sample
     assert v17.datasets == v16.datasets
