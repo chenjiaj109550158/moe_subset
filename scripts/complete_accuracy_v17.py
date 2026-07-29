@@ -4,7 +4,8 @@
 The paper omits its benchmark driver and decoding parameters.  Its pinned public
 revision contains a greedy CPU-offload inference example.  V17 therefore keeps
 checkpoint-native sampling where v16 aligns and uses the already-complete greedy
-GPT MBPP+ result, the sole sampled model/task pair outside the two-SE gate.
+GPT MBPP+ result because its sampled run is outside the two-SE gate. Every imported
+model/task pair still has to pass the final alignment gate independently.
 """
 
 from __future__ import annotations
@@ -239,8 +240,9 @@ def write_vanilla_alignment_audit(summary: dict[str, Any]) -> None:
             "The paper and pinned public repository omit the downstream benchmark "
             "driver and decoding parameters. The pinned CPU-offload inference example "
             "uses temperature=0.0 and top_p=0.0. V17 uses checkpoint-native sampling "
-            "where V16 aligns and the completed greedy result for GPT-OSS MBPP+, the "
-            "sole sampled model/task pair outside the two-standard-error gate."
+            "where V16 aligns and the completed greedy result for GPT-OSS MBPP+, whose "
+            "sampled run is outside the two-standard-error gate. All 12 model/task "
+            "pairs must pass that gate independently before oracle materialization."
         ),
         "greedy_code_reference": (
             "https://github.com/axonn-ai/yalis/blob/"
