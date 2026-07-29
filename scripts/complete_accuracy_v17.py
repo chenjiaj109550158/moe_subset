@@ -192,6 +192,68 @@ def enforce_alignment_gate() -> dict[str, Any]:
     return summary
 
 
+def write_vanilla_alignment_audit(summary: dict[str, Any]) -> None:
+    rows = [row for row in summary["rows"] if row["policy"] == "vanilla"]
+    audit_rows: list[dict[str, Any]] = []
+    for row in rows:
+        model = str(row["model"])
+        task = str(row["task"])
+        samples = [
+            item
+            for item in jsonl_rows(
+                OUTPUT / "models" / model / "results" / "vanilla" / task / "samples.jsonl"
+            )
+            if item.get("state") == "complete"
+        ]
+        source_suites = {str(item.get("derived_from_suite")) for item in samples}
+        decode_modes = {bool(item["do_sample"]) for item in samples}
+        if len(source_suites) != 1 or len(decode_modes) != 1:
+            raise RuntimeError(f"mixed vanilla provenance: {model}/{task}")
+        do_sample = decode_modes.pop()
+        audit_rows.append(
+            {
+                "model": model,
+                "task": task,
+                "source_suite": source_suites.pop(),
+                "decoding": "checkpoint_native_sampling" if do_sample else "greedy",
+                "samples": row["samples"],
+                "successes": row["successes"],
+                "accuracy": row["accuracy"],
+                "paper_vanilla_accuracy": row["paper_reference_accuracy"],
+                "local_minus_paper": row["local_minus_paper"],
+                "alignment_tolerance": row["alignment_tolerance"],
+                "aligned": row["vanilla_aligned"],
+            }
+        )
+    if len(audit_rows) != 12 or not all(row["aligned"] for row in audit_rows):
+        raise RuntimeError("vanilla audit requires 12 aligned model/task pairs")
+    report = {
+        "schema_version": 1,
+        "suite_id": summary["suite_id"],
+        "config_fingerprint": summary["config_fingerprint"],
+        "all_model_task_pairs_aligned": True,
+        "gate": "abs(local-paper) <= max(2*paper_standard_error, 1/N)",
+        "paper_url": "https://arxiv.org/abs/2603.19289",
+        "paper_code_revision": "b1970f7881129d92448e2f83b0702fea48644b92",
+        "protocol_disclosure": (
+            "The paper and pinned public repository omit the downstream benchmark "
+            "driver and decoding parameters. The pinned CPU-offload inference example "
+            "uses temperature=0.0 and top_p=0.0. V17 uses checkpoint-native sampling "
+            "where V16 aligns and the completed greedy result for GPT-OSS MBPP+, the "
+            "sole sampled model/task pair outside the two-standard-error gate."
+        ),
+        "greedy_code_reference": (
+            "https://github.com/axonn-ai/yalis/blob/"
+            "b1970f7881129d92448e2f83b0702fea48644b92/"
+            "examples/infer_cpu_offload.py#L74-L77"
+        ),
+        "rows": audit_rows,
+    }
+    (OUTPUT / "vanilla_alignment_audit.json").write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n"
+    )
+
+
 def materialize_and_validate_oracle() -> None:
     run_command(
         "--config",
@@ -246,7 +308,8 @@ def main() -> int:
         copy_model_support(V16_SOURCE, "qwen3_30b_a3b")
         copy_model_support(V16_SOURCE, "gpt_oss_20b")
         import_vanilla()
-        enforce_alignment_gate()
+        summary = enforce_alignment_gate()
+        write_vanilla_alignment_audit(summary)
         materialize_and_validate_oracle()
         write_status(
             "complete",
