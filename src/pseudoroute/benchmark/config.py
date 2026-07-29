@@ -24,6 +24,7 @@ class AccuracyModelConfig(StrictModel):
     device: Literal["cuda:0", "cuda:1"]
     reasoning_effort: Literal["none", "low", "medium", "high"]
     max_new_tokens_overrides: dict[str, int] = Field(default_factory=dict)
+    do_sample_overrides: dict[str, bool] = Field(default_factory=dict)
     honor_task_stop_strings: bool
     code_assistant_prefill: bool = True
 
@@ -72,7 +73,7 @@ class PaperResult(StrictModel):
 
 class AccuracySuiteConfig(StrictModel):
     schema_version: Literal[1]
-    protocol_revision: Literal[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    protocol_revision: Literal[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     code_execution_sandbox_revision: Literal[
         "v2_preload_doctest_ssl_before_socket_block",
         "v3_candidate_source_unit_non_main",
@@ -108,15 +109,27 @@ class AccuracySuiteConfig(StrictModel):
         for model_key, tasks in self.paper_results.items():
             if set(tasks) != dataset_keys:
                 raise ValueError(f"paper_results[{model_key}] must cover every dataset")
+        for model in self.models:
+            unknown = set(model.do_sample_overrides) - dataset_keys
+            if unknown:
+                raise ValueError(
+                    f"models[{model.key}].do_sample_overrides contains unknown datasets: "
+                    f"{sorted(unknown)}"
+                )
         if self.policies != ("vanilla", "router_pf", "oracle_pf"):
             raise ValueError("policy order is fixed before evaluation")
         return self
+
+    def do_sample_for(self, model: AccuracyModelConfig, task_key: str) -> bool:
+        return model.do_sample_overrides.get(task_key, self.decode.do_sample)
 
     def fingerprint(self) -> str:
         payload_dict = self.model_dump(mode="json")
         for model, dumped in zip(self.models, payload_dict["models"], strict=True):
             if "code_assistant_prefill" not in model.model_fields_set:
                 dumped.pop("code_assistant_prefill", None)
+            if "do_sample_overrides" not in model.model_fields_set:
+                dumped.pop("do_sample_overrides", None)
         payload = json.dumps(
             payload_dict,
             sort_keys=True,

@@ -487,6 +487,36 @@ def test_accuracy_v16_adopts_checkpoint_sampling_and_schedules_models() -> None:
     assert v16.fingerprint() == "46f764f29c0ff97b9300c3d5f80dc0d60c37f9bef0678d3914d3c2c8b67a3698"
 
 
+def test_accuracy_v17_scopes_greedy_override_to_gpt_mbpp_plus() -> None:
+    v15 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v15.yaml")
+    v16 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v16.yaml")
+    v17 = load_accuracy_suite_config("configs/benchmark/speculating_experts_accuracy_v17.yaml")
+    gpt = v17.models[1]
+
+    assert v17.protocol_revision == 16
+    assert v17.models[0] == v16.models[0]
+    assert gpt.model_copy(update={"do_sample_overrides": {}}) == v16.models[1]
+    assert v17.datasets == v16.datasets
+    assert v17.decode == v16.decode
+    assert v17.do_sample_for(gpt, "humaneval")
+    assert not v17.do_sample_for(gpt, "mbpp_plus")
+    assert _generation_compatibility_payload(
+        v17.model_dump(mode="json"), "gpt_oss_20b", "mbpp_plus"
+    ) == _generation_compatibility_payload(
+        v15.model_dump(mode="json"), "gpt_oss_20b", "mbpp_plus"
+    )
+    for model in v17.models:
+        for dataset in v17.datasets:
+            if (model.key, dataset.key) == ("gpt_oss_20b", "mbpp_plus"):
+                continue
+            assert _generation_compatibility_payload(
+                v17.model_dump(mode="json"), model.key, dataset.key
+            ) == _generation_compatibility_payload(
+                v16.model_dump(mode="json"), model.key, dataset.key
+            )
+    assert v17.fingerprint() == "b418d8ce0df741a173c2d0a08def313982e37566368182a364eff10aac2d87bf"
+
+
 def test_generate_forwards_protocol_sampling_without_overriding_checkpoint_params() -> None:
     class RecordingModel(nn.Module):
         def __init__(self) -> None:

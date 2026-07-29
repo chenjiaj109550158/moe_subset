@@ -389,6 +389,9 @@ def _generation_compatibility_payload(
     if len(models) != 1 or len(datasets) != 1:
         raise ValueError(f"missing generation config for {model_key}/{task_key}")
     model = dict(models[0])
+    # Logical CUDA placement is execution provenance, not decoding semantics.
+    model.pop("device", None)
+    sampling_overrides = dict(model.pop("do_sample_overrides", {}))
     if task_key in {"humaneval", "mbpp_plus"}:
         model.setdefault("code_assistant_prefill", True)
     else:
@@ -397,13 +400,15 @@ def _generation_compatibility_payload(
     model["max_new_tokens_overrides"] = (
         {task_key: overrides[task_key]} if task_key in overrides else {}
     )
+    decode = dict(config["decode"])
+    decode["do_sample"] = sampling_overrides.get(task_key, decode["do_sample"])
     return {
         "schema_version": config["schema_version"],
         "harness_revision": config["harness_revision"],
         "evalplus_revision": config["evalplus_revision"],
         "model": model,
         "dataset": datasets[0],
-        "decode": config["decode"],
+        "decode": decode,
     }
 
 
@@ -508,6 +513,7 @@ def import_compatible_vanilla_results(
                         "correct": correct,
                         "parsed_answer": parsed_answer,
                         "score_detail": score_detail,
+                        "do_sample": suite.do_sample_for(model, task_key),
                         "derived": True,
                         "derived_from_suite": source.get("suite_id"),
                         "derived_from_config_fingerprint": source.get("config_fingerprint"),
@@ -590,7 +596,7 @@ def _run_task(
                 inputs,
                 example,
                 model_config,
-                do_sample=suite.decode.do_sample,
+                do_sample=suite.do_sample_for(model_config, task_key),
             )
             elapsed = time.time() - started
             after = _copy_stats(active.stats) if active is not None else PrefetchStats()
@@ -621,6 +627,7 @@ def _run_task(
                 "generated_text": text,
                 "generated_text_sha256": _sha256_text(text),
                 "generated_tokens": len(token_ids),
+                "do_sample": suite.do_sample_for(model_config, task_key),
                 "parsed_answer": score.parsed_answer,
                 "correct": score.correct,
                 "score_detail": score.detail,
