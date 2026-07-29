@@ -51,6 +51,10 @@ V15_FAILURES = {
     ("gpt_oss_20b", "aime24"),
     ("gpt_oss_20b", "aime25"),
 }
+# Four simultaneous 32768-token KV caches exceeded the safe memory envelope on
+# an 80GB GPU. Two waves preserve all four dataset shards while limiting each
+# physical GPU to two concurrent long sequences.
+CORRECTED_SHARD_WAVES = ((0, 1), (2, 3))
 WAIT_PROCESSES = {
     754601: ("v16-orchestrator", "complete_accuracy_v16.py"),
 }
@@ -184,50 +188,63 @@ def import_vanilla() -> None:
 
 
 def run_corrected_gpt_aime() -> None:
-    """Run cap-corrected AIME tasks concurrently on the two physical GPUs."""
+    """Run cap-corrected AIME with at most two long sequences per GPU."""
     sources = (
         ("aime24", GPT_AIME24_SOURCE, "0"),
         ("aime25", GPT_AIME25_SOURCE, "1"),
     )
-    commands: list[tuple[list[str], dict[str, str], str]] = []
-    for task, source, physical_gpu in sources:
+    for _, source, _ in sources:
         copy_model_support(V16_SOURCE, "gpt_oss_20b", source)
-        base = [
-            sys.executable,
-            "-m",
-            "pseudoroute.benchmark.runner",
-            "--config",
-            str(CONFIG),
-            "--output-dir",
-            str(source),
-            "--policies",
-            "vanilla",
-            "--model-key",
-            "gpt_oss_20b",
-            "--tasks",
-            task,
-            "--shard-count",
-            "4",
+    for wave_index, shards in enumerate(CORRECTED_SHARD_WAVES):
+        commands: list[tuple[list[str], dict[str, str], str]] = []
+        for task, source, physical_gpu in sources:
+            base = [
+                sys.executable,
+                "-m",
+                "pseudoroute.benchmark.runner",
+                "--config",
+                str(CONFIG),
+                "--output-dir",
+                str(source),
+                "--policies",
+                "vanilla",
+                "--model-key",
+                "gpt_oss_20b",
+                "--tasks",
+                task,
+                "--shard-count",
+                "4",
+            ]
+            for shard in shards:
+                stem = f"{shard:05d}-of-00004"
+                done = (
+                    source / "models/gpt_oss_20b/results/vanilla" / task / "shards" / f"{stem}.DONE"
+                )
+                if done.is_file():
+                    continue
+                command = [*base, "--shard-index", str(shard)]
+                environment = dict(os.environ)
+                # The config's logical cuda:0 maps to the selected physical GPU.
+                environment["CUDA_VISIBLE_DEVICES"] = physical_gpu
+                commands.append((command, environment, f"{task}:physical-cuda:{physical_gpu}"))
+        write_status(
+            "running",
+            "regenerate_gpt_aime_32768",
+            wave=wave_index,
+            max_concurrent_long_sequences_per_gpu=2,
+            commands=[
+                {"command": command, "placement": placement} for command, _, placement in commands
+            ],
+        )
+        workers = [
+            subprocess.Popen(command, cwd=REPO, env=environment)
+            for command, environment, _ in commands
         ]
-        for shard in range(4):
-            command = [*base, "--shard-index", str(shard)]
-            environment = dict(os.environ)
-            # The config's logical cuda:0 maps to the selected physical GPU.
-            environment["CUDA_VISIBLE_DEVICES"] = physical_gpu
-            commands.append((command, environment, f"{task}:physical-cuda:{physical_gpu}"))
-    write_status(
-        "running",
-        "regenerate_gpt_aime_32768",
-        commands=[
-            {"command": command, "placement": placement} for command, _, placement in commands
-        ],
-    )
-    workers = [
-        subprocess.Popen(command, cwd=REPO, env=environment) for command, environment, _ in commands
-    ]
-    returncodes = [worker.wait() for worker in workers]
-    if any(returncodes):
-        raise RuntimeError(f"corrected GPT AIME worker failures: {returncodes}")
+        returncodes = [worker.wait() for worker in workers]
+        if any(returncodes):
+            raise RuntimeError(
+                f"corrected GPT AIME wave {wave_index} worker failures: {returncodes}"
+            )
     for task, source, _ in sources:
         assert_task_complete(source, "gpt_oss_20b", task)
         run_command(
