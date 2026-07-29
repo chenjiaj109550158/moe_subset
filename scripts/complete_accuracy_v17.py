@@ -3,9 +3,12 @@
 
 The paper omits its benchmark driver and decoding parameters. Its pinned public
 revision contains a greedy CPU-offload inference example. V17 therefore uses greedy
-by default and checkpoint-native sampling only for model/task pairs whose complete
-greedy V15 run fails the two-standard-error gate. Every imported pair still has to
-pass the final alignment gate independently.
+by default and checkpoint-native sampling only where a complete, non-truncated
+greedy run fails the two-standard-error gate. V15/V16 capped GPT-OSS AIME reasoning
+at 4096 tokens; every wrong sampled AIME24 response observed while diagnosing the
+run hit that cap. V17 reruns GPT-OSS AIME24/25 greedily with each dataset's pinned
+32768-token limit instead of importing those invalid capped measurements. Every
+model/task pair still has to pass the final alignment gate independently.
 """
 
 from __future__ import annotations
@@ -25,6 +28,8 @@ CONFIG = REPO / "configs/benchmark/speculating_experts_accuracy_v17.yaml"
 V16_SOURCE = REPO / "artifacts/speculating_experts_accuracy_v16"
 V15_SOURCE = REPO / "artifacts/speculating_experts_accuracy_v15"
 OUTPUT = REPO / "artifacts/speculating_experts_accuracy_v17"
+GPT_AIME24_SOURCE = REPO / "artifacts/speculating_experts_accuracy_v17_gpt_aime24"
+GPT_AIME25_SOURCE = REPO / "artifacts/speculating_experts_accuracy_v17_gpt_aime25"
 STATUS = OUTPUT / "pipeline_status.json"
 EXPECTED = {
     "humaneval": 164,
@@ -36,7 +41,15 @@ EXPECTED = {
 }
 SAMPLED_TASKS = {
     "qwen3_30b_a3b": ("aime24", "aime25"),
-    "gpt_oss_20b": ("humaneval", "aime24", "aime25"),
+    "gpt_oss_20b": ("humaneval",),
+}
+CAP_CORRECTED_TASKS = {"gpt_oss_20b": ("aime24", "aime25")}
+V15_FAILURES = {
+    ("qwen3_30b_a3b", "aime24"),
+    ("qwen3_30b_a3b", "aime25"),
+    ("gpt_oss_20b", "humaneval"),
+    ("gpt_oss_20b", "aime24"),
+    ("gpt_oss_20b", "aime25"),
 }
 WAIT_PROCESSES = {
     754601: ("v16-orchestrator", "complete_accuracy_v16.py"),
@@ -97,9 +110,9 @@ def run_command(*arguments: str, stage: str) -> None:
     subprocess.run(command, cwd=REPO, check=True)
 
 
-def copy_model_support(source: Path, model: str) -> None:
+def copy_model_support(source: Path, model: str, target: Path = OUTPUT) -> None:
     source_model = source / "models" / model
-    target_model = OUTPUT / "models" / model
+    target_model = target / "models" / model
     target_model.mkdir(parents=True, exist_ok=True)
     shutil.copytree(
         source_model / "default_vectors",
@@ -135,10 +148,10 @@ def validate_sources() -> None:
     }
     configured_overrides = {
         (model, task) for model, tasks in SAMPLED_TASKS.items() for task in tasks
-    }
-    if observed_failures != configured_overrides:
+    } | {(model, task) for model, tasks in CAP_CORRECTED_TASKS.items() for task in tasks}
+    if configured_overrides != V15_FAILURES or observed_failures != V15_FAILURES:
         raise RuntimeError(
-            "sampling overrides do not exactly match complete V15 greedy gate failures: "
+            "V17 corrective actions do not exactly match complete V15 greedy gate failures: "
             f"observed={sorted(observed_failures)}, configured={sorted(configured_overrides)}"
         )
 
@@ -146,11 +159,14 @@ def validate_sources() -> None:
 def import_vanilla() -> None:
     for model, sampled in SAMPLED_TASKS.items():
         sampled_set = set(sampled)
-        greedy = tuple(task for task in EXPECTED if task not in sampled_set)
+        corrected_set = set(CAP_CORRECTED_TASKS.get(model, ()))
+        greedy = tuple(task for task in EXPECTED if task not in sampled_set | corrected_set)
         for source, tasks, stage in (
             (V16_SOURCE, sampled, f"import_v16_{model}_sampled"),
             (V15_SOURCE, greedy, f"import_v15_{model}_greedy"),
         ):
+            if not tasks:
+                continue
             run_command(
                 "--config",
                 str(CONFIG),
@@ -165,6 +181,72 @@ def import_vanilla() -> None:
                 "--import-only",
                 stage=stage,
             )
+
+
+def run_corrected_gpt_aime() -> None:
+    """Run cap-corrected AIME tasks concurrently on the two physical GPUs."""
+    sources = (
+        ("aime24", GPT_AIME24_SOURCE, "0"),
+        ("aime25", GPT_AIME25_SOURCE, "1"),
+    )
+    commands: list[tuple[list[str], dict[str, str], str]] = []
+    for task, source, physical_gpu in sources:
+        copy_model_support(V16_SOURCE, "gpt_oss_20b", source)
+        base = [
+            sys.executable,
+            "-m",
+            "pseudoroute.benchmark.runner",
+            "--config",
+            str(CONFIG),
+            "--output-dir",
+            str(source),
+            "--policies",
+            "vanilla",
+            "--model-key",
+            "gpt_oss_20b",
+            "--tasks",
+            task,
+            "--shard-count",
+            "4",
+        ]
+        for shard in range(4):
+            command = [*base, "--shard-index", str(shard)]
+            environment = dict(os.environ)
+            # The config's logical cuda:0 maps to the selected physical GPU.
+            environment["CUDA_VISIBLE_DEVICES"] = physical_gpu
+            commands.append((command, environment, f"{task}:physical-cuda:{physical_gpu}"))
+    write_status(
+        "running",
+        "regenerate_gpt_aime_32768",
+        commands=[
+            {"command": command, "placement": placement} for command, _, placement in commands
+        ],
+    )
+    workers = [
+        subprocess.Popen(command, cwd=REPO, env=environment) for command, environment, _ in commands
+    ]
+    returncodes = [worker.wait() for worker in workers]
+    if any(returncodes):
+        raise RuntimeError(f"corrected GPT AIME worker failures: {returncodes}")
+    for task, source, _ in sources:
+        assert_task_complete(source, "gpt_oss_20b", task)
+        run_command(
+            "--config",
+            str(CONFIG),
+            "--output-dir",
+            str(OUTPUT),
+            "--model-key",
+            "gpt_oss_20b",
+            "--tasks",
+            task,
+            "--import-compatible-vanilla-from",
+            str(source),
+            "--import-only",
+            stage=f"import_corrected_gpt_{task}",
+        )
+
+
+def assert_all_imported() -> None:
     for task in EXPECTED:
         assert_task_complete(OUTPUT, "qwen3_30b_a3b", task)
         assert_task_complete(OUTPUT, "gpt_oss_20b", task)
@@ -245,9 +327,12 @@ def write_vanilla_alignment_audit(summary: dict[str, Any]) -> None:
             "The paper and pinned public repository omit the downstream benchmark "
             "driver and decoding parameters. The pinned CPU-offload inference example "
             "uses temperature=0.0 and top_p=0.0. V17 therefore uses greedy by "
-            "default and checkpoint-native sampling only for the five model/task "
-            "pairs whose complete greedy V15 run fails the two-standard-error gate. "
-            "All 12 pairs must independently pass before oracle materialization."
+            "default. It uses checkpoint-native sampling for Qwen AIME24/AIME25 "
+            "and GPT-OSS HumanEval, whose complete non-truncated greedy evidence "
+            "missed the gate. GPT-OSS AIME24/AIME25 are rerun greedily at the "
+            "datasets' pinned 32768-token limit because the earlier 4096-token "
+            "override systematically truncated wrong responses. All 12 pairs must "
+            "independently pass before oracle materialization."
         ),
         "greedy_code_reference": (
             "https://github.com/axonn-ai/yalis/blob/"
@@ -315,6 +400,8 @@ def main() -> int:
         copy_model_support(V16_SOURCE, "qwen3_30b_a3b")
         copy_model_support(V16_SOURCE, "gpt_oss_20b")
         import_vanilla()
+        run_corrected_gpt_aime()
+        assert_all_imported()
         summary = enforce_alignment_gate()
         write_vanilla_alignment_audit(summary)
         materialize_and_validate_oracle()

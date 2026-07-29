@@ -28,8 +28,8 @@ models:
     precision_tier: mxfp4
     device: cuda:0
     reasoning_effort: medium
-    max_new_tokens_overrides: {humaneval: 16384, mbpp_plus: 4096, gsm8k: 4096, strategyqa: 4096, aime24: 4096, aime25: 4096}
-    do_sample_overrides: {humaneval: true, aime24: true, aime25: true}
+    max_new_tokens_overrides: {humaneval: 16384, mbpp_plus: 4096, gsm8k: 4096, strategyqa: 4096}
+    do_sample_overrides: {humaneval: true}
     honor_task_stop_strings: false
     code_assistant_prefill: false
 datasets:

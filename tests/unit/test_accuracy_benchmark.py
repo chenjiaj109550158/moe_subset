@@ -481,9 +481,7 @@ def test_accuracy_v16_adopts_checkpoint_sampling_and_schedules_models() -> None:
     )
     assert _generation_compatibility_payload(
         v16.model_dump(mode="json"), "qwen3_30b_a3b", "aime24"
-    ) == _generation_compatibility_payload(
-        smoke.model_dump(mode="json"), "qwen3_30b_a3b", "aime24"
-    )
+    ) == _generation_compatibility_payload(smoke.model_dump(mode="json"), "qwen3_30b_a3b", "aime24")
     assert v16.fingerprint() == "46f764f29c0ff97b9300c3d5f80dc0d60c37f9bef0678d3914d3c2c8b67a3698"
 
 
@@ -495,6 +493,8 @@ def test_accuracy_v17_uses_greedy_unless_complete_v15_fails_gate() -> None:
         ("qwen3_30b_a3b", "aime24"),
         ("qwen3_30b_a3b", "aime25"),
         ("gpt_oss_20b", "humaneval"),
+    }
+    cap_corrected = {
         ("gpt_oss_20b", "aime24"),
         ("gpt_oss_20b", "aime25"),
     }
@@ -502,19 +502,34 @@ def test_accuracy_v17_uses_greedy_unless_complete_v15_fails_gate() -> None:
     assert v17.protocol_revision == 16
     assert not v17.decode.do_sample
     assert v17.datasets == v16.datasets
-    for before, after in zip(v16.models, v17.models, strict=True):
-        assert after.model_copy(update={"do_sample_overrides": {}}) == before
+    assert v17.models[0].model_copy(update={"do_sample_overrides": {}}) == v16.models[0]
+    assert v17.models[1].max_new_tokens_overrides == {
+        "humaneval": 16384,
+        "mbpp_plus": 4096,
+        "gsm8k": 4096,
+        "strategyqa": 4096,
+    }
     for model in v17.models:
         for dataset in v17.datasets:
             key = (model.key, dataset.key)
             assert v17.do_sample_for(model, dataset.key) == (key in sampled)
-            source = v16 if key in sampled else v15
-            assert _generation_compatibility_payload(
+            current = _generation_compatibility_payload(
                 v17.model_dump(mode="json"), model.key, dataset.key
-            ) == _generation_compatibility_payload(
-                source.model_dump(mode="json"), model.key, dataset.key
             )
-    assert v17.fingerprint() == "1d40653aaa2d7c70fd4eb88e87b93b787663197bb3f6817bc58ced225991fbf9"
+            if key in cap_corrected:
+                assert dataset.max_new_tokens == 32768
+                assert current != _generation_compatibility_payload(
+                    v15.model_dump(mode="json"), model.key, dataset.key
+                )
+                assert current != _generation_compatibility_payload(
+                    v16.model_dump(mode="json"), model.key, dataset.key
+                )
+            else:
+                source = v16 if key in sampled else v15
+                assert current == _generation_compatibility_payload(
+                    source.model_dump(mode="json"), model.key, dataset.key
+                )
+    assert v17.fingerprint() == ("896744077611beaf7692ee2c9ac94fcc5326268f86e8b5ff297960a0da152ff9")
 
 
 def test_generate_forwards_protocol_sampling_without_overriding_checkpoint_params() -> None:
