@@ -1,0 +1,239 @@
+你正在接續 `/home/justin/moe_subset` 的 PseudoRoute-MoE 專案。
+
+我授權你：
+- 修改 workspace 內的程式與設定，允許使用 patch；
+- 執行本機 CPU/GPU benchmark；
+- 建立新的本地 artifacts 與 commits；
+- 持續監看長時間實驗，程序完成後自動接續後續步驟。
+
+不要刪除既有 artifacts、model cache 或其他 session/user 的資料。任何下載、破壞性操作或擴大到新模型前先確認。
+
+## 當前已完成狀態
+
+- Git history 應包含 `c0a96e5`；先檢查目前 HEAD 與 worktree 是否乾淨。
+- 正式 accuracy suite：
+  `artifacts/speculating_experts_accuracy_v17`
+- Pipeline 狀態：
+  `complete/oracle_v17`
+- Qwen3-30B-A3B 與 GPT-OSS-20B 在 HumanEval、MBPP+、GSM8K、AIME24、AIME25、StrategyQA 的 vanilla 12/12 rows 均通過論文 alignment gate。
+- 現有 `oracle_pf` 是：
+  `perfect_layer_ahead_natural_ids_and_weights`
+  搭配 native-top-k residency budget。
+- 它已通過 real-forward parity，並由 vanilla identity-materialize；5,216 對 samples 的 token identity 為 1.0。因此不要把它誤稱為 multi-token constrained hard-subset accuracy。
+- 既有 `trained_oracle_gate_v2` 已得到 STOP/PIVOT。先閱讀：
+  - `STATUS.md`
+  - `README.md`
+  - `docs/decisions.md`
+  - `docs/speculating_experts_accuracy_protocol.md`
+  - `docs/trained_model_plan.md`
+  - `docs/reproducibility.md`
+  - `artifacts/trained_gate/suite_v2_final/decision.json`
+  - `configs/benchmark/speculating_experts_accuracy_v17.yaml`
+  - `scripts/complete_accuracy_v17.py`
+  - `src/pseudoroute/benchmark/`
+
+這個 prompt 是依 `D-20260727-029` 對新 pivot 所需的明確人工授權。不要重跑已完成的 v17 vanilla，也不要直接開始訓練 predictor。
+
+## 新階段目標
+
+建立版本化、可 resume 的 `benchmark_subset_oracle_v1`：
+
+在以下兩個模型與六個 benchmark 上，測量「完美 future-aware、固定 multi-token window、受限 expert subset」的實際 accuracy/quality：
+
+模型：
+1. Qwen3-30B-A3B-Instruct-2507
+2. GPT-OSS-20B
+
+資料集：
+1. HumanEval
+2. MBPP+
+3. GSM8K
+4. AIME24
+5. AIME25
+6. StrategyQA
+
+核心問題：
+
+若在每個 window boundary 已知未來 natural routing trajectory，並為接下來 H 個 decode tokens 的每一層選擇最多 B 個 routed experts，lossless fallback 與 hard commitment 的 accuracy、fallback、route coverage、transfer cost 各是多少？
+
+這裡的 oracle 是 routing-information oracle，不是使用 benchmark label/ground-truth answer 搜尋 subset。不得用正確答案調整 subset。
+
+## 必須先做的檢查
+
+1. 檢查 Git status、目前程序、PID/PPID、GPU process 與 artifacts。
+2. 確認沒有其他 session 的 GPU worker；不要中斷不屬於本 session 的程序。
+3. 重跑快速測試，確認 v17 artifacts/checksums/summary 仍有效。
+4. 檢查既有 trained closed-loop、oracle window、planner、benchmark evaluator 能否重用；不要寫一套互不相容的 standalone evaluator。
+5. 在執行長實驗前，先提交一份 versioned protocol/config，預先固定 grid、selection rule、gate 與 sample IDs。
+
+## Oracle subset 定義
+
+對每個 MoE layer 分別選 subset。
+
+Horizons：
+
+`H = [1, 2, 4, 8, 16]`
+
+Budgets 至少包含：
+
+Qwen：
+- native top-k = 8
+- `B = [8, 16, 32, 64, 128]`
+
+GPT-OSS：
+- native top-k = 4
+- `B = [4, 8, 16, 24, 32]`
+
+其中 all-expert budget 只作 reference，不可算節省。
+
+Selection methods 至少包含：
+
+1. future selected-routing-mass oracle；
+2. future binary-count oracle；
+3. previous-route baseline；
+4. static-frequency baseline。
+
+若 full-router-mass 能以 native semantics 正確取得，也加入；不可用不相容的 proxy 冒充。
+
+## 執行 policies
+
+至少比較：
+
+1. `natural`
+   - 原始 native routing reference。
+
+2. `lossless_oracle_residency`
+   - 預載 oracle subset。
+   - natural route 選中 subset 外 expert 時 demand fallback/load。
+   - 必須保持 native IDs/weights 和輸出。
+   - 測 fallback frequency、load bytes、subset churn、exposed stalls。
+   - 不可把它描述成 accuracy improvement。
+
+3. `hard_oracle_commitment`
+   - window 內只能執行 subset experts。
+   - 對 subset 外 router logits 做明確 mask，再在 subset 內依 native規則 top-k/renormalize。
+   - 必須實際 closed-loop forward/generate，不能從 vanilla identity-materialize。
+   - 記錄第一個 token divergence、route divergence、NLL/perplexity 與 task accuracy。
+
+4. 至少一個 non-oracle hard baseline：
+   - previous-route 或 static-frequency commitment。
+
+清楚定義 shared experts、routed experts、layer-scoped IDs、routing scaling、normalization、MXFP4 限制及 cache rewind/replay semantics。
+
+## 避免不必要地重跑 vanilla
+
+優先重用 v17 保存的 prompts、targets、generated token IDs 與 evaluator。
+
+若需要 natural route traces：
+
+- 對保存的 vanilla prompt/token trajectory 做 teacher-forced replay，收集每 token、每 layer 的 native IDs、weights、router scores；
+- 驗證 replay logits/routes 與原始 generation parity；
+- 不要重新做整套昂貴 vanilla autoregressive benchmark，除非有證據顯示 replay 不可靠。
+
+Lossless policy 可先以 route replay/simulation 取得完整 fallback 與 transfer metrics，再以跨 task smoke 做 real-forward identity validation。
+
+Hard commitment 必須真正 generation，使用與 v17 完全相同的 prompt rendering、decoding、token caps、evaluator 和 dataset revisions。
+
+## 分階段執行
+
+### A. Trace與open-loop grid
+
+先跑完整或預先固定的代表樣本 route replay，產生所有 `(H,B,method)` 的：
+
+- route hit rate；
+- selected/full routing-mass coverage；
+- expert-union size；
+- subset churn；
+- estimated H2D bytes/token；
+- mean、median、P05、P95、worst；
+- layer/task/context/router-margin 分層結果。
+
+保存 concrete worst cases。
+
+### B. Closed-loop smoke
+
+以預先固定、不能看 accuracy 後更換的 sample IDs，驗證：
+
+- hard commitment 確實改變 executed route；
+- lossless fallback exact-token identity；
+- evaluator、resume、sharding、CUDA placement；
+- GPT AIME 32,768-token 上限不被重新截成 4,096。
+
+### C. Full benchmark accuracy
+
+只可依預先聲明的 open-loop coverage/transfer 條件選擇少量 Pareto operating points，不可根據 smoke accuracy 挑點。
+
+對入選 operating points 跑完整六個 dataset hard closed-loop accuracy。長實驗必須：
+
+- resumable；
+- sample/shard 原子落盤；
+- 每 GPU 最多一個 32k worker；
+- 記錄 PID/PPID、physical GPU、config fingerprint；
+- 程序完成後自動 aggregate、validate、report。
+
+## Predeclared gate
+
+候選 operating point 必須同時滿足：
+
+- expert residency 明顯低於 all-expert；
+- mean route hit ≥ 0.90；
+- selected routing-mass coverage ≥ 0.95；
+- P05 與 worst hit ≥ 0.80；
+- estimated transfer reduction ≥ 30%；
+- 相對 previous/static baseline 有實質改善；
+- lossless fallback frequency ≤ 0.10；
+- hard commitment benchmark accuracy 相對本地 v17 vanilla 的下降不超過預先計算的 paired uncertainty gate；
+- 不可用跨 task macro average 掩蓋單一 dataset failure。
+
+HumanEval/MBPP+ 使用相同 execution sandbox；GSM8K/AIME/StrategyQA 使用相同 answer parser。AIME 的離散差異必須同時列出題數，不只百分比。
+
+最終對每個 model、task、`(H,B)` 分別判定：
+
+- GO
+- NARROW
+- STOP/PIVOT
+
+只有 GO 或明確限定範圍的 NARROW 才授權後續 learned subset selector。若 perfect oracle hard commitment 都失敗，停止訓練 predictor。
+
+## 交付物
+
+至少產生：
+
+- versioned config；
+- resumable runner/orchestrator；
+- resolved config 與 environment；
+- natural trace manifests/checksums；
+- oracle grid raw rows與aggregates；
+- closed-loop per-sample rows；
+- accuracy summary；
+- paired vanilla delta/CI；
+- fallback/transfer/Pareto report；
+- worst cases；
+- GO/NARROW/STOP decision；
+- README/STATUS/reproducibility/decisions 更新；
+- proportional unit/integration tests。
+
+報告中必須區分：
+
+- measured accuracy；
+- exact-token identity；
+- simulated transfer/stall；
+- measured runtime；
+- identity-materialized結果；
+- 真正 closed-loop generation。
+
+## 完成條件
+
+不要只做 smoke 或只寫計畫。
+
+直到以下皆完成才結束：
+
+1. protocol/config 已預先固定；
+2. feasible trace/open-loop grid 完成；
+3. 入選 points 的 closed-loop benchmark 完成或留下可證實的硬體/模型 blocker；
+4. 所有 artifacts 通過 row count、checksum、resume 與 provenance audit；
+5. 完整測試、ruff、mypy 通過；
+6. 工作樹乾淨且有邏輯 commits；
+7. 給出清楚的 per-model、per-task GO/NARROW/STOP 結論。
+
+如果遇到長時間 worker，先用 PID/PPID、CPU/GPU utilization、artifact 行數和單題 token cap 判斷是否正常；只要健康就監看到完成並自動接續。不要因為輸出暫時靜默而重啟或建立重複 worker。
