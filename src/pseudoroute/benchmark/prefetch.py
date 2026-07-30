@@ -483,6 +483,91 @@ def policy_context(
     return _PatchedMlpContext(ops, policy=policy, defaults=defaults)
 
 
+class NativeRouteCaptureContext(AbstractContextManager["NativeRouteCaptureContext"]):
+    """Capture native router outputs with hooks and no forward replacement."""
+
+    def __init__(
+        self,
+        ops: PrefetchModelOps,
+        allowed_by_layer: dict[int, tuple[int, ...]] | None = None,
+    ) -> None:
+        self.ops = ops
+        self.allowed_by_layer = dict(allowed_by_layer or {})
+        self._records: list[SubsetRouteRecord] = []
+        self._handles: list[torch.utils.hooks.RemovableHandle] = []
+
+    @staticmethod
+    def _cpu_route(route: NativeRoute) -> NativeRoute:
+        return NativeRoute(
+            route.logits.detach().cpu(),
+            route.weights.detach().cpu(),
+            route.ids.detach().cpu(),
+        )
+
+    def _record(self, layer: int, route: NativeRoute) -> None:
+        cpu = self._cpu_route(route)
+        self._records.append(
+            SubsetRouteRecord(
+                layer,
+                cpu,
+                cpu,
+                self.allowed_by_layer.get(layer, ()),
+            )
+        )
+
+    def _capture_qwen(self, layer: int, output: object) -> None:
+        if not isinstance(output, tuple) or len(output) != 3:
+            raise RuntimeError("Qwen native gate did not return logits/weights/ids")
+        logits, weights, ids = output
+        if not all(isinstance(value, Tensor) for value in output):
+            raise RuntimeError("Qwen native gate route contains a non-tensor")
+        self._record(
+            layer,
+            NativeRoute(cast(Tensor, logits), cast(Tensor, weights), cast(Tensor, ids)),
+        )
+
+    def _capture_gpt(self, layer: int, output: object) -> None:
+        if not isinstance(output, tuple) or len(output) != 2 or not isinstance(output[1], Tensor):
+            raise RuntimeError("GPT native MXFP4 MLP did not return router logits")
+        logits = output[1]
+        selected, ids = logits.topk(self.ops.top_k, dim=-1)
+        weights = torch.softmax(selected, dim=-1, dtype=selected.dtype)
+        self._record(layer, NativeRoute(logits, weights, ids))
+
+    def drain(self) -> tuple[SubsetRouteRecord, ...]:
+        records = tuple(self._records)
+        self._records.clear()
+        return records
+
+    def __enter__(self) -> NativeRouteCaptureContext:
+        for layer in range(self.ops.num_layers):
+            if isinstance(self.ops, Qwen3MoePrefetchOps):
+                gate = cast(nn.Module, cast(Any, self.ops.mlp(layer)).gate)
+                self._handles.append(
+                    gate.register_forward_hook(
+                        lambda _module, _inputs, output, index=layer: self._capture_qwen(
+                            index, output
+                        )
+                    )
+                )
+            elif isinstance(self.ops, GptOssPrefetchOps):
+                self._handles.append(
+                    self.ops.mlp(layer).register_forward_hook(
+                        lambda _module, _inputs, output, index=layer: self._capture_gpt(
+                            index, output
+                        )
+                    )
+                )
+            else:
+                raise TypeError(f"native route hooks unsupported for {type(self.ops).__name__}")
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        for handle in self._handles:
+            handle.remove()
+        self._handles.clear()
+
+
 class SubsetExecutionContext(AbstractContextManager["SubsetExecutionContext"]):
     """Reversible MLP patch for route capture, lossless residency, and hard masking."""
 

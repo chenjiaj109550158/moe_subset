@@ -11,6 +11,7 @@ from torch import Tensor, nn
 from pseudoroute.benchmark.prefetch import (
     GptOssPrefetchOps,
     NativeRoute,
+    NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
     SubsetExecutionContext,
     SubsetRouteRecord,
@@ -27,6 +28,7 @@ from pseudoroute.benchmark.subset_config import (
 )
 from pseudoroute.benchmark.subset_grid import _row_metrics
 from pseudoroute.benchmark.subset_report import _paired_row
+from pseudoroute.benchmark.subset_trace import _ForcedTrajectoryProcessor
 
 
 class TinyQwenGate(nn.Module):
@@ -115,6 +117,12 @@ class TinyGptMlp(nn.Module):
         super().__init__()
         self.router = TinyGptRouter()
 
+    def forward(self, hidden: Tensor) -> tuple[Tensor, Tensor]:
+        shape = hidden.shape
+        flat = hidden.reshape(-1, shape[-1])
+        logits, _, _ = self.router(flat)
+        return hidden, logits
+
 
 class TinyGptLayer(nn.Module):
     def __init__(self) -> None:
@@ -137,6 +145,9 @@ class TinyGpt(nn.Module):
         self.model = nn.Module()
         self.model.layers = nn.ModuleList([TinyGptLayer()])
 
+    def forward(self, hidden: Tensor) -> object:
+        return cast(Any, self.model).layers[0].mlp(hidden)
+
 
 class FakeCache:
     def __init__(self, length: int) -> None:
@@ -157,12 +168,27 @@ def suite() -> SubsetOracleSuiteConfig:
 def test_subset_config_grid_and_fingerprint_are_frozen(
     suite: SubsetOracleSuiteConfig,
 ) -> None:
-    assert suite.fingerprint() == "0463596e816da5db528061b50c3b06e81b11bf6d012aa106963ba1c55e712227"
+    assert suite.fingerprint() == "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2"
+    assert suite.protocol_revision == 2
+    assert suite.trace.replay_chunk_tokens == 1
     assert suite.trace.horizons == (1, 2, 4, 8, 16)
     assert suite.models[0].budgets == (8, 16, 32, 64, 128)
     assert suite.models[1].budgets == (4, 8, 16, 24, 32)
     assert suite.closed_loop.aime_gpt_max_new_tokens == 32768
     assert suite.closed_loop.smoke_point_is_not_an_operating_candidate
+
+
+def test_forced_trajectory_processor_follows_decode_position() -> None:
+    processor = _ForcedTrajectoryProcessor(prompt_tokens=3, trajectory=[2, 1])
+    scores = torch.zeros((1, 4))
+    first = processor(torch.tensor([[7, 8, 9]]), scores)
+    second = processor(torch.tensor([[7, 8, 9, 2]]), scores)
+    exhausted = processor(torch.tensor([[7, 8, 9, 2, 1]]), scores)
+    assert first.argmax(dim=-1).item() == 2
+    assert second.argmax(dim=-1).item() == 1
+    assert torch.isneginf(first[0, [0, 1, 3]]).all()
+    assert torch.isneginf(second[0, [0, 2, 3]]).all()
+    assert exhausted is scores
 
 
 def test_qwen_lossless_is_exact_and_hard_mask_changes_executed_route() -> None:
@@ -173,6 +199,11 @@ def test_qwen_lossless_is_exact_and_hard_mask_changes_executed_route() -> None:
     with SubsetExecutionContext(ops, "lossless", {0: (0, 2)}) as context:
         lossless = model(hidden)
         records = context.drain()
+    with NativeRouteCaptureContext(ops, {0: (0, 2)}) as native_context:
+        native_captured = model(hidden)
+        native_records = native_context.drain()
+    assert torch.equal(native_captured, natural)
+    assert torch.equal(native_records[0].natural.ids, native_records[0].executed.ids)
     assert torch.equal(lossless, natural)
     assert torch.equal(records[0].natural.ids, records[0].executed.ids)
     with SubsetExecutionContext(ops, "hard", {0: (0, 2)}) as context:
@@ -192,6 +223,15 @@ def test_gpt_mask_preserves_biased_logit_topk_softmax_semantics() -> None:
     assert torch.isneginf(route.logits[:, 1]).all()
     selected = route.logits.gather(1, route.ids)
     assert torch.allclose(route.weights, selected.softmax(dim=-1))
+
+    with NativeRouteCaptureContext(ops) as context:
+        ops.model(hidden[None])
+        records = context.drain()
+    native = records[0].natural
+    expected = ops.route(0, hidden)
+    assert torch.equal(native.logits, expected.logits)
+    assert torch.equal(native.ids, expected.ids)
+    assert torch.equal(native.weights, expected.weights)
 
 
 def test_future_mass_subset_and_transfer_row_use_frozen_semantics(

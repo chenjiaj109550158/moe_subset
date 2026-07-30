@@ -17,6 +17,7 @@ from torch import Tensor, nn
 
 from pseudoroute.benchmark.config import AccuracyModelConfig, AccuracySuiteConfig
 from pseudoroute.benchmark.prefetch import (
+    NativeRouteCaptureContext,
     PrefetchModelOps,
     SubsetExecutionContext,
     SubsetRouteRecord,
@@ -196,7 +197,12 @@ def _forward_capture(
     policy: Literal["natural", "lossless", "hard"],
     allowed: dict[int, tuple[int, ...]] | None = None,
 ) -> tuple[Any, tuple[SubsetRouteRecord, ...]]:
-    with SubsetExecutionContext(ops, policy, allowed) as context, torch.inference_mode():
+    context: NativeRouteCaptureContext | SubsetExecutionContext
+    if policy == "hard":
+        context = SubsetExecutionContext(ops, policy, allowed)
+    else:
+        context = NativeRouteCaptureContext(ops, allowed)
+    with context, torch.inference_mode():
         output = cast(
             Any,
             model(

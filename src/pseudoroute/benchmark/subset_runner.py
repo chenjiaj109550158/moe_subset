@@ -13,6 +13,7 @@ from typing import Literal, cast
 
 import torch
 import transformers
+from huggingface_hub.constants import HF_HUB_CACHE
 
 from pseudoroute.benchmark.config import (
     AccuracySuiteConfig,
@@ -38,12 +39,58 @@ from pseudoroute.benchmark.subset_report import (
 from pseudoroute.benchmark.subset_trace import (
     audit_source_accuracy,
     collect_model_traces,
+    sha256_file,
     validate_trace_manifest,
     write_json_atomic,
 )
 
+GPT_KERNEL_REPOSITORY = "kernels-community/gpt-oss-triton-kernels"
+GPT_KERNEL_REVISION = "9655fcf7d0f638bec4a82f6f1a70014f0aa8cfb0"
+
+
+def _configure_cached_gpt_kernel(suite: SubsetOracleSuiteConfig, output: Path) -> dict[str, object]:
+    """Use the already-cached CUDA variant without resolving a Hub version."""
+    snapshot = (
+        Path(HF_HUB_CACHE)
+        / "kernels--kernels-community--gpt-oss-triton-kernels"
+        / "snapshots"
+        / GPT_KERNEL_REVISION
+    )
+    variant = snapshot / "build" / "torch-cuda"
+    if not (variant / "__init__.py").is_file():
+        raise FileNotFoundError(
+            "the pinned GPT-OSS Triton kernel CUDA variant is not present in local cache; "
+            "downloads are prohibited for this run"
+        )
+    override = f"{GPT_KERNEL_REPOSITORY}={snapshot}"
+    existing = os.environ.get("LOCAL_KERNELS")
+    os.environ["LOCAL_KERNELS"] = f"{existing}:{override}" if existing else override
+    files = [path for path in sorted(variant.rglob("*")) if path.is_file()]
+    provenance: dict[str, object] = {
+        "schema_version": 1,
+        "suite_id": suite.suite_id,
+        "config_fingerprint": suite.fingerprint(),
+        "repository": GPT_KERNEL_REPOSITORY,
+        "revision": GPT_KERNEL_REVISION,
+        "snapshot": str(snapshot),
+        "variant": "torch-cuda",
+        "source": "preexisting_local_cache",
+        "network_download": False,
+        "files": [
+            {
+                "path": str(path.relative_to(snapshot)),
+                "bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+            for path in files
+        ],
+    }
+    write_json_atomic(output / "gpt_mxfp4_kernel_provenance.json", provenance)
+    return provenance
+
+
 DEFAULT_CONFIG = Path("configs/benchmark/benchmark_subset_oracle_v1.yaml")
-DEFAULT_OUTPUT = Path("artifacts/benchmark_subset_oracle_v1")
+DEFAULT_OUTPUT = Path("artifacts/benchmark_subset_oracle_v1_r2")
 
 
 def _load(
@@ -168,8 +215,10 @@ def main() -> None:
     config_path = cast(Path, args.config)
     output = cast(Path, args.output_dir)
     suite, accuracy = _load(config_path)
-    _write_resolved(config_path, output, suite, accuracy)
     command = cast(str, args.command)
+    if command in {"trace", "closed-loop"} and cast(str, args.model_key) == "gpt_oss_20b":
+        _configure_cached_gpt_kernel(suite, output)
+    _write_resolved(config_path, output, suite, accuracy)
     result: object
     if command == "audit":
         result = audit_source_accuracy(suite, accuracy, output)

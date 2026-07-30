@@ -1,5 +1,5 @@
 schema_version: 1
-protocol_revision: 1
+protocol_revision: 2
 suite_id: benchmark_subset_oracle_v1
 source_accuracy:
   suite_id: speculating_experts_accuracy_v17
@@ -40,7 +40,7 @@ trace:
   horizons: [1, 2, 4, 8, 16]
   boundary_rule: non_overlapping_start_zero_per_horizon
   max_decode_tokens_per_sample: 128
-  replay_chunk_tokens: 16
+  replay_chunk_tokens: 1
   store_router_logits: true
   store_native_dtype: true
   sample_rows:

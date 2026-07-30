@@ -390,3 +390,33 @@ full hard accuracy retains every v17 task cap, including GPT AIME at 32,768.
 **Experiments affected:** `benchmark_subset_oracle_v1` only; prior v17 and
 `trained_oracle_gate_v2` artifacts and decisions remain unchanged.
 **Migration required:** None before the frozen v1 trace and smoke gates pass.
+
+## D-20260730-031 — Revise replay mechanics after a pre-result parity stop
+
+**Status:** accepted
+**Context:** Protocol revision 1 completed its v17 audit but saved no trace
+shards. Qwen chunk-16 teacher replay failed its mandatory comparison with the
+fixed autoregressive sample (`route_ids_equal=false`), so revision-1 traces were
+inadmissible. GPT-OSS also stopped before loading because offline kernel
+`version=1` resolution queried version metadata despite the exact CUDA build
+already existing in the local cache.
+**Decision:** Preserve the complete revision-1 failure directory. Freeze
+revision 2 before retrying: force the saved decode trajectory with a logits
+processor through the checkpoint's native one-token `generate` cache path,
+capture routes with non-mutating native forward hooks, and validate the replay
+against an independent native unpatched autoregressive generation. Use the
+supported `LOCAL_KERNELS` mapping to the existing cached kernel
+commit `9655fcf7d0f638bec4a82f6f1a70014f0aa8cfb0`. Hash every file in that cached
+variant and state explicitly that no download occurred. Use a fresh `_r2`
+artifact root. Do not alter the experimental grid, selectors, samples, gates,
+transfer model, decoding, or scoring.
+**Alternatives considered:** Accept non-parity chunked routes, silently relax
+route-ID parity, download kernel metadata, delete the failed artifacts, or
+continue under the old fingerprint.
+**Consequences:** Replay is slower but matches the required autoregressive
+execution shape. The mechanical dependency repair cannot use accuracy and
+cannot change operating-point selection.
+**Experiments affected:** `benchmark_subset_oracle_v1` natural replay and GPT
+model loading only.
+**Migration required:** Revision-2 trace parity and offline kernel provenance
+must pass before open-loop aggregation.

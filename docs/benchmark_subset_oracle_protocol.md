@@ -5,7 +5,19 @@ open-loop aggregate, hard-commitment smoke, or hard-commitment accuracy result
 was produced. The machine-readable source is
 `configs/benchmark/benchmark_subset_oracle_v1.yaml`, whose resolved content
 fingerprint is
-`0463596e816da5db528061b50c3b06e81b11bf6d012aa106963ba1c55e712227`.
+`b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2`.
+
+Protocol revision 1 (`0463596e...12227`) stopped during preflight before any
+trace shard or subset result was saved. Chunk-16 teacher replay failed the
+required Qwen autoregressive route parity, and offline GPT loading could not
+resolve kernel `version=1` even though its exact CUDA variant was already in the
+local cache. Revision 2 changes only replay chunking from 16 to one token,
+keeps native generation prefill unpatched during parity, and pins the existing
+cached GPT kernel commit through the supported `LOCAL_KERNELS` override. It
+does not download anything or change samples, horizons, budgets, selectors,
+gates, transfer assumptions, decoding, or evaluators. Revision-1 failure
+evidence remains at `artifacts/benchmark_subset_oracle_v1`; revision-2 results
+use `artifacts/benchmark_subset_oracle_v1_r2`.
 
 ## Question and information boundary
 
@@ -46,12 +58,18 @@ saving. Every subset is selected independently per layer at exact cardinality
 
 The representative trace rows are the four deterministic dataset quartiles
 listed explicitly in the config. The first 128 saved decode tokens per row are
-teacher-forced with a KV cache in chunks of 16. Prompt rendering is reconstructed
-through the v17 renderer and must match the saved prompt SHA-256. Every shard
-saves native selected IDs/weights and native router logits in safetensors, plus
-source token and prompt checksums. An eight-token autoregressive replay on the
-fixed smoke ID for every task must match the corresponding saved v17 token
-prefix and the teacher-forced routes/logits before a trace is admitted.
+teacher-forced one token at a time by a logits processor that forces the saved
+trajectory through the checkpoint's native `generate` cache path. The final
+saved output token is not treated as routed because generation never processes
+it; one next saved token is used only to execute the last retained routed input.
+Qwen captures the native gate output, while GPT captures biased logits already
+returned by its native MXFP4 MLP; neither capture hook replaces a forward.
+Prompt rendering is reconstructed through the v17 renderer and must match the
+saved prompt SHA-256. Every shard saves native selected IDs/weights and native
+router logits in safetensors, plus source token and prompt checksums. An
+eight-token autoregressive replay on the fixed smoke ID for every task must
+match the corresponding saved v17 token prefix and forced-native routes/logits
+before a trace is admitted.
 
 For each horizon, boundaries are non-overlapping and start at decode position
 zero. The required selectors are future selected-routing-mass, future binary

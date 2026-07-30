@@ -167,7 +167,7 @@ class DecisionConfig(StrictModel):
 
 class SubsetOracleSuiteConfig(StrictModel):
     schema_version: Literal[1]
-    protocol_revision: Literal[1]
+    protocol_revision: Literal[2]
     suite_id: Literal["benchmark_subset_oracle_v1"]
     source_accuracy: SourceAccuracyConfig
     models: tuple[SubsetModelConfig, ...]

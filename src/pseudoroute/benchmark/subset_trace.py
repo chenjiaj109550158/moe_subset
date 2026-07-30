@@ -13,10 +13,11 @@ from typing import Any, cast
 import torch
 from safetensors.torch import load_file, save_file
 from torch import Tensor, nn
+from transformers import LogitsProcessor, LogitsProcessorList
 
 from pseudoroute.benchmark.config import AccuracyModelConfig, AccuracySuiteConfig
 from pseudoroute.benchmark.prefetch import (
-    SubsetExecutionContext,
+    NativeRouteCaptureContext,
     SubsetRouteRecord,
     build_prefetch_ops,
     load_default_vectors,
@@ -198,59 +199,84 @@ def _records_by_layer(
     return by_layer
 
 
+class _ForcedTrajectoryProcessor(LogitsProcessor):
+    def __init__(self, prompt_tokens: int, trajectory: list[int]) -> None:
+        self.prompt_tokens = prompt_tokens
+        self.trajectory = trajectory
+
+    def __call__(self, input_ids: Tensor, scores: Tensor) -> Tensor:
+        position = int(input_ids.shape[-1]) - self.prompt_tokens
+        if position >= len(self.trajectory):
+            return scores
+        forced = torch.full_like(scores, -torch.inf)
+        forced[:, self.trajectory[position]] = 0
+        return forced
+
+
 def _collect_teacher_trace(
     model: nn.Module,
+    tokenizer: Any,
     ops: Any,
     inputs: dict[str, Tensor],
     token_ids: list[int],
+    next_token_id: int,
     *,
     chunk_tokens: int,
 ) -> tuple[dict[str, Tensor], list[Tensor]]:
-    with torch.inference_mode():
-        prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
-    cache = prefill.past_key_values
-    teacher_lm_logits = [cast(Tensor, prefill.logits[:, -1]).detach().float().cpu()]
+    if chunk_tokens != 1:
+        raise ValueError("native forced replay requires one-token generation steps")
+    trajectory = [*token_ids, next_token_id]
+    prompt_tokens = int(inputs["input_ids"].shape[-1])
+    captured_lm: list[Tensor] = []
+    handle = _capture_lm_head(cast(nn.Module, cast(Any, model).lm_head), captured_lm)
+    try:
+        with NativeRouteCaptureContext(ops) as context, torch.inference_mode():
+            output = cast(Any, model).generate(
+                **inputs,
+                max_new_tokens=len(trajectory),
+                do_sample=False,
+                use_cache=True,
+                pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id,
+                logits_processor=LogitsProcessorList(
+                    [_ForcedTrajectoryProcessor(prompt_tokens, trajectory)]
+                ),
+            )
+            records = context.drain()
+    finally:
+        handle.remove()
+    generated = [int(value) for value in output[0, prompt_tokens:].detach().cpu().tolist()]
+    if generated != trajectory:
+        raise RuntimeError(f"forced native replay changed trajectory: {generated} != {trajectory}")
+    expected_records = ops.num_layers * (len(token_ids) + 1)
+    if len(records) != expected_records:
+        raise RuntimeError(f"forced native route records {len(records)} != {expected_records}")
+    decode_records = records[ops.num_layers :]
     logits_by_layer: dict[int, list[Tensor]] = {layer: [] for layer in range(ops.num_layers)}
     ids_by_layer: dict[int, list[Tensor]] = {layer: [] for layer in range(ops.num_layers)}
     weights_by_layer: dict[int, list[Tensor]] = {layer: [] for layer in range(ops.num_layers)}
-    device = inputs["input_ids"].device
-    with SubsetExecutionContext(ops, "natural") as context, torch.inference_mode():
-        for start in range(0, len(token_ids), chunk_tokens):
-            chunk = torch.tensor(
-                token_ids[start : start + chunk_tokens], dtype=torch.long, device=device
-            )[None]
-            output = cast(
-                Any,
-                model(
-                    input_ids=chunk,
-                    past_key_values=cache,
-                    use_cache=True,
-                    return_dict=True,
-                ),
-            )
-            cache = output.past_key_values
-            teacher_lm_logits.extend(tensor.detach().float().cpu() for tensor in output.logits[0])
-            by_layer = _records_by_layer(context.drain(), ops.num_layers)
-            for layer, record in by_layer.items():
-                logits_by_layer[layer].append(record.natural.logits)
-                ids_by_layer[layer].append(record.natural.ids)
-                weights_by_layer[layer].append(record.natural.weights)
+    for position in range(len(token_ids)):
+        start = position * ops.num_layers
+        by_layer = _records_by_layer(
+            tuple(decode_records[start : start + ops.num_layers]), ops.num_layers
+        )
+        for layer, record in by_layer.items():
+            logits_by_layer[layer].append(record.natural.logits)
+            ids_by_layer[layer].append(record.natural.ids)
+            weights_by_layer[layer].append(record.natural.weights)
     tensors = {
         "token_ids": torch.tensor(token_ids, dtype=torch.int64),
         "router_logits": torch.stack(
-            [torch.cat(logits_by_layer[layer], dim=0) for layer in range(ops.num_layers)],
-            dim=1,
+            [torch.cat(logits_by_layer[layer], dim=0) for layer in range(ops.num_layers)], dim=1
         ),
         "router_topk_ids": torch.stack(
-            [torch.cat(ids_by_layer[layer], dim=0) for layer in range(ops.num_layers)],
-            dim=1,
+            [torch.cat(ids_by_layer[layer], dim=0) for layer in range(ops.num_layers)], dim=1
         ),
         "router_topk_weights": torch.stack(
             [torch.cat(weights_by_layer[layer], dim=0) for layer in range(ops.num_layers)],
             dim=1,
         ),
     }
-    return tensors, teacher_lm_logits
+    return tensors, captured_lm[: len(token_ids)]
 
 
 def _autoregressive_parity(
@@ -275,7 +301,7 @@ def _autoregressive_parity(
     handle = _capture_lm_head(lm_head, captured_lm)
     seed_everything(accuracy.decode.seed)
     try:
-        with SubsetExecutionContext(ops, "natural") as context:
+        with NativeRouteCaptureContext(ops) as context:
             generated, _ = _generate(
                 model,
                 tokenizer,
@@ -296,7 +322,7 @@ def _autoregressive_parity(
         raise RuntimeError(
             f"autoregressive route capture count {len(records)} != {expected_record_count}"
         )
-    # The first call covers the prompt. Subsequent calls cover generated tokens 0..count-2.
+    # First call is prompt prefill; remaining calls process generated tokens 0..count-2.
     decode_records = records[ops.num_layers :]
     max_router_delta = 0.0
     route_ids_equal = True
@@ -433,14 +459,19 @@ def collect_model_traces(
             if rendered_sha != source["rendered_prompt_sha256"]:
                 raise ValueError(f"rendered prompt checksum changed for {model_subset.key}/{key}")
             source_tokens = [int(value) for value in source["generated_token_ids"]]
-            token_ids = source_tokens[: suite.trace.max_decode_tokens_per_sample]
-            if not token_ids:
-                raise ValueError(f"source v17 row has no decode token: {model_subset.key}/{key}")
+            route_tokens = min(suite.trace.max_decode_tokens_per_sample, len(source_tokens) - 1)
+            if route_tokens < 1:
+                raise ValueError(
+                    f"source v17 row has fewer than two decode tokens: {model_subset.key}/{key}"
+                )
+            token_ids = source_tokens[:route_tokens]
             tensors, teacher_lm = _collect_teacher_trace(
                 model,
+                tokenizer,
                 ops,
                 inputs,
                 token_ids,
+                source_tokens[route_tokens],
                 chunk_tokens=suite.trace.replay_chunk_tokens,
             )
             if reference.sample_id == suite.trace.autoregressive_parity_smoke_rows[dataset.key]:
