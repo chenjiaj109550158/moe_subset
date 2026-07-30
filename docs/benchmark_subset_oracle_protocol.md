@@ -3,7 +3,9 @@
 Recorded and frozen on 2026-07-30 UTC before any subset-oracle route trace,
 open-loop aggregate, hard-commitment smoke, or hard-commitment accuracy result
 was produced. The machine-readable source is
-`configs/benchmark/benchmark_subset_oracle_v1.yaml`.
+`configs/benchmark/benchmark_subset_oracle_v1.yaml`, whose resolved content
+fingerprint is
+`0463596e816da5db528061b50c3b06e81b11bf6d012aa106963ba1c55e712227`.
 
 ## Question and information boundary
 
@@ -90,6 +92,10 @@ from the open-loop gate.
 Natural accuracy/text/tokens are reused from v17. Lossless accuracy is
 identity-materialized only after every-task real-forward smoke proves exact
 token identity; its fallback and transfer metrics come from route replay.
+The fixed mechanism smoke uses `H=16` and the model's native-top-k budget so it
+can prove that hard masking changes an executed route. It is not an operating
+candidate and cannot participate in point selection; selected-point smoke runs
+separately after the open-loop gate.
 
 Hard oracle and previous-route commitment are actual cached autoregressive
 generation. At every hard-oracle boundary, a natural rollout starts from the

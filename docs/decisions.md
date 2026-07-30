@@ -376,6 +376,9 @@ accuracy only after cross-task real-forward parity; require actual closed-loop
 generation for hard oracle and previous-route commitment. At every hard-oracle
 boundary, look ahead naturally from the current policy state, rewind cache and
 RNG, then replay the constrained window.
+Use a fixed `H=16`, native-top-k mechanism smoke solely to prove lossless
+identity and hard route modification; it is not an operating candidate and is
+kept separate from the post-selection smoke.
 **Alternatives considered:** Relabel v17 `oracle_pf` as multi-token evidence,
 select points using smoke accuracy, regenerate the full vanilla suite, use a
 non-native GPT full-softmax proxy, or train a predictor immediately.

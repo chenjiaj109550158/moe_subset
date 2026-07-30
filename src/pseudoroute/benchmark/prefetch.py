@@ -17,6 +17,7 @@ from safetensors.torch import load_file, save_file
 from torch import Tensor, nn
 
 PolicyName = Literal["vanilla", "router_pf", "oracle_pf"]
+SubsetPolicyName = Literal["natural", "lossless", "hard"]
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,14 @@ class NativeRoute:
     logits: Tensor
     weights: Tensor
     ids: Tensor
+
+
+@dataclass(frozen=True)
+class SubsetRouteRecord:
+    layer: int
+    natural: NativeRoute
+    executed: NativeRoute
+    allowed: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -300,6 +309,65 @@ def build_prefetch_ops(model: nn.Module, architecture: str) -> PrefetchModelOps:
     raise ValueError(f"unsupported prefetch architecture: {architecture}")
 
 
+def masked_route(
+    ops: PrefetchModelOps, layer: int, hidden: Tensor, allowed: tuple[int, ...]
+) -> NativeRoute:
+    """Apply an explicit outside-subset logit mask before native route selection."""
+    if len(allowed) < ops.top_k:
+        raise ValueError("hard subset must contain at least native top-k experts")
+    natural = ops.route(layer, hidden)
+    allowed_tensor = torch.tensor(allowed, dtype=torch.long, device=natural.logits.device)
+    if allowed_tensor.unique().numel() != len(allowed):  # type: ignore[no-untyped-call]
+        raise ValueError("hard subset contains duplicate experts")
+    if int(allowed_tensor.min()) < 0 or int(allowed_tensor.max()) >= ops.num_experts:
+        raise ValueError("hard subset expert is outside the layer-local ID range")
+    keep = torch.zeros(ops.num_experts, dtype=torch.bool, device=natural.logits.device)
+    keep[allowed_tensor] = True
+    logits = natural.logits.masked_fill(~keep, -torch.inf)
+    if isinstance(ops, Qwen3MoePrefetchOps):
+        probabilities = torch.softmax(logits, dtype=torch.float32, dim=-1)
+        weights, ids = probabilities.topk(ops.top_k, dim=-1)
+        if bool(cast(Any, ops.model).config.norm_topk_prob):
+            weights = weights / weights.sum(dim=-1, keepdim=True)
+        weights = weights.to(logits.dtype)
+    elif isinstance(ops, GptOssPrefetchOps):
+        selected_logits, ids = logits.topk(ops.top_k, dim=-1)
+        weights = torch.softmax(selected_logits, dim=-1, dtype=selected_logits.dtype)
+    else:
+        raise TypeError(f"masked subset routing is unsupported for {type(ops).__name__}")
+    return NativeRoute(logits, weights, ids)
+
+
+def physical_expert_bytes(ops: PrefetchModelOps, layer: int) -> int:
+    """Return checkpoint-physical bytes for one routed expert in a layer."""
+    experts = cast(Any, ops.mlp(layer)).experts
+    if isinstance(ops, Qwen3MoePrefetchOps):
+        gate_up = cast(Tensor, experts.gate_up_proj)
+        down = cast(Tensor, experts.down_proj)
+        return int(
+            gate_up[0].numel() * gate_up.element_size() + down[0].numel() * down.element_size()
+        )
+    if isinstance(ops, GptOssPrefetchOps):
+        physical = 0
+        for projection in ("gate_up_proj", "down_proj"):
+            tensor = getattr(experts, projection)
+            storage = getattr(tensor, "storage", None)
+            if storage is not None and not callable(storage):
+                data = storage.data
+                physical += int(data.numel() * data.element_size())
+                precision = getattr(experts, f"{projection}_precision_config")
+                scale_data = precision.weight_scale.storage.data
+                physical += int(scale_data.numel() * scale_data.element_size())
+            else:
+                physical += int(tensor.numel() * tensor.element_size())
+            bias = getattr(experts, f"{projection}_bias")
+            physical += int(bias.numel() * bias.element_size())
+        if physical % ops.num_experts:
+            raise ValueError("GPT-OSS MXFP4 storage is not expert-divisible")
+        return physical // ops.num_experts
+    raise TypeError(f"expert byte accounting is unsupported for {type(ops).__name__}")
+
+
 class _PatchedMlpContext(AbstractContextManager["_PatchedMlpContext"]):
     def __init__(
         self,
@@ -413,6 +481,88 @@ def policy_context(
     ops: PrefetchModelOps, policy: PolicyName, defaults: DefaultVectorArtifact | None = None
 ) -> _PatchedMlpContext:
     return _PatchedMlpContext(ops, policy=policy, defaults=defaults)
+
+
+class SubsetExecutionContext(AbstractContextManager["SubsetExecutionContext"]):
+    """Reversible MLP patch for route capture, lossless residency, and hard masking."""
+
+    def __init__(
+        self,
+        ops: PrefetchModelOps,
+        policy: SubsetPolicyName,
+        allowed_by_layer: dict[int, tuple[int, ...]] | None = None,
+    ) -> None:
+        self.ops = ops
+        self.policy = policy
+        self.allowed_by_layer = dict(allowed_by_layer or {})
+        self._original: list[Any] = []
+        self._records: list[SubsetRouteRecord] = []
+
+    def set_allowed(self, allowed_by_layer: dict[int, tuple[int, ...]]) -> None:
+        expected = set(range(self.ops.num_layers))
+        if set(allowed_by_layer) != expected:
+            raise ValueError("subset must cover every routed layer")
+        for layer, subset in allowed_by_layer.items():
+            if len(subset) < self.ops.top_k or len(subset) > self.ops.num_experts:
+                raise ValueError(f"invalid layer {layer} subset size")
+        self.allowed_by_layer = dict(allowed_by_layer)
+
+    @staticmethod
+    def _cpu_route(route: NativeRoute) -> NativeRoute:
+        return NativeRoute(
+            route.logits.detach().cpu(),
+            route.weights.detach().cpu(),
+            route.ids.detach().cpu(),
+        )
+
+    def _forward(self, layer: int, hidden_states: Tensor) -> object:
+        shape = hidden_states.shape
+        flat = hidden_states.reshape(-1, shape[-1])
+        natural = self.ops.route(layer, flat)
+        allowed = self.allowed_by_layer.get(layer, ())
+        if self.policy == "natural":
+            executed = natural
+        else:
+            if not allowed:
+                raise RuntimeError(f"{self.policy} subset missing for layer {layer}")
+            executed = (
+                natural
+                if self.policy == "lossless"
+                else masked_route(self.ops, layer, flat, allowed)
+            )
+        value = self.ops.experts(layer, flat, executed)
+        self._records.append(
+            SubsetRouteRecord(
+                layer,
+                self._cpu_route(natural),
+                self._cpu_route(executed),
+                allowed,
+            )
+        )
+        return self.ops.format_mlp_output(value.reshape(shape), executed)
+
+    def drain(self) -> tuple[SubsetRouteRecord, ...]:
+        records = tuple(self._records)
+        self._records.clear()
+        return records
+
+    def __enter__(self) -> SubsetExecutionContext:
+        for index in range(self.ops.num_layers):
+            mlp = self.ops.mlp(index)
+            self._original.append(mlp.forward)
+
+            def replacement(
+                _module: nn.Module, hidden_states: Tensor, *, layer: int = index
+            ) -> object:
+                return self._forward(layer, hidden_states)
+
+            mlp.forward = types.MethodType(replacement, mlp)
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        for index, original in enumerate(self._original):
+            self.ops.mlp(index).forward = original
+        self._original.clear()
 
 
 def calibrate_default_vectors(

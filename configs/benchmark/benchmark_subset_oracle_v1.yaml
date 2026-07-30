@@ -137,6 +137,9 @@ closed_loop:
     aime24: train-0
     aime25: test-0
     strategyqa: 7a0e419ffb6009156828
+  smoke_horizon: 16
+  smoke_budget_rule: native_top_k
+  smoke_point_is_not_an_operating_candidate: true
   smoke_max_new_tokens: 8
   full_sample_scope: all_v17_rows
   policies:
