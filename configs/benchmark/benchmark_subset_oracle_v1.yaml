@@ -1,0 +1,195 @@
+schema_version: 1
+protocol_revision: 1
+suite_id: benchmark_subset_oracle_v1
+source_accuracy:
+  suite_id: speculating_experts_accuracy_v17
+  config: configs/benchmark/speculating_experts_accuracy_v17.yaml
+  artifact_root: artifacts/speculating_experts_accuracy_v17
+  config_fingerprint: 896744077611beaf7692ee2c9ac94fcc5326268f86e8b5ff297960a0da152ff9
+  required_pipeline_state: complete
+  required_pipeline_stage: oracle_v17
+  reuse:
+    - rendered prompts
+    - targets
+    - generated token IDs and text
+    - task scorers and execution sandbox
+    - checkpoint and dataset revisions
+    - per-task decoding and token caps
+models:
+  - key: qwen3_30b_a3b
+    architecture: qwen3_moe
+    physical_gpu: 1
+    routed_layers: 48
+    routed_experts_per_layer: 128
+    shared_experts_per_layer: 0
+    native_top_k: 8
+    budgets: [8, 16, 32, 64, 128]
+    full_router_mass: native_full_softmax
+  - key: gpt_oss_20b
+    architecture: gpt_oss
+    physical_gpu: 0
+    routed_layers: 24
+    routed_experts_per_layer: 32
+    shared_experts_per_layer: 0
+    native_top_k: 4
+    budgets: [4, 8, 16, 24, 32]
+    full_router_mass: unavailable_selected_logits_softmax_only
+trace:
+  source_policy: vanilla
+  information_regime: offline_teacher_forced_saved_v17_trajectory
+  horizons: [1, 2, 4, 8, 16]
+  boundary_rule: non_overlapping_start_zero_per_horizon
+  max_decode_tokens_per_sample: 128
+  replay_chunk_tokens: 16
+  store_router_logits: true
+  store_native_dtype: true
+  sample_rows:
+    humaneval:
+      - {row_index: 0, sample_id: HumanEval/0}
+      - {row_index: 54, sample_id: HumanEval/54}
+      - {row_index: 109, sample_id: HumanEval/109}
+      - {row_index: 163, sample_id: HumanEval/163}
+    mbpp_plus:
+      - {row_index: 0, sample_id: "2"}
+      - {row_index: 126, sample_id: "264"}
+      - {row_index: 251, sample_id: "579"}
+      - {row_index: 377, sample_id: "809"}
+    gsm8k:
+      - {row_index: 0, sample_id: test-0}
+      - {row_index: 439, sample_id: test-439}
+      - {row_index: 879, sample_id: test-879}
+      - {row_index: 1318, sample_id: test-1318}
+    aime24:
+      - {row_index: 0, sample_id: train-0}
+      - {row_index: 10, sample_id: train-10}
+      - {row_index: 19, sample_id: train-19}
+      - {row_index: 29, sample_id: train-29}
+    aime25:
+      - {row_index: 0, sample_id: test-0}
+      - {row_index: 10, sample_id: test-10}
+      - {row_index: 19, sample_id: test-19}
+      - {row_index: 29, sample_id: test-29}
+    strategyqa:
+      - {row_index: 0, sample_id: 7a0e419ffb6009156828}
+      - {row_index: 229, sample_id: 5ab66b27a0caee886970}
+      - {row_index: 457, sample_id: 15271da5457a404509c4}
+      - {row_index: 686, sample_id: 9a923e94373f79fa80e5}
+  autoregressive_parity_smoke_rows:
+    humaneval: HumanEval/0
+    mbpp_plus: "2"
+    gsm8k: test-0
+    aime24: train-0
+    aime25: test-0
+    strategyqa: 7a0e419ffb6009156828
+  autoregressive_parity_max_tokens: 8
+selection:
+  methods:
+    - future_selected_routing_mass
+    - future_binary_count
+    - previous_route
+    - static_frequency
+  qwen_additional_methods: [future_full_router_mass]
+  exact_cardinality: true
+  tie_break: ascending_layer_scoped_expert_id
+  previous_route_history: previous_realized_window_same_horizon
+  previous_route_first_window: static_frequency
+  static_frequency_source: v17_disjoint_wikitext_default_vector_counts
+transfer_model:
+  timing_kind: simulated_not_measured_runtime
+  bandwidth_gib_per_second: 25.0
+  fixed_latency_microseconds_per_load: 10.0
+  resident_capacity: exact_budget_per_layer
+  window_prefetch: load_new_subset_members_at_boundary
+  fallback: transient_load_each_missing_natural_expert_per_layer_token
+  reference: natural_on_demand_transient_native_selected_experts
+  shared_experts: excluded_from_routed_budget_and_transfer
+open_loop:
+  raw_format: csv_gzip
+  aggregate_statistics: [mean, median, p05, p95, worst]
+  stratify_by: [model, task, layer, context_bucket, router_margin_bucket]
+  context_buckets: [0-31, 32-63, 64-127]
+  router_margin_buckets: per_model_task_layer_tertiles
+  worst_case_count_per_model_task_metric: 100
+operating_point_selection:
+  hard_oracle_method: future_selected_routing_mass
+  require_every_task_before_selection: true
+  maximum_points_per_model: 1
+  exclude_all_expert_budget: true
+  maximum_resident_fraction: 0.75
+  minimum_mean_route_hit: 0.90
+  minimum_mean_selected_routing_mass: 0.95
+  minimum_p05_route_hit: 0.80
+  minimum_worst_route_hit: 0.80
+  minimum_transfer_reduction: 0.30
+  minimum_selected_mass_improvement_over_best_baseline: 0.05
+  maximum_lossless_fallback_frequency: 0.10
+  deterministic_order:
+    - lowest_resident_fraction
+    - lowest_worst_task_estimated_h2d_bytes_per_token
+    - highest_worst_task_route_hit
+    - highest_horizon
+    - lowest_budget
+closed_loop:
+  smoke_rows:
+    humaneval: HumanEval/0
+    mbpp_plus: "2"
+    gsm8k: test-0
+    aime24: train-0
+    aime25: test-0
+    strategyqa: 7a0e419ffb6009156828
+  smoke_max_new_tokens: 8
+  full_sample_scope: all_v17_rows
+  policies:
+    - natural_v17_reuse
+    - lossless_oracle_residency
+    - hard_oracle_commitment
+    - previous_route_commitment
+  oracle_future: natural_rollout_from_current_policy_boundary_state
+  cache_semantics: rewind_natural_lookahead_then_replay_policy_window
+  hard_mask_semantics: mask_outside_subset_before_native_topk_and_native_renormalization
+  decode_semantics: exact_v17_per_model_task_settings
+  sample_shards: 4
+  max_concurrent_workers_per_physical_gpu: 1
+  atomic_unit: one_sample_policy_row
+  aime_gpt_max_new_tokens: 32768
+  metrics:
+    - task_correct
+    - exact_token_agreement
+    - first_token_divergence
+    - first_route_divergence
+    - vanilla_token_nll_on_policy_context
+    - perplexity
+    - fallback_frequency
+    - route_coverage
+    - transfer_bytes
+    - subset_churn
+    - simulated_exposed_stall
+    - measured_runtime
+paired_accuracy_gate:
+  definition: >
+    hard successes must be at least vanilla successes minus allowed_drop_questions;
+    allowed_drop_questions is frozen as ceil(2*sqrt(N*p_vanilla*(1-p_vanilla))),
+    with a minimum of one question
+  confidence_interval: paired_difference_normal_95
+  require_each_task: true
+  vanilla:
+    qwen3_30b_a3b:
+      humaneval: {successes: 154, samples: 164, allowed_drop_questions: 7}
+      mbpp_plus: {successes: 289, samples: 378, allowed_drop_questions: 17}
+      gsm8k: {successes: 1245, samples: 1319, allowed_drop_questions: 17}
+      aime24: {successes: 22, samples: 30, allowed_drop_questions: 5}
+      aime25: {successes: 20, samples: 30, allowed_drop_questions: 6}
+      strategyqa: {successes: 488, samples: 687, allowed_drop_questions: 24}
+    gpt_oss_20b:
+      humaneval: {successes: 158, samples: 164, allowed_drop_questions: 5}
+      mbpp_plus: {successes: 287, samples: 378, allowed_drop_questions: 17}
+      gsm8k: {successes: 1242, samples: 1319, allowed_drop_questions: 18}
+      aime24: {successes: 19, samples: 30, allowed_drop_questions: 6}
+      aime25: {successes: 19, samples: 30, allowed_drop_questions: 6}
+      strategyqa: {successes: 513, samples: 687, allowed_drop_questions: 23}
+decision:
+  labels: [GO, NARROW, STOP/PIVOT]
+  per_model_task_point: true
+  no_macro_average_override: true
+  predictor_authorization: only_all_task_GO_or_explicit_task_scoped_NARROW
+  perfect_oracle_failure_action: stop_predictor_training

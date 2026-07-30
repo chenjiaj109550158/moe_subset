@@ -358,3 +358,32 @@ it cannot weaken the STOP decision.
 stage.
 **Migration required:** Explicit human authorization plus a versioned new protocol
 for a quality-aware fallback or other revised hypothesis.
+
+## D-20260730-030 — Pivot to a benchmark-aligned multi-token subset oracle
+
+**Status:** accepted
+**Context:** D-20260727-029 rejected learned routing after a small trained-model
+gate, while the completed v17 accuracy suite preserves aligned vanilla prompts,
+tokens, targets, and evaluators for Qwen3-30B-A3B and GPT-OSS-20B. Explicit human
+authorization requested a new future-aware, fixed-window, budgeted-subset
+question without rerunning vanilla or training a predictor.
+**Decision:** Freeze `benchmark_subset_oracle_v1` before producing subset results.
+Replay deterministic quartile samples from saved v17 trajectories for the full
+H/B/method grid. Admit at most one future-selected-mass point per model only when
+all six tasks pass the predeclared coverage, tail, residency, fallback, baseline,
+and transfer gates. Reuse v17 natural accuracy; identity-materialize lossless
+accuracy only after cross-task real-forward parity; require actual closed-loop
+generation for hard oracle and previous-route commitment. At every hard-oracle
+boundary, look ahead naturally from the current policy state, rewind cache and
+RNG, then replay the constrained window.
+**Alternatives considered:** Relabel v17 `oracle_pf` as multi-token evidence,
+select points using smoke accuracy, regenerate the full vanilla suite, use a
+non-native GPT full-softmax proxy, or train a predictor immediately.
+**Consequences:** The new stage measures the requested routing-information upper
+bound with benchmark accuracy and explicit simulation/runtime labels. A failed
+perfect oracle remains a terminal predictor-training stop. The 128-token
+representative trace cap limits open-loop context claims and is disclosed;
+full hard accuracy retains every v17 task cap, including GPT AIME at 32,768.
+**Experiments affected:** `benchmark_subset_oracle_v1` only; prior v17 and
+`trained_oracle_gate_v2` artifacts and decisions remain unchanged.
+**Migration required:** None before the frozen v1 trace and smoke gates pass.
