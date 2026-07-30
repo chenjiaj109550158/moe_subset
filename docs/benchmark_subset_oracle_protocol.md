@@ -128,10 +128,16 @@ separately after the open-loop gate.
 Hard oracle and previous-route commitment are actual cached autoregressive
 generation. At every hard-oracle boundary, a natural rollout starts from the
 current policy state, records the next `H` native routes, and consumes no label
-or ground truth. RNG and cache length are saved; after selection, the lookahead
-cache is cropped back to the boundary and the policy window is replayed from
-that exact state. If cache crop parity is unavailable, the run fails rather
-than silently changing semantics.
+or ground truth. RNG and the boundary cache state are saved. Non-sliding dynamic
+caches use exact crop rewind with a post-crop length check. A cache containing a
+`DynamicSlidingWindowLayer` instead receives a copy-on-write lookahead fork:
+the cache and every mutable layer object are copied, immutable boundary KV
+tensors are shared until native updates assign new tensors on the fork, and the
+fork is discarded. The original sequence length, layer identities, KV tensor
+identities/data pointers/version counters where available, and cumulative
+lengths must remain unchanged. RNG is restored in either case before the policy
+window is replayed. Any failed rewind or original-cache mutation check stops the
+run rather than silently changing semantics.
 
 Hard execution masks every outside-subset router logit before native top-k.
 Qwen applies its full softmax/top-k/top-k renormalization; GPT-OSS applies

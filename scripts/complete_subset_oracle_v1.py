@@ -132,6 +132,39 @@ def _preflight() -> None:
     )
 
 
+def _record_execution_revision() -> None:
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    status = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=REPO,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    payload = {
+        "schema_version": 1,
+        "recorded_at": datetime.now(UTC).isoformat(),
+        "pid": os.getpid(),
+        "ppid": os.getppid(),
+        "git_head": head,
+        "git_worktree_porcelain": status,
+        "base_environment": "../environment.json",
+    }
+    path = OUTPUT / "execution_revisions" / f"{head}.json"
+    if path.is_file():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if existing.get("git_head") != head or existing.get("git_worktree_porcelain") != status:
+            raise RuntimeError(f"execution revision provenance changed: {path}")
+        return
+    _atomic_json(path, payload)
+
+
 def _command(*arguments: str) -> list[str]:
     return [
         sys.executable,
@@ -255,6 +288,7 @@ def main() -> None:
     try:
         _wait_for_resumed_workers()
         _preflight()
+        _record_execution_revision()
         _run_one("audit_source_v17", "audit")
         trace_commands = [
             (

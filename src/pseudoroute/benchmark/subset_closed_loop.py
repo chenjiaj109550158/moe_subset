@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -179,6 +180,53 @@ def _rewind_cache(cache: object, length: int) -> None:
         raise RuntimeError("cache rewind length mismatch")
 
 
+def _cache_layers(cache: object) -> list[Any]:
+    layers = getattr(cache, "layers", None)
+    if not isinstance(layers, list) or not layers:
+        raise RuntimeError(f"cache {type(cache).__name__} does not expose populated layers")
+    return layers
+
+
+def _cache_has_sliding_layers(cache: object) -> bool:
+    return any(getattr(layer, "sliding_window", None) is not None for layer in _cache_layers(cache))
+
+
+def _tensor_mutation_signature(value: object) -> tuple[object, ...]:
+    if not isinstance(value, Tensor):
+        return (None,)
+    try:
+        version: int | None = int(value._version)
+    except RuntimeError:
+        version = None
+    return (id(value), int(value.data_ptr()), tuple(value.shape), version)
+
+
+def _cache_mutation_signature(cache: object) -> tuple[tuple[object, ...], ...]:
+    return tuple(
+        (
+            id(layer),
+            _tensor_mutation_signature(getattr(layer, "keys", None)),
+            _tensor_mutation_signature(getattr(layer, "values", None)),
+            getattr(layer, "cumulative_length", None),
+        )
+        for layer in _cache_layers(cache)
+    )
+
+
+def _fork_cache_copy_on_write(cache: object) -> object:
+    layers = _cache_layers(cache)
+    fork = copy.copy(cache)
+    fork_layers = [copy.copy(layer) for layer in layers]
+    if any(original is cloned for original, cloned in zip(layers, fork_layers, strict=True)):
+        raise RuntimeError("cache fork reused a mutable layer object")
+    cast(Any, fork).layers = fork_layers
+    if len(_cache_layers(fork)) != len(layers):
+        raise RuntimeError("cache fork layer count changed")
+    if _cache_length(fork) != _cache_length(cache):
+        raise RuntimeError("cache fork sequence length changed")
+    return fork
+
+
 def _rng_state(device: torch.device) -> tuple[Tensor, Tensor]:
     return torch.random.get_rng_state(), torch.cuda.get_rng_state(device)
 
@@ -234,16 +282,21 @@ def natural_lookahead_and_rewind(
     horizon: int,
     do_sample: bool,
 ) -> list[tuple[SubsetRouteRecord, ...]]:
-    """Roll out naturally, then restore both cache length and RNG exactly."""
+    """Roll out naturally, then restore or preserve the boundary cache and RNG."""
     device = current.device
     boundary_length = _cache_length(cache)
     state = _rng_state(device)
+    use_fork = _cache_has_sliding_layers(cache)
+    boundary_signature = _cache_mutation_signature(cache) if use_fork else ()
+    rollout_cache = _fork_cache_copy_on_write(cache) if use_fork else cache
     rollout_current = current
     rollout_generated = list(generated)
     steps: list[tuple[SubsetRouteRecord, ...]] = []
     try:
         for _ in range(horizon):
-            output, records = _forward_capture(model, ops, rollout_current, cache, policy="natural")
+            output, records = _forward_capture(
+                model, ops, rollout_current, rollout_cache, policy="natural"
+            )
             steps.append(records)
             scores = cast(Tensor, output.logits[:, -1])
             token = _sample_token(scores, model, do_sample=do_sample)
@@ -260,8 +313,16 @@ def natural_lookahead_and_rewind(
             ):
                 break
     finally:
-        _rewind_cache(cache, boundary_length)
-        _restore_rng(device, state)
+        try:
+            if use_fork:
+                if _cache_length(cache) != boundary_length:
+                    raise RuntimeError("forked lookahead changed original cache length")
+                if _cache_mutation_signature(cache) != boundary_signature:
+                    raise RuntimeError("forked lookahead mutated original cache state")
+            else:
+                _rewind_cache(cache, boundary_length)
+        finally:
+            _restore_rng(device, state)
     if not steps:
         raise RuntimeError("oracle natural lookahead produced no route step")
     return steps
@@ -361,6 +422,11 @@ def run_policy_sample(
     cache = prefill.past_key_values
     if cache is None:
         raise RuntimeError("closed-loop model did not return a KV cache")
+    cache_replay_semantics = (
+        "copy_on_write_layer_fork_discard_original_boundary_verified"
+        if _cache_has_sliding_layers(cache)
+        else "in_place_lookahead_exact_crop_rewind_verified"
+    )
     prefill_scores = cast(Tensor, prefill.logits[:, -1])
     first = _sample_token(prefill_scores, model, do_sample=do_sample)
     generated = [int(first.item())]
@@ -479,6 +545,7 @@ def run_policy_sample(
             else "online_previous_route"
         ),
         "evaluation_mode": "actual_closed_loop_generation",
+        "cache_replay_semantics": cache_replay_semantics,
         "horizon": horizon,
         "budget": budget,
         "max_new_tokens": max_new_tokens,

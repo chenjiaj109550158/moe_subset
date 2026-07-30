@@ -450,3 +450,32 @@ route/token/logit gates remain in force before any trace is admitted.
 closed-loop prompt construction only.
 **Migration required:** Both models must complete all 24 authoritative trace
 shards and all six parity records before open-loop aggregation.
+
+## D-20260730-033 — Fork sliding-window caches for non-destructive oracle lookahead
+
+**Status:** accepted
+**Context:** Both authoritative natural traces and full open-loop grids completed
+with exact row counts. The predeclared gate selected only GPT `(H=1,B=4)`; Qwen
+had no qualifying point. During the independent mechanism smoke, GPT's native
+`DynamicSlidingWindowLayer` rejected crop after its cumulative length exceeded
+the window because evicted states cannot be reconstructed. It saved no successful
+smoke row; Qwen completed all 12 smoke rows with exact non-sliding crop rewind.
+**Decision:** For any cache containing a sliding layer, shallow-copy the cache and
+mutable layer objects for natural lookahead while sharing existing boundary KV
+tensors. Installed native dynamic-cache updates concatenate and assign new
+tensors on the fork, which is discarded after subset selection. Verify that the
+original cache sequence length, layer identities, KV identities/data pointers and
+version counters where available, and sliding cumulative lengths are unchanged.
+Restore RNG in a nested `finally`. Keep exact crop rewind for non-sliding caches.
+Record the clean resume commit under immutable `execution_revisions/` provenance.
+Do not change the frozen grid, selected point, gates, samples, or evaluators.
+**Alternatives considered:** Ignore the crop error, reset sliding cumulative length,
+disable the sliding window, deep-copy the full KV payload at every token, or
+recompute every boundary from the prompt.
+**Consequences:** Lookahead can proceed from the exact GPT boundary state without
+requiring already-evicted KV entries. Copy-on-write adds actual planning work and
+is included in measured closed-loop runtime; simulated transfer remains separate.
+**Experiments affected:** `benchmark_subset_oracle_v1` GPT mechanism, selected,
+and full closed-loop lookahead only; completed traces/grids and Qwen smoke remain.
+**Migration required:** A real GPT mechanism smoke must prove original-cache
+preservation, exact lossless tokens, and hard executed-route change before resume.

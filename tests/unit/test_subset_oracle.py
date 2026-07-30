@@ -7,6 +7,7 @@ from typing import Any, cast
 import pytest
 import torch
 from torch import Tensor, nn
+from transformers.cache_utils import DynamicSlidingWindowLayer
 
 from pseudoroute.benchmark.prefetch import (
     GptOssPrefetchOps,
@@ -19,6 +20,9 @@ from pseudoroute.benchmark.prefetch import (
 )
 from pseudoroute.benchmark.runner import _encode_saved_rendered_prompt
 from pseudoroute.benchmark.subset_closed_loop import (
+    _cache_has_sliding_layers,
+    _cache_mutation_signature,
+    _fork_cache_copy_on_write,
     _rewind_cache,
     _token_agreement,
     subsets_from_route_steps,
@@ -161,6 +165,14 @@ class FakeCache:
         self.length = length
 
 
+class FakeLayeredCache:
+    def __init__(self, layer: DynamicSlidingWindowLayer) -> None:
+        self.layers = [layer]
+
+    def get_seq_length(self) -> int:
+        return int(self.layers[0].get_seq_length())
+
+
 class FakeSavedPromptTokenizer:
     def __init__(self, decoded: str) -> None:
         self.decoded = decoded
@@ -223,6 +235,27 @@ def test_saved_rendered_prompt_requires_exact_tokenizer_roundtrip() -> None:
         _encode_saved_rendered_prompt(
             FakeSavedPromptTokenizer("drifted prompt"), config, "saved prompt"
         )
+
+
+def test_sliding_cache_fork_is_copy_on_write_and_preserves_original() -> None:
+    layer = DynamicSlidingWindowLayer(sliding_window=4)
+    key = torch.arange(3, dtype=torch.float32).reshape(1, 1, 3, 1)
+    value = key + 10
+    layer.update(key, value)
+    cache = FakeLayeredCache(layer)
+    signature = _cache_mutation_signature(cache)
+    original_keys = layer.keys
+    fork = cast(FakeLayeredCache, _fork_cache_copy_on_write(cache))
+    fork_layer = fork.layers[0]
+    assert _cache_has_sliding_layers(cache)
+    assert fork_layer is not layer
+    assert fork_layer.keys is original_keys
+    next_key = torch.tensor([[[[3.0]]]])
+    fork_layer.update(next_key, next_key + 10)
+    assert layer.keys is original_keys
+    assert layer.cumulative_length == 3
+    assert _cache_mutation_signature(cache) == signature
+    assert fork_layer.cumulative_length == 4
 
 
 def test_qwen_lossless_is_exact_and_hard_mask_changes_executed_route() -> None:
