@@ -24,11 +24,11 @@ from pseudoroute.benchmark.prefetch import (
     physical_expert_bytes,
 )
 from pseudoroute.benchmark.runner import (
+    _encode_saved_rendered_prompt,
     _generate,
     _load_model,
     _model_example,
     _read_jsonl,
-    _render,
     _software_hardware,
 )
 from pseudoroute.benchmark.subset_config import (
@@ -276,7 +276,9 @@ def _collect_teacher_trace(
             dim=1,
         ),
     }
-    return tensors, captured_lm[: len(token_ids)]
+    if len(captured_lm) != len(token_ids) + 1:
+        raise RuntimeError("forced native LM-head capture count changed")
+    return tensors, captured_lm
 
 
 def _autoregressive_parity(
@@ -449,15 +451,14 @@ def collect_model_traces(
             if key in completed:
                 continue
             example = _model_example(_find_example(examples, reference), model_config)
-            inputs, rendered = _render(tokenizer, model_config, accuracy, example)
             source = by_id.get(reference.sample_id)
             if source is None or int(source["row_index"]) != reference.row_index:
                 raise ValueError(f"missing frozen v17 row {model_subset.key}/{key}")
-            if rendered != source["rendered_prompt"]:
-                raise ValueError(f"rendered prompt changed for {model_subset.key}/{key}")
+            rendered = str(source["rendered_prompt"])
             rendered_sha = hashlib.sha256(rendered.encode()).hexdigest()
             if rendered_sha != source["rendered_prompt_sha256"]:
-                raise ValueError(f"rendered prompt checksum changed for {model_subset.key}/{key}")
+                raise ValueError(f"saved prompt checksum changed for {model_subset.key}/{key}")
+            inputs = _encode_saved_rendered_prompt(tokenizer, model_config, rendered)
             source_tokens = [int(value) for value in source["generated_token_ids"]]
             route_tokens = min(suite.trace.max_decode_tokens_per_sample, len(source_tokens) - 1)
             if route_tokens < 1:

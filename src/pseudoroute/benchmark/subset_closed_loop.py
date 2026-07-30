@@ -26,10 +26,10 @@ from pseudoroute.benchmark.prefetch import (
     physical_expert_bytes,
 )
 from pseudoroute.benchmark.runner import (
+    _encode_saved_rendered_prompt,
     _load_model,
     _model_example,
     _read_jsonl,
-    _render,
 )
 from pseudoroute.benchmark.scoring import score_response
 from pseudoroute.benchmark.subset_config import SubsetModelConfig, SubsetOracleSuiteConfig
@@ -349,9 +349,8 @@ def run_policy_sample(
     budget: int,
     max_new_tokens: int,
 ) -> dict[str, object]:
-    inputs, rendered = _render(tokenizer, model_config, accuracy, example)
-    if rendered != source["rendered_prompt"]:
-        raise ValueError(f"closed-loop prompt differs from v17 for {source['sample_id']}")
+    rendered = str(source["rendered_prompt"])
+    inputs = _encode_saved_rendered_prompt(tokenizer, model_config, rendered)
     source_tokens = [int(value) for value in source["generated_token_ids"]][:max_new_tokens]
     do_sample = accuracy.do_sample_for(model_config, example.task)
     seed_everything(accuracy.decode.seed)

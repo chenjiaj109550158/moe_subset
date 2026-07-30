@@ -19,9 +19,13 @@ gates, transfer assumptions, decoding, or evaluators. Revision-1 failure
 evidence remains at `artifacts/benchmark_subset_oracle_v1`. A CLI validation
 attempt in `artifacts/benchmark_subset_oracle_v1_r2` was interrupted during
 Torch import with zero trace shards and zero result rows; it is retained because
-its environment record predates the clean revision-2 commit. Admissible
-revision-2 results use the fresh
-`artifacts/benchmark_subset_oracle_v1_r2_final` root.
+its environment record predates the clean revision-2 commit. A subsequent
+`artifacts/benchmark_subset_oracle_v1_r2_final` attempt saved 20 partial Qwen
+trace shards but no complete trace, grid, smoke, or accuracy result: GPT exposed
+a dynamic chat-template date and Qwen exposed a missing final LM-logit parity
+position for short EOS-terminated output. Those validation failures are also
+retained. Admissible revision-2 results use the fresh
+`artifacts/benchmark_subset_oracle_v1_r2_authoritative` root.
 
 ## Question and information boundary
 
@@ -68,8 +72,10 @@ saved output token is not treated as routed because generation never processes
 it; one next saved token is used only to execute the last retained routed input.
 Qwen captures the native gate output, while GPT captures biased logits already
 returned by its native MXFP4 MLP; neither capture hook replaces a forward.
-Prompt rendering is reconstructed through the v17 renderer and must match the
-saved prompt SHA-256. Every shard saves native selected IDs/weights and native
+Replay directly re-encodes the audited v17 `rendered_prompt` bytes with no added
+special tokens and requires an exact tokenizer decode round-trip plus the saved
+prompt SHA-256; this avoids mutable wall-clock output in GPT's chat template.
+Every shard saves native selected IDs/weights and native
 router logits in safetensors, plus source token and prompt checksums. An
 eight-token autoregressive replay on the fixed smoke ID for every task must
 match the corresponding saved v17 token prefix and forced-native routes/logits

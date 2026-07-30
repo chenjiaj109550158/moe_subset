@@ -192,6 +192,26 @@ def _render(
     return inputs, rendered
 
 
+def _encode_saved_rendered_prompt(
+    tokenizer: Any,
+    model_config: AccuracyModelConfig,
+    rendered: str,
+) -> dict[str, Tensor]:
+    """Re-encode immutable rendered prompt bytes saved by the source suite."""
+    encoded = tokenizer(
+        rendered,
+        add_special_tokens=False,
+        return_tensors="pt",
+    )
+    if not hasattr(encoded, "items"):
+        raise RuntimeError("saved rendered prompt encoding did not return a mapping")
+    inputs = {key: value.to(model_config.device) for key, value in encoded.items()}
+    roundtrip = tokenizer.decode(inputs["input_ids"][0], skip_special_tokens=False)
+    if roundtrip != rendered:
+        raise RuntimeError("saved rendered prompt failed exact tokenizer round-trip")
+    return inputs
+
+
 def _model_example(
     example: BenchmarkExample, model_config: AccuracyModelConfig
 ) -> BenchmarkExample:

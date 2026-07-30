@@ -90,7 +90,7 @@ def _configure_cached_gpt_kernel(suite: SubsetOracleSuiteConfig, output: Path) -
 
 
 DEFAULT_CONFIG = Path("configs/benchmark/benchmark_subset_oracle_v1.yaml")
-DEFAULT_OUTPUT = Path("artifacts/benchmark_subset_oracle_v1_r2_final")
+DEFAULT_OUTPUT = Path("artifacts/benchmark_subset_oracle_v1_r2_authoritative")
 
 
 def _load(

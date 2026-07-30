@@ -17,6 +17,7 @@ from pseudoroute.benchmark.prefetch import (
     SubsetRouteRecord,
     masked_route,
 )
+from pseudoroute.benchmark.runner import _encode_saved_rendered_prompt
 from pseudoroute.benchmark.subset_closed_loop import (
     _rewind_cache,
     _token_agreement,
@@ -160,6 +161,26 @@ class FakeCache:
         self.length = length
 
 
+class FakeSavedPromptTokenizer:
+    def __init__(self, decoded: str) -> None:
+        self.decoded = decoded
+
+    def __call__(
+        self, text: str, *, add_special_tokens: bool, return_tensors: str
+    ) -> dict[str, Tensor]:
+        assert text == "saved prompt"
+        assert not add_special_tokens
+        assert return_tensors == "pt"
+        return {
+            "input_ids": torch.tensor([[3, 4]]),
+            "attention_mask": torch.ones((1, 2), dtype=torch.long),
+        }
+
+    def decode(self, _ids: Tensor, *, skip_special_tokens: bool) -> str:
+        assert not skip_special_tokens
+        return self.decoded
+
+
 @pytest.fixture
 def suite() -> SubsetOracleSuiteConfig:
     return load_subset_oracle_config(Path("configs/benchmark/benchmark_subset_oracle_v1.yaml"))
@@ -189,6 +210,19 @@ def test_forced_trajectory_processor_follows_decode_position() -> None:
     assert torch.isneginf(first[0, [0, 1, 3]]).all()
     assert torch.isneginf(second[0, [0, 2, 3]]).all()
     assert exhausted is scores
+
+
+def test_saved_rendered_prompt_requires_exact_tokenizer_roundtrip() -> None:
+    config = cast(Any, SimpleNamespace(device="cpu"))
+    inputs = _encode_saved_rendered_prompt(
+        FakeSavedPromptTokenizer("saved prompt"), config, "saved prompt"
+    )
+    assert inputs["input_ids"].tolist() == [[3, 4]]
+    assert inputs["input_ids"].device.type == "cpu"
+    with pytest.raises(RuntimeError, match="exact tokenizer round-trip"):
+        _encode_saved_rendered_prompt(
+            FakeSavedPromptTokenizer("drifted prompt"), config, "saved prompt"
+        )
 
 
 def test_qwen_lossless_is_exact_and_hard_mask_changes_executed_route() -> None:

@@ -423,3 +423,30 @@ cannot change operating-point selection.
 model loading only.
 **Migration required:** Revision-2 trace parity and offline kernel provenance
 must pass before open-loop aggregation.
+
+## D-20260730-032 — Replay immutable v17 prompt bytes and complete short-output parity
+
+**Status:** accepted
+**Context:** The first clean revision-2 trace attempt stopped before any complete
+model trace or open-loop grid. GPT's chat template ignored the configured date
+and rendered the wall clock, changing only `2026-07-29` to `2026-07-30`; both
+strings had 207 tokens. Qwen saved 20 partial shards and then a short
+AIME25 output exposed that teacher replay retained `N` rather than `N+1` LM logits
+because the final saved output token is predicted but never processed.
+**Decision:** Treat the audited v17 `rendered_prompt` string as the immutable
+input, encode it with no added special tokens, and require exact tokenizer
+decode round-trip plus the saved SHA-256. Retain all `N+1` LM-head prediction
+positions while storing routes for only the `N` processed decode inputs. Use a
+fresh `_r2_authoritative` artifact root and preserve both stopped attempts.
+Do not change the config fingerprint, samples, grid, gates, decoding, scoring, or
+selection rules.
+**Alternatives considered:** Accept a one-day prompt drift, skip prompt parity,
+ignore parity for short rows, change the host clock, or reconstruct model inputs
+from a mutable template.
+**Consequences:** Both teacher replay and actual closed-loop generation start from
+the exact prompt bytes that produced the v17 reference tokens. Existing strict
+route/token/logit gates remain in force before any trace is admitted.
+**Experiments affected:** `benchmark_subset_oracle_v1` natural replay and
+closed-loop prompt construction only.
+**Migration required:** Both models must complete all 24 authoritative trace
+shards and all six parity records before open-loop aggregation.
