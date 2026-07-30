@@ -123,12 +123,7 @@ def validate_sampling_smoke() -> dict[str, float | int | bool]:
     if failures:
         raise RuntimeError(f"sampling smoke failed: {[str(path) for path in failures]}")
     assert_task_complete(QWEN_SMOKE, "qwen3_30b_a3b", SMOKE_TASK)
-    path = (
-        QWEN_SMOKE
-        / "models/qwen3_30b_a3b/results/vanilla"
-        / SMOKE_TASK
-        / "samples.jsonl"
-    )
+    path = QWEN_SMOKE / "models/qwen3_30b_a3b/results/vanilla" / SMOKE_TASK / "samples.jsonl"
     rows = [row for row in jsonl_rows(path) if row.get("state") == "complete"]
     correct = sum(bool(row["correct"]) for row in rows)
     samples = len(rows)
@@ -196,9 +191,7 @@ def run_full_v16() -> None:
         "--shard-count",
         "4",
     ]
-    commands = [qwen_command] + [
-        [*gpt_base, "--shard-index", str(index)] for index in range(4)
-    ]
+    commands = [qwen_command] + [[*gpt_base, "--shard-index", str(index)] for index in range(4)]
     write_status("running", "full_vanilla_v16", commands=commands)
     workers = [subprocess.Popen(command, cwd=REPO) for command in commands]
     returncodes = [worker.wait() for worker in workers]
