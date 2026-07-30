@@ -274,8 +274,21 @@ def aggregate_and_validate(
     suite: SubsetOracleSuiteConfig,
     accuracy: AccuracySuiteConfig,
     output: Path,
+    *,
+    actual_policies: tuple[str, ...] = (
+        "hard_oracle_commitment",
+        "previous_route_commitment",
+    ),
 ) -> dict[str, object]:
     """Require every selected full row, then emit paired reports and final decisions."""
+    allowed_policies = {
+        "hard_oracle_commitment",
+        "previous_route_commitment",
+    }
+    if "hard_oracle_commitment" not in actual_policies or not set(actual_policies).issubset(
+        allowed_policies
+    ):
+        raise ValueError(f"invalid required full policies: {actual_policies}")
     selected = _selected(output)
     _, smoke_audit = _smoke_audit(suite, output)
     source_root = Path(suite.source_accuracy.artifact_root)
@@ -338,7 +351,7 @@ def aggregate_and_validate(
                     "mean_perplexity": "",
                 }
             )
-            for policy in ("hard_oracle_commitment", "previous_route_commitment"):
+            for policy in actual_policies:
                 actual = []
                 for source in sources:
                     path = _actual_path(output, model.key, task, int(source["row_index"]), policy)
@@ -437,6 +450,7 @@ def aggregate_and_validate(
             "schema_version": 1,
             "suite_id": suite.suite_id,
             "config_fingerprint": suite.fingerprint(),
+            "required_full_actual_policies": list(actual_policies),
             "rows": accuracy_rows,
             "paired_rows": paired,
             "closed_loop_materialized_rows": row_count,
@@ -512,6 +526,7 @@ def aggregate_and_validate(
         "schema_version": 1,
         "suite_id": suite.suite_id,
         "config_fingerprint": suite.fingerprint(),
+        "evaluated_actual_policies": list(actual_policies),
         "overall_decision": overall,
         "predictor_authorization": authorization,
         "selected_operating_points": list(selected.values()),
@@ -545,6 +560,7 @@ def aggregate_and_validate(
         "natural_trace_manifests": 2,
         "open_loop_envelopes": 2,
         "selected_models": len(selected),
+        "required_full_actual_policies": list(actual_policies),
         "actual_full_sample_rows": sum(len(rows) for rows in selected_policy_rows.values()),
         "materialized_closed_loop_rows": row_count,
         "mechanism_smoke": smoke_audit,
@@ -552,7 +568,7 @@ def aggregate_and_validate(
         "provenance_validation": "passed",
     }
     write_json_atomic(output / "provenance_audit.json", audit)
-    _write_report(output, suite, decision, paired, smoke_audit)
+    _write_report(output, suite, decision, paired, smoke_audit, actual_policies)
     manifest = build_artifact_manifest(suite, output)
     return {"decision": decision, "audit": audit, "manifest": manifest}
 
@@ -563,7 +579,9 @@ def _write_report(
     decision: dict[str, object],
     paired: list[dict[str, object]],
     smoke_audit: dict[str, object],
+    actual_policies: tuple[str, ...],
 ) -> None:
+    actual_policy_text = ", ".join(actual_policies)
     lines = [
         "# Benchmark subset oracle v1 report",
         "",
@@ -575,8 +593,9 @@ def _write_report(
         "",
         "The natural reference is measured v17 generation reused without rerunning. Lossless ",
         "residency transfer/stall metrics are simulated from natural route replay and its ",
-        "exact-token identity has actual smoke evidence. Hard oracle and previous-route ",
-        "runtime are actual closed-loop generation; no hard result is identity-materialized.",
+        "exact-token identity has actual smoke evidence. Required full actual policies: ",
+        f"`{actual_policy_text}`. Their runtime is measured closed-loop generation; no hard ",
+        "result is identity-materialized. Preserved unscheduled rows are provenance only.",
         "",
         f"Mechanism smoke rows: {smoke_audit['mechanism_smoke_rows']}; lossless identity passed.",
         "",

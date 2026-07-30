@@ -1,0 +1,37 @@
+schema_version: 1
+scope_revision: 1
+scope_id: benchmark_subset_oracle_v1_hard_only_full_v1
+authorized_at_utc: "2026-07-30"
+authority: explicit_user_scope_reduction
+amendment_kind: execution_schedule_only
+base_suite:
+  suite_id: benchmark_subset_oracle_v1
+  config_path: configs/benchmark/benchmark_subset_oracle_v1.yaml
+  config_sha256: 45a9314417629db39ef21aa920806127465eb630097be5fc0a53370461236e0d
+  config_fingerprint: b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2
+  selected_operating_points_artifact: artifacts/benchmark_subset_oracle_v1_r2_authoritative/selected_operating_points.json
+  selected_operating_points_sha256: 0f761c3dcd3a2a4dbba251125968122a9a4fc35e51c6f274e88089f33c6a51a9
+full_stage:
+  models: [gpt_oss_20b]
+  tasks: [humaneval, mbpp_plus, gsm8k, aime24, aime25, strategyqa]
+  sample_scope: all_v17_rows
+  actual_policies: [hard_oracle_commitment]
+  expected_actual_rows: 2608
+  physical_gpus_by_model:
+    gpt_oss_20b: [0, 1]
+  max_concurrent_workers_per_physical_gpu: 1
+  preserve_existing_unscheduled_rows: true
+  preserve_failed_markers: true
+  aggregate_requires_only_scheduled_policies: true
+focused_next_stage:
+  model: qwen3_30b_a3b
+  task: gsm8k
+  horizon: 8
+  budget: 32
+  resident_fraction: 0.25
+  policies:
+    - hard_oracle_commitment
+    - previous_route_commitment
+    - pseudo_embedding_commitment
+  pseudo_embedding_protocol_required_before_execution: true
+  learned_predictor_training: false

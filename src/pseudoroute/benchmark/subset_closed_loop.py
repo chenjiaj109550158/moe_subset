@@ -666,10 +666,17 @@ def run_model_closed_loop(
     policies: tuple[ActualPolicy, ...],
     shard_index: int,
     stage: Literal["mechanism_smoke", "selected_smoke", "full"],
+    physical_gpu: int | None = None,
 ) -> list[dict[str, object]]:
     if shard_index < 0 or shard_index >= suite.closed_loop.sample_shards:
         raise ValueError("closed-loop shard index is outside the frozen shard count")
-    model_config = _source_model(accuracy, model_subset)
+    actual_physical_gpu = model_subset.physical_gpu if physical_gpu is None else physical_gpu
+    if actual_physical_gpu not in (0, 1):
+        raise ValueError(f"unsupported physical GPU: {actual_physical_gpu}")
+    model_subset = model_subset.model_copy(update={"physical_gpu": actual_physical_gpu})
+    model_config = _source_model(accuracy, model_subset).model_copy(
+        update={"device": f"cuda:{actual_physical_gpu}"}
+    )
     smoke = stage != "full"
     resumed: list[dict[str, object]] = []
     all_complete = True

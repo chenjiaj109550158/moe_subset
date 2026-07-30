@@ -12,6 +12,19 @@ floating-point checkpoints plus a separate native-MXFP4 tier and concluded
 **STOP/PIVOT** under the pinned v2 protocol. Simulated transfer/stall estimates,
 actual model-quality results, and measured adapter memory are labeled separately.
 
+## Active benchmark subset-oracle pivot
+
+The benchmark-aligned pivot reuses the checksum-valid v17 prompts, tokens, and
+evaluators without rerunning vanilla. Its frozen base config is
+`configs/benchmark/benchmark_subset_oracle_v1.yaml`; the explicit 2026-07-30
+scope amendment is
+`configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml`. The full
+stage completes only the selected GPT-OSS `(H=1,B=4)` hard-oracle policy over six
+datasets. Preserved partial previous-route rows are provenance, not a completed
+full baseline. The next planned, separately frozen experiment focuses on
+Qwen3-30B-A3B/GSM8K `(H=8,B=32)` and pseudo embedding; it does not authorize
+learned predictor training.
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

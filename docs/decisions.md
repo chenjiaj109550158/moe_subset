@@ -479,3 +479,43 @@ is included in measured closed-loop runtime; simulated transfer remains separate
 and full closed-loop lookahead only; completed traces/grids and Qwen smoke remain.
 **Migration required:** A real GPT mechanism smoke must prove original-cache
 preservation, exact lossless tokens, and hard executed-route change before resume.
+
+## D-20260730-034 — Reduce full baselines and focus pseudo-embedding work
+
+**Status:** accepted
+**Context:** The first full shard saved eight GPT hard-oracle rows and seven
+previous-route rows before an explicit user pause. The same user then reduced the
+scope because a paired full suite would spend substantial GPU time on a weak
+baseline instead of the primary pseudo-embedding hypothesis. The selected GPT
+suite contains 2,608 v17 rows and about 1.995 million reference output tokens.
+**Decision:** Preserve the revision-2 scientific config, fingerprint, selected
+point, samples, decoding, oracle semantics, evaluators, and all existing artifacts.
+Add the separately fingerprinted execution scope
+`benchmark_subset_oracle_v1_hard_only_full_v1`: finish only actual
+`hard_oracle_commitment` at the already selected GPT `(H=1,B=4)` point over all
+six datasets. Do not schedule the remaining full previous-route rows. Retain its
+seven completed rows and the user-interrupted `.FAILED.json` marker as provenance,
+but exclude unscheduled rows from full aggregation requirements.
+
+Distribute the four deterministic full shards over two identical physical A100s
+in two waves, with at most one worker per GPU. Record actual physical placement in
+every new row and retain one-sample-policy atomic resume. This placement change
+does not alter model weights, seeds, sample-to-shard assignment, prompt bytes,
+sampling, cache semantics, or the base suite fingerprint.
+
+After the hard ceiling is complete, focus the next research stage on
+Qwen3-30B-A3B plus GSM8K at `(H=8,B=32)`, comparing hard oracle,
+previous-route, and pseudo embedding. Freeze a separate pseudo-embedding
+development/held-out protocol before executing that stage. Do not train a learned
+predictor.
+**Alternatives considered:** Continue all 5,216 paired full rows, discard partial
+previous-route artifacts, silently edit the frozen base config, run all H/B points
+closed loop, or begin an unspecified pseudo probe immediately.
+**Consequences:** The full suite answers the hard-oracle accuracy-ceiling question
+but no longer claims an all-task full previous-route comparison. Deployable-method
+claims will be restricted to the later Qwen/GSM8K focused experiment. The original
+STOP/PIVOT rules remain unchanged outside this explicit human amendment.
+**Experiments affected:** `benchmark_subset_oracle_v1` full scheduling and its
+aggregate required-policy set; later `pseudo_embedding_qwen_gsm8k_v1` planning.
+**Migration required:** Validate and commit the execution scope and two-GPU
+placement regressions before resuming any long worker.

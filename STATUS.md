@@ -4,6 +4,22 @@
 
 Post-M11 trained-model oracle gate v2 — complete with an overall **STOP/PIVOT** decision. M11 remains complete and unchanged at deterministic tiny-model scope.
 
+## Active benchmark subset-oracle pivot
+
+`benchmark_subset_oracle_v1` resumed on 2026-07-30 under the explicit hard-only
+execution amendment
+`configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml`. The frozen
+revision-2 base config and artifact root remain unchanged. Full execution now
+requires 2,608 actual GPT-OSS `(H=1,B=4)` hard-oracle rows across all six v17
+datasets; the remaining full previous-route rows are no longer scheduled. Seven
+completed previous-route rows and one user-interrupted failure marker are retained
+as provenance. Four hard shards are assigned in two waves across the two physical
+A100s, never more than one worker per GPU.
+
+After hard aggregation, the next separately frozen scope is Qwen3-30B-A3B plus
+GSM8K `(H=8,B=32)` for previous-route versus pseudo-embedding development. No
+learned predictor training is authorized.
+
 ## M11 file-level checklist
 
 - [x] `src/pseudoroute/reporting/manifest.py` — versioned envelopes, checksums, completion and negative-result records

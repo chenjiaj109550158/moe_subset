@@ -14,9 +14,15 @@ from pathlib import Path
 from typing import Any
 
 from pseudoroute.benchmark.subset_config import load_subset_oracle_config
+from pseudoroute.benchmark.subset_scope import (
+    SubsetExecutionScope,
+    load_subset_execution_scope,
+)
+from pseudoroute.benchmark.subset_trace import sha256_file
 
 REPO = Path(__file__).resolve().parents[1]
 CONFIG = REPO / "configs/benchmark/benchmark_subset_oracle_v1.yaml"
+SCOPE_CONFIG = REPO / "configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml"
 OUTPUT = REPO / "artifacts/benchmark_subset_oracle_v1_r2_authoritative"
 STATUS = OUTPUT / "pipeline_status.json"
 LOGS = OUTPUT / "logs"
@@ -32,12 +38,15 @@ def _atomic_json(path: Path, value: object) -> None:
 
 def _status(state: str, stage: str, **detail: object) -> None:
     suite = load_subset_oracle_config(CONFIG)
+    scope = load_subset_execution_scope(SCOPE_CONFIG)
     _atomic_json(
         STATUS,
         {
             "schema_version": 1,
             "suite_id": suite.suite_id,
             "config_fingerprint": suite.fingerprint(),
+            "execution_scope_id": scope.scope_id,
+            "execution_scope_fingerprint": scope.fingerprint(),
             "state": state,
             "stage": stage,
             "updated_at": datetime.now(UTC).isoformat(),
@@ -132,7 +141,44 @@ def _preflight() -> None:
     )
 
 
-def _record_execution_revision() -> None:
+def _verify_and_record_execution_scope(scope: SubsetExecutionScope) -> None:
+    suite = load_subset_oracle_config(CONFIG)
+    observed_config_sha256 = sha256_file(CONFIG)
+    if scope.base_suite.suite_id != suite.suite_id:
+        raise RuntimeError("execution scope base suite ID changed")
+    if scope.base_suite.config_fingerprint != suite.fingerprint():
+        raise RuntimeError("execution scope base config fingerprint changed")
+    if scope.base_suite.config_sha256 != observed_config_sha256:
+        raise RuntimeError("execution scope base config file checksum changed")
+    selected_path = REPO / scope.base_suite.selected_operating_points_artifact
+    if not selected_path.is_file():
+        raise RuntimeError(f"execution scope selected-points artifact is missing: {selected_path}")
+    if sha256_file(selected_path) != scope.base_suite.selected_operating_points_sha256:
+        raise RuntimeError("execution scope selected-points artifact checksum changed")
+    payload = {
+        "schema_version": 1,
+        "recorded_at": datetime.now(UTC).isoformat(),
+        "scope_config_path": str(SCOPE_CONFIG.relative_to(REPO)),
+        "scope_config_sha256": sha256_file(SCOPE_CONFIG),
+        "scope_fingerprint": scope.fingerprint(),
+        "scope": scope.model_dump(mode="json"),
+    }
+    path = OUTPUT / "resolved_execution_scope.json"
+    if path.is_file():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        stable_keys = (
+            "scope_config_path",
+            "scope_config_sha256",
+            "scope_fingerprint",
+            "scope",
+        )
+        if any(existing.get(key) != payload[key] for key in stable_keys):
+            raise RuntimeError(f"resolved execution scope changed: {path}")
+        return
+    _atomic_json(path, payload)
+
+
+def _record_execution_revision(scope: SubsetExecutionScope) -> None:
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=REPO,
@@ -155,6 +201,9 @@ def _record_execution_revision() -> None:
         "git_head": head,
         "git_worktree_porcelain": status,
         "base_environment": "../environment.json",
+        "execution_scope_id": scope.scope_id,
+        "execution_scope_fingerprint": scope.fingerprint(),
+        "resolved_execution_scope": "../resolved_execution_scope.json",
     }
     path = OUTPUT / "execution_revisions" / f"{head}.json"
     if path.is_file():
@@ -261,6 +310,36 @@ def _selection() -> dict[str, dict[str, Any]]:
     return {str(row["model"]): row for row in result["selected"]}
 
 
+def _full_worker_waves(
+    suite: Any,
+    selected: dict[str, dict[str, Any]],
+    scope: SubsetExecutionScope,
+) -> list[list[tuple[str, int, int]]]:
+    expected_models = set(scope.full_stage.models)
+    if set(selected) != expected_models:
+        raise RuntimeError(
+            "selected models differ from the frozen hard-only execution scope: "
+            f"{sorted(selected)} != {sorted(expected_models)}"
+        )
+    model_keys = {model.key for model in suite.models}
+    if not expected_models.issubset(model_keys):
+        raise RuntimeError("execution scope references an unknown model")
+    queues: dict[int, list[tuple[str, int, int]]] = {}
+    for model_key in scope.full_stage.models:
+        physical_gpus = scope.full_stage.physical_gpus_by_model[model_key]
+        for shard in range(suite.closed_loop.sample_shards):
+            physical_gpu = physical_gpus[shard % len(physical_gpus)]
+            queues.setdefault(physical_gpu, []).append((model_key, shard, physical_gpu))
+    waves: list[list[tuple[str, int, int]]] = []
+    while any(queues.values()):
+        wave = []
+        for physical_gpu in sorted(queues):
+            if queues[physical_gpu]:
+                wave.append(queues[physical_gpu].pop(0))
+        waves.append(wave)
+    return waves
+
+
 def _validate_smoke(
     stage: str,
     require_lossless: bool,
@@ -292,10 +371,12 @@ def _validate_smoke(
 
 def main() -> None:
     suite = load_subset_oracle_config(CONFIG)
+    scope = load_subset_execution_scope(SCOPE_CONFIG)
     try:
         _wait_for_resumed_workers()
         _preflight()
-        _record_execution_revision()
+        _verify_and_record_execution_scope(scope)
+        _record_execution_revision(scope)
         _run_one("audit_source_v17", "audit")
         trace_commands = [
             (
@@ -371,35 +452,36 @@ def main() -> None:
                 require_lossless=True,
                 model_keys=set(selected),
             )
-        for shard in range(suite.closed_loop.sample_shards):
+        full_policies = ",".join(scope.full_stage.actual_policies)
+        for wave_index, assignments in enumerate(_full_worker_waves(suite, selected, scope)):
             wave = []
-            for model in suite.models:
-                point = selected.get(model.key)
-                if point is None:
-                    continue
+            for model_key, shard, physical_gpu in assignments:
+                point = selected[model_key]
                 wave.append(
                     (
-                        model.key,
-                        model.physical_gpu,
+                        f"{model_key}.shard_{shard}.gpu_{physical_gpu}",
+                        physical_gpu,
                         _command(
                             "closed-loop",
                             "--model-key",
-                            model.key,
+                            model_key,
                             "--horizon",
                             str(point["horizon"]),
                             "--budget",
                             str(point["budget"]),
                             "--policies",
-                            "hard_oracle_commitment,previous_route_commitment",
+                            full_policies,
                             "--shard-index",
                             str(shard),
                             "--stage",
                             "full",
+                            "--physical-gpu",
+                            str(physical_gpu),
                         ),
                     )
                 )
-            _run_parallel(wave, f"full_shard_wave_{shard}")
-        _run_one("aggregate", "aggregate")
+            _run_parallel(wave, f"hard_only_full_wave_{wave_index}")
+        _run_one("aggregate", "aggregate", "--actual-policies", full_policies)
         _run_one("validate", "validate")
         decision = json.loads((OUTPUT / "decision.json").read_text(encoding="utf-8"))
         _status(

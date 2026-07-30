@@ -189,7 +189,12 @@ def parse_args() -> argparse.Namespace:
         child.add_argument("--model-key", required=True)
 
     subparsers.add_parser("select")
-    subparsers.add_parser("aggregate")
+    aggregate = subparsers.add_parser("aggregate")
+    aggregate.add_argument(
+        "--actual-policies",
+        default="hard_oracle_commitment,previous_route_commitment",
+        help="comma-separated full-stage policies required by aggregation",
+    )
     subparsers.add_parser("validate")
 
     closed = subparsers.add_parser("closed-loop")
@@ -207,6 +212,7 @@ def parse_args() -> argparse.Namespace:
         required=True,
         choices=("mechanism_smoke", "selected_smoke", "full"),
     )
+    closed.add_argument("--physical-gpu", type=int, choices=(0, 1))
     return parser.parse_args()
 
 
@@ -236,7 +242,16 @@ def main() -> None:
         for model in suite.models:
             validate_trace_manifest(suite, model, output)
             run_open_loop_grid(suite, model, output)
-        result = aggregate_and_validate(suite, accuracy, output)
+        allowed_aggregate = {
+            "hard_oracle_commitment",
+            "previous_route_commitment",
+        }
+        aggregate_policies = tuple(value for value in str(args.actual_policies).split(",") if value)
+        if "hard_oracle_commitment" not in aggregate_policies or not set(
+            aggregate_policies
+        ).issubset(allowed_aggregate):
+            raise ValueError(f"invalid aggregate policies: {aggregate_policies}")
+        result = aggregate_and_validate(suite, accuracy, output, actual_policies=aggregate_policies)
     elif command == "validate":
         for model in suite.models:
             validate_trace_manifest(suite, model, output)
@@ -270,6 +285,7 @@ def main() -> None:
             policies=cast(tuple[ActualPolicy, ...], raw_policies),
             shard_index=int(args.shard_index),
             stage=stage,
+            physical_gpu=cast(int | None, args.physical_gpu),
         )
     else:
         raise AssertionError(f"unhandled command: {command}")

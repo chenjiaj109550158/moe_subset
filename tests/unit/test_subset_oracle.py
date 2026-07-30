@@ -35,6 +35,7 @@ from pseudoroute.benchmark.subset_config import (
 )
 from pseudoroute.benchmark.subset_grid import _row_metrics
 from pseudoroute.benchmark.subset_report import _paired_row
+from pseudoroute.benchmark.subset_scope import load_subset_execution_scope
 from pseudoroute.benchmark.subset_trace import _ForcedTrajectoryProcessor
 
 
@@ -221,6 +222,30 @@ def test_subset_config_grid_and_fingerprint_are_frozen(
     assert suite.models[1].budgets == (4, 8, 16, 24, 32)
     assert suite.closed_loop.aime_gpt_max_new_tokens == 32768
     assert suite.closed_loop.smoke_point_is_not_an_operating_candidate
+
+
+def test_hard_only_scope_and_worker_waves_are_frozen(
+    suite: SubsetOracleSuiteConfig,
+) -> None:
+    scope = load_subset_execution_scope(
+        Path("configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml")
+    )
+    assert scope.fingerprint() == (
+        "54040188320e7d794c2f37a9b778d0c2bee318d606b178bb177184465bf71626"
+    )
+    assert scope.base_suite.config_fingerprint == suite.fingerprint()
+    assert scope.full_stage.actual_policies == ("hard_oracle_commitment",)
+    assert scope.full_stage.expected_actual_rows == 2608
+    assert scope.focused_next_stage.model == "qwen3_30b_a3b"
+    assert scope.focused_next_stage.task == "gsm8k"
+    subset_orchestrator = _load_subset_orchestrator()
+    selected = {"gpt_oss_20b": {"horizon": 1, "budget": 4}}
+    waves = subset_orchestrator._full_worker_waves(suite, selected, scope)
+    assert waves == [
+        [("gpt_oss_20b", 0, 0), ("gpt_oss_20b", 1, 1)],
+        [("gpt_oss_20b", 2, 0), ("gpt_oss_20b", 3, 1)],
+    ]
+    assert all(len({job[2] for job in wave}) == len(wave) for wave in waves)
 
 
 def test_forced_trajectory_processor_follows_decode_position() -> None:
