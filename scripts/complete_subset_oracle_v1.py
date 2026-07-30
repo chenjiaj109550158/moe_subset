@@ -17,7 +17,7 @@ from pseudoroute.benchmark.subset_config import load_subset_oracle_config
 
 REPO = Path(__file__).resolve().parents[1]
 CONFIG = REPO / "configs/benchmark/benchmark_subset_oracle_v1.yaml"
-OUTPUT = REPO / "artifacts/benchmark_subset_oracle_v1_r2"
+OUTPUT = REPO / "artifacts/benchmark_subset_oracle_v1_r2_final"
 STATUS = OUTPUT / "pipeline_status.json"
 LOGS = OUTPUT / "logs"
 POLL_SECONDS = 30

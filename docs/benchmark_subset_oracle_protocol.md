@@ -16,8 +16,12 @@ keeps native generation prefill unpatched during parity, and pins the existing
 cached GPT kernel commit through the supported `LOCAL_KERNELS` override. It
 does not download anything or change samples, horizons, budgets, selectors,
 gates, transfer assumptions, decoding, or evaluators. Revision-1 failure
-evidence remains at `artifacts/benchmark_subset_oracle_v1`; revision-2 results
-use `artifacts/benchmark_subset_oracle_v1_r2`.
+evidence remains at `artifacts/benchmark_subset_oracle_v1`. A CLI validation
+attempt in `artifacts/benchmark_subset_oracle_v1_r2` was interrupted during
+Torch import with zero trace shards and zero result rows; it is retained because
+its environment record predates the clean revision-2 commit. Admissible
+revision-2 results use the fresh
+`artifacts/benchmark_subset_oracle_v1_r2_final` root.
 
 ## Question and information boundary
 

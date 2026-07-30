@@ -407,9 +407,12 @@ capture routes with non-mutating native forward hooks, and validate the replay
 against an independent native unpatched autoregressive generation. Use the
 supported `LOCAL_KERNELS` mapping to the existing cached kernel
 commit `9655fcf7d0f638bec4a82f6f1a70014f0aa8cfb0`. Hash every file in that cached
-variant and state explicitly that no download occurred. Use a fresh `_r2`
-artifact root. Do not alter the experimental grid, selectors, samples, gates,
-transfer model, decoding, or scoring.
+variant and state explicitly that no download occurred. Preserve the first
+`_r2` CLI-validation attempt, which was interrupted during Torch import with
+zero trace shards and zero result rows; its environment record predates the
+clean revision-2 commit. Use a fresh `_r2_final` root for admissible results.
+Do not alter the experimental grid, selectors, samples, gates, transfer model,
+decoding, or scoring.
 **Alternatives considered:** Accept non-parity chunked routes, silently relax
 route-ID parity, download kernel metadata, delete the failed artifacts, or
 continue under the old fingerprint.
