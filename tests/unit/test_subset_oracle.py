@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import importlib.util
+import json
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -198,6 +200,16 @@ def suite() -> SubsetOracleSuiteConfig:
     return load_subset_oracle_config(Path("configs/benchmark/benchmark_subset_oracle_v1.yaml"))
 
 
+def _load_subset_orchestrator() -> ModuleType:
+    path = Path(__file__).parents[2] / "scripts" / "complete_subset_oracle_v1.py"
+    spec = importlib.util.spec_from_file_location("complete_subset_oracle_v1", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_subset_config_grid_and_fingerprint_are_frozen(
     suite: SubsetOracleSuiteConfig,
 ) -> None:
@@ -256,6 +268,38 @@ def test_sliding_cache_fork_is_copy_on_write_and_preserves_original() -> None:
     assert layer.cumulative_length == 3
     assert _cache_mutation_signature(cache) == signature
     assert fork_layer.cumulative_length == 4
+
+
+def test_selected_smoke_validation_skips_unselected_models(
+    suite: SubsetOracleSuiteConfig,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    subset_orchestrator = _load_subset_orchestrator()
+    selected_model = suite.models[1]
+    monkeypatch.setattr(subset_orchestrator, "OUTPUT", tmp_path)
+    monkeypatch.setattr(subset_orchestrator, "load_subset_oracle_config", lambda _: suite)
+    for task in suite.trace.sample_rows:
+        root = (
+            tmp_path
+            / "models"
+            / selected_model.key
+            / "closed_loop"
+            / "selected_smoke"
+            / task
+            / "00000"
+        )
+        root.mkdir(parents=True)
+        (root / "hard_oracle_commitment.json").write_text(
+            json.dumps({"executed_route_changed": True}), encoding="utf-8"
+        )
+        (root / "lossless_oracle_residency.json").write_text(
+            json.dumps({"exact_token_agreement": 1.0, "executed_route_changed": False}),
+            encoding="utf-8",
+        )
+    subset_orchestrator._validate_smoke(
+        "selected_smoke", require_lossless=True, model_keys={selected_model.key}
+    )
 
 
 def test_qwen_lossless_is_exact_and_hard_mask_changes_executed_route() -> None:

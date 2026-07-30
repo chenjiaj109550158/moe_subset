@@ -261,9 +261,16 @@ def _selection() -> dict[str, dict[str, Any]]:
     return {str(row["model"]): row for row in result["selected"]}
 
 
-def _validate_smoke(stage: str, require_lossless: bool) -> None:
+def _validate_smoke(
+    stage: str,
+    require_lossless: bool,
+    *,
+    model_keys: set[str] | None = None,
+) -> None:
     suite = load_subset_oracle_config(CONFIG)
     for model in suite.models:
+        if model_keys is not None and model.key not in model_keys:
+            continue
         hard_changed = False
         for task in suite.trace.sample_rows:
             root = OUTPUT / "models" / model.key / "closed_loop" / stage / task
@@ -359,7 +366,11 @@ def main() -> None:
             )
         _run_parallel(selected_smoke, "selected_point_smoke")
         if selected_smoke:
-            _validate_smoke("selected_smoke", require_lossless=True)
+            _validate_smoke(
+                "selected_smoke",
+                require_lossless=True,
+                model_keys=set(selected),
+            )
         for shard in range(suite.closed_loop.sample_shards):
             wave = []
             for model in suite.models:
