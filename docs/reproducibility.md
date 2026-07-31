@@ -75,3 +75,33 @@ measured end-to-end runtime. Adapter elapsed time, CPU RSS, CUDA allocation,
 model logits/routes, NLL/perplexity, token agreement, fallback, and GSM answer
 extraction come from actual checkpoint execution. Lossless fallback equality is
 a correctness result and must never be described as a quality improvement.
+
+## Benchmark subset oracle: GPT-OSS/GSM8K hard scope
+
+The immutable scientific config remains
+`configs/benchmark/benchmark_subset_oracle_v1.yaml`. The separately versioned
+execution amendment is
+`configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml`, with
+scope fingerprint
+`a5a908ad0124d2041b589a681e7102d3ea5d3f7df90752075799bb9875871d7c`.
+It schedules only actual GPT-OSS GSM8K hard commitment at the preselected
+`(H=1,B=4)` point and requires all 1,319 frozen v17 rows.
+
+Run or resume offline from the existing model and dataset cache:
+
+```bash
+HF_HUB_OFFLINE=1 \
+HF_DATASETS_OFFLINE=1 \
+TRANSFORMERS_OFFLINE=1 \
+python scripts/complete_subset_oracle_v1.py
+```
+
+Each successful policy/sample row is written atomically and is reused only when
+its complete state and base-config fingerprint match. `.FAILED.json` markers are
+retained but do not suppress regeneration of a missing success row. Per-GPU
+queues preserve the four frozen logical shards while allowing each GPU to start
+its next shard independently; at most one worker occupies a physical GPU.
+Unscheduled HumanEval/MBPP+/AIME/StrategyQA and previous-route artifacts remain
+under the artifact root as provenance, but the scoped summary, paired CI,
+decision, and audit include only GSM8K. A passing scoped gate is reported as
+`NARROW`, not as an all-task `GO`.

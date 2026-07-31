@@ -279,6 +279,9 @@ def aggregate_and_validate(
         "hard_oracle_commitment",
         "previous_route_commitment",
     ),
+    tasks: tuple[TaskKey, ...] | None = None,
+    execution_scope_id: str | None = None,
+    execution_scope_fingerprint: str | None = None,
 ) -> dict[str, object]:
     """Require every selected full row, then emit paired reports and final decisions."""
     allowed_policies = {
@@ -289,6 +292,22 @@ def aggregate_and_validate(
         allowed_policies
     ):
         raise ValueError(f"invalid required full policies: {actual_policies}")
+    evaluated_tasks = cast(tuple[TaskKey, ...], TASKS) if tasks is None else tasks
+    if (
+        not evaluated_tasks
+        or len(set(evaluated_tasks)) != len(evaluated_tasks)
+        or not set(evaluated_tasks).issubset(TASKS)
+    ):
+        raise ValueError(f"invalid aggregate task scope: {evaluated_tasks}")
+    scoped_datasets = [
+        dataset for dataset in accuracy.datasets if dataset.key in set(evaluated_tasks)
+    ]
+    if tuple(dataset.key for dataset in scoped_datasets) != evaluated_tasks:
+        raise ValueError("aggregate task scope must follow frozen dataset order")
+    if (execution_scope_id is None) != (execution_scope_fingerprint is None):
+        raise ValueError("execution-scope ID and fingerprint must be provided together")
+    if execution_scope_fingerprint is not None and len(execution_scope_fingerprint) != 64:
+        raise ValueError("execution-scope fingerprint must be a SHA-256 hex digest")
     selected = _selected(output)
     _, smoke_audit = _smoke_audit(suite, output)
     source_root = Path(suite.source_accuracy.artifact_root)
@@ -296,17 +315,19 @@ def aggregate_and_validate(
     accuracy_rows: list[dict[str, object]] = []
     all_rows: list[dict[str, Any]] = []
     selected_policy_rows: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    source_rows_in_scope = 0
     for model in suite.models:
         point = selected.get(model.key)
         if point is None:
             continue
         horizon = int(point["horizon"])
         budget = int(point["budget"])
-        for dataset in accuracy.datasets:
+        for dataset in scoped_datasets:
             task = dataset.key
             sources = _source_rows(source_root, model.key, task)
             if len(sources) != dataset.expected_samples:
                 raise ValueError(f"source row count mismatch: {model.key}/{task}")
+            source_rows_in_scope += len(sources)
             natural_materialized = [
                 _natural_materialized(suite, model, task, source, horizon, budget)
                 for source in sources
@@ -451,6 +472,9 @@ def aggregate_and_validate(
             "suite_id": suite.suite_id,
             "config_fingerprint": suite.fingerprint(),
             "required_full_actual_policies": list(actual_policies),
+            "evaluated_tasks": list(evaluated_tasks),
+            "execution_scope_id": execution_scope_id,
+            "execution_scope_fingerprint": execution_scope_fingerprint,
             "rows": accuracy_rows,
             "paired_rows": paired,
             "closed_loop_materialized_rows": row_count,
@@ -471,14 +495,19 @@ def aggregate_and_validate(
         for row in paired
         if row["policy"] == "hard_oracle_commitment"
     }
-    model_all_accuracy_pass: dict[str, bool] = {
+    full_task_scope = evaluated_tasks == TASKS
+    model_scoped_accuracy_pass: dict[str, bool] = {
         model.key: model.key in selected
-        and all(bool(hard_paired[(model.key, task)]["accuracy_gate_pass"]) for task in TASKS)
+        and all(
+            bool(hard_paired[(model.key, task)]["accuracy_gate_pass"]) for task in evaluated_tasks
+        )
         for model in suite.models
     }
     for open_row in operating_rows:
         model_key = open_row["model"]
         task_name = open_row["task"]
+        if model_key not in selected or task_name not in evaluated_tasks:
+            continue
         horizon = int(open_row["horizon"])
         budget = int(open_row["budget"])
         selected_row = open_row["selected_for_closed_loop"].lower() == "true"
@@ -494,8 +523,13 @@ def aggregate_and_validate(
             label, reason = "STOP/PIVOT", "not selected by predeclared all-task ordering"
         elif not accuracy_pass:
             label, reason = "STOP/PIVOT", "paired hard-commitment accuracy gate failed"
-        elif model_all_accuracy_pass[model_key]:
+        elif full_task_scope and model_scoped_accuracy_pass[model_key]:
             label, reason = "GO", "all six open-loop and paired accuracy gates passed"
+        elif model_scoped_accuracy_pass[model_key]:
+            label, reason = (
+                "NARROW",
+                "evaluated task-scoped gates passed; unscheduled tasks were not evaluated",
+            )
         else:
             label, reason = "NARROW", "task-scoped gates passed; another task failed"
         decision_rows.append(
@@ -527,10 +561,18 @@ def aggregate_and_validate(
         "suite_id": suite.suite_id,
         "config_fingerprint": suite.fingerprint(),
         "evaluated_actual_policies": list(actual_policies),
+        "evaluated_tasks": list(evaluated_tasks),
+        "all_six_tasks_evaluated": full_task_scope,
+        "execution_scope_id": execution_scope_id,
+        "execution_scope_fingerprint": execution_scope_fingerprint,
         "overall_decision": overall,
         "predictor_authorization": authorization,
         "selected_operating_points": list(selected.values()),
-        "model_all_task_accuracy_pass": model_all_accuracy_pass,
+        "model_scoped_task_accuracy_pass": model_scoped_accuracy_pass,
+        "model_all_task_accuracy_pass": {
+            model: passed and full_task_scope
+            for model, passed in model_scoped_accuracy_pass.items()
+        },
         "per_point_rows": len(decision_rows),
         "no_macro_average_override": True,
     }
@@ -539,6 +581,8 @@ def aggregate_and_validate(
         "schema_version": 1,
         "suite_id": suite.suite_id,
         "config_fingerprint": suite.fingerprint(),
+        "execution_scope_id": execution_scope_id,
+        "execution_scope_fingerprint": execution_scope_fingerprint,
         "measurement_partition": {
             "route_coverage_fallback_transfer_stall": "simulated from natural trace replay",
             "mechanism_identity": "actual closed-loop smoke",
@@ -546,7 +590,11 @@ def aggregate_and_validate(
         },
         "selected_operating_points": list(selected.values()),
         "selected_open_loop_task_rows": [
-            row for row in operating_rows if row["selected_for_closed_loop"].lower() == "true"
+            row
+            for row in operating_rows
+            if row["selected_for_closed_loop"].lower() == "true"
+            and row["model"] in selected
+            and row["task"] in evaluated_tasks
         ],
         "mechanism_smoke": smoke_audit,
     }
@@ -557,10 +605,14 @@ def aggregate_and_validate(
         "suite_id": suite.suite_id,
         "config_fingerprint": suite.fingerprint(),
         "source_v17_rows": 5216,
+        "source_v17_rows_in_scope": source_rows_in_scope,
         "natural_trace_manifests": 2,
         "open_loop_envelopes": 2,
         "selected_models": len(selected),
         "required_full_actual_policies": list(actual_policies),
+        "evaluated_tasks": list(evaluated_tasks),
+        "execution_scope_id": execution_scope_id,
+        "execution_scope_fingerprint": execution_scope_fingerprint,
         "actual_full_sample_rows": sum(len(rows) for rows in selected_policy_rows.values()),
         "materialized_closed_loop_rows": row_count,
         "mechanism_smoke": smoke_audit,
@@ -568,7 +620,17 @@ def aggregate_and_validate(
         "provenance_validation": "passed",
     }
     write_json_atomic(output / "provenance_audit.json", audit)
-    _write_report(output, suite, decision, paired, smoke_audit, actual_policies)
+    _write_report(
+        output,
+        suite,
+        decision,
+        paired,
+        smoke_audit,
+        actual_policies,
+        evaluated_tasks,
+        execution_scope_id,
+        execution_scope_fingerprint,
+    )
     manifest = build_artifact_manifest(suite, output)
     return {"decision": decision, "audit": audit, "manifest": manifest}
 
@@ -580,12 +642,20 @@ def _write_report(
     paired: list[dict[str, object]],
     smoke_audit: dict[str, object],
     actual_policies: tuple[str, ...],
+    evaluated_tasks: tuple[TaskKey, ...],
+    execution_scope_id: str | None,
+    execution_scope_fingerprint: str | None,
 ) -> None:
     actual_policy_text = ", ".join(actual_policies)
     lines = [
         "# Benchmark subset oracle v1 report",
         "",
         f"Config fingerprint: `{suite.fingerprint()}`",
+        "",
+        f"Execution scope: `{execution_scope_id}` (`{execution_scope_fingerprint}`).",
+        "",
+        f"Full accuracy task scope: `{', '.join(evaluated_tasks)}`.",
+        "Unscheduled task artifacts are preserved as provenance and are not aggregated.",
         "",
         f"Overall decision: **{decision['overall_decision']}**",
         "",

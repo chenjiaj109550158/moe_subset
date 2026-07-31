@@ -248,6 +248,28 @@ def test_hard_only_scope_and_worker_waves_are_frozen(
     assert all(len({job[2] for job in wave}) == len(wave) for wave in waves)
 
 
+def test_gpt_gsm8k_scope_and_gpu_queues_are_frozen(
+    suite: SubsetOracleSuiteConfig,
+) -> None:
+    scope = load_subset_execution_scope(
+        Path("configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml")
+    )
+    assert scope.fingerprint() == (
+        "a5a908ad0124d2041b589a681e7102d3ea5d3f7df90752075799bb9875871d7c"
+    )
+    assert scope.base_suite.config_fingerprint == suite.fingerprint()
+    assert scope.full_stage.tasks == ("gsm8k",)
+    assert scope.full_stage.actual_policies == ("hard_oracle_commitment",)
+    assert scope.full_stage.expected_actual_rows == 1319
+    subset_orchestrator = _load_subset_orchestrator()
+    selected = {"gpt_oss_20b": {"horizon": 1, "budget": 4}}
+    queues = subset_orchestrator._full_worker_queues(suite, selected, scope)
+    assert queues == {
+        0: [("gpt_oss_20b", 0, 0), ("gpt_oss_20b", 2, 0)],
+        1: [("gpt_oss_20b", 1, 1), ("gpt_oss_20b", 3, 1)],
+    }
+
+
 def test_forced_trajectory_processor_follows_decode_position() -> None:
     processor = _ForcedTrajectoryProcessor(prompt_tokens=3, trajectory=[2, 1])
     scores = torch.zeros((1, 4))

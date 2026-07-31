@@ -519,3 +519,36 @@ STOP/PIVOT rules remain unchanged outside this explicit human amendment.
 aggregate required-policy set; later `pseudo_embedding_qwen_gsm8k_v1` planning.
 **Migration required:** Validate and commit the execution scope and two-GPU
 placement regressions before resuming any long worker.
+
+## D-20260731-035 — Restrict full hard accuracy to GPT-OSS/GSM8K
+
+**Status:** accepted
+**Context:** The hard-only six-task execution had saved 808 actual GPT rows after
+about sixteen hours, including 536/1,319 GSM8K rows and all assigned shard-0
+GSM8K rows. Its measured remaining all-task time was about two days. The user
+explicitly chose to finish one challenging dataset first because the six-task
+run was too expensive. Existing Qwen `(H=8,B=32)` open-loop evidence also makes
+GSM8K a useful focused task: future-oracle mean route hit is 0.9587 and lossless
+fallback is 0.0413, weaker than the other substantive tasks at that point.
+**Decision:** Preserve the frozen base suite, selected GPT `(H=1,B=4)` point,
+prompt bytes, samples, decoding, evaluator, source vanilla rows, and every saved
+artifact. Replace only the execution schedule with the separately fingerprinted
+`benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` scope. Require all 1,319 GSM8K
+hard-oracle rows and exclude unscheduled tasks and previous-route rows from the
+scoped aggregate. Preserve their successful rows and `.FAILED.json` markers as
+provenance. Pass the task filter through the existing closed-loop runner and
+reporter. Use deterministic per-GPU shard queues so a GPU can start its next
+shard without waiting for the other GPU; never run more than one worker per GPU.
+**Alternatives considered:** Finish all six GPT tasks, discard completed non-GSM
+rows, run only a small GSM8K sample, use AIME25 despite its 30-question discrete
+uncertainty, or write a standalone evaluator.
+**Consequences:** The final hard result supports only GPT-OSS/GSM8K. A passing
+task gate is at most **NARROW**, never an all-six-task GO; unscheduled datasets
+have no measured hard-commitment conclusion. The later Qwen/GSM8K pseudo-
+embedding comparison remains separately gated and does not authorize learned
+predictor training.
+**Experiments affected:** `benchmark_subset_oracle_v1` full closed-loop schedule,
+scoped aggregation, decision, and provenance only.
+**Migration required:** Lock the revision-2 execution-scope fingerprint, test
+task filtering and per-GPU queues, commit a clean execution revision, then resume
+the 783 missing GSM8K rows from their atomic sample artifacts.

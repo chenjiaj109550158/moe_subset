@@ -64,8 +64,11 @@ class FocusedNextStage(StrictModel):
 
 class SubsetExecutionScope(StrictModel):
     schema_version: Literal[1]
-    scope_revision: Literal[1]
-    scope_id: Literal["benchmark_subset_oracle_v1_hard_only_full_v1"]
+    scope_revision: Literal[1, 2]
+    scope_id: Literal[
+        "benchmark_subset_oracle_v1_hard_only_full_v1",
+        "benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2",
+    ]
     authorized_at_utc: str
     authority: Literal["explicit_user_scope_reduction"]
     amendment_kind: Literal["execution_schedule_only"]
@@ -77,12 +80,32 @@ class SubsetExecutionScope(StrictModel):
     def frozen_scope_invariants(self) -> SubsetExecutionScope:
         if self.full_stage.models != ("gpt_oss_20b",):
             raise ValueError("hard-only full scope must retain the preselected GPT model")
-        if self.full_stage.tasks != TASKS:
-            raise ValueError("hard-only full scope must retain all six frozen tasks")
         if self.full_stage.actual_policies != ("hard_oracle_commitment",):
-            raise ValueError("scope revision 1 is hard-oracle-only for the full stage")
-        if self.full_stage.expected_actual_rows != 2608:
-            raise ValueError("hard-only full scope must contain exactly 2,608 GPT rows")
+            raise ValueError("execution scope is hard-oracle-only for the full stage")
+        expected_scope = {
+            1: (
+                "benchmark_subset_oracle_v1_hard_only_full_v1",
+                TASKS,
+                2608,
+            ),
+            2: (
+                "benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2",
+                ("gsm8k",),
+                1319,
+            ),
+        }[self.scope_revision]
+        expected_id, expected_tasks, expected_rows = expected_scope
+        if self.scope_id != expected_id:
+            raise ValueError(f"scope revision {self.scope_revision} has the wrong scope ID")
+        if self.full_stage.tasks != expected_tasks:
+            raise ValueError(
+                f"scope revision {self.scope_revision} must retain tasks {expected_tasks}"
+            )
+        if self.full_stage.expected_actual_rows != expected_rows:
+            raise ValueError(
+                f"scope revision {self.scope_revision} must contain exactly "
+                f"{expected_rows:,} GPT rows"
+            )
         if self.full_stage.physical_gpus_by_model != {"gpt_oss_20b": (0, 1)}:
             raise ValueError("GPT hard shards must be distributed over physical GPUs 0 and 1")
         if self.focused_next_stage.resident_fraction != 0.25:

@@ -26,6 +26,7 @@ from pseudoroute.benchmark.subset_closed_loop import (
 from pseudoroute.benchmark.subset_config import (
     SubsetModelConfig,
     SubsetOracleSuiteConfig,
+    TaskKey,
     load_subset_oracle_config,
 )
 from pseudoroute.benchmark.subset_grid import (
@@ -195,6 +196,12 @@ def parse_args() -> argparse.Namespace:
         default="hard_oracle_commitment,previous_route_commitment",
         help="comma-separated full-stage policies required by aggregation",
     )
+    aggregate.add_argument(
+        "--tasks",
+        help="comma-separated frozen task keys required by this execution scope",
+    )
+    aggregate.add_argument("--execution-scope-id")
+    aggregate.add_argument("--execution-scope-fingerprint")
     subparsers.add_parser("validate")
 
     closed = subparsers.add_parser("closed-loop")
@@ -213,7 +220,21 @@ def parse_args() -> argparse.Namespace:
         choices=("mechanism_smoke", "selected_smoke", "full"),
     )
     closed.add_argument("--physical-gpu", type=int, choices=(0, 1))
+    closed.add_argument(
+        "--tasks",
+        help="comma-separated frozen task keys; omitted means every frozen task",
+    )
     return parser.parse_args()
+
+
+def _task_filter(raw: str | None, accuracy: AccuracySuiteConfig) -> tuple[TaskKey, ...] | None:
+    if raw is None:
+        return None
+    values = tuple(value for value in raw.split(",") if value)
+    available = {dataset.key for dataset in accuracy.datasets}
+    if not values or len(set(values)) != len(values) or not set(values).issubset(available):
+        raise ValueError(f"invalid task filter: {values}")
+    return cast(tuple[TaskKey, ...], values)
 
 
 def main() -> None:
@@ -251,7 +272,16 @@ def main() -> None:
             aggregate_policies
         ).issubset(allowed_aggregate):
             raise ValueError(f"invalid aggregate policies: {aggregate_policies}")
-        result = aggregate_and_validate(suite, accuracy, output, actual_policies=aggregate_policies)
+        aggregate_tasks = _task_filter(cast(str | None, args.tasks), accuracy)
+        result = aggregate_and_validate(
+            suite,
+            accuracy,
+            output,
+            actual_policies=aggregate_policies,
+            tasks=aggregate_tasks,
+            execution_scope_id=cast(str | None, args.execution_scope_id),
+            execution_scope_fingerprint=cast(str | None, args.execution_scope_fingerprint),
+        )
     elif command == "validate":
         for model in suite.models:
             validate_trace_manifest(suite, model, output)
@@ -275,6 +305,7 @@ def main() -> None:
         if not raw_policies or not set(raw_policies).issubset(allowed):
             raise ValueError(f"invalid actual closed-loop policies: {raw_policies}")
         stage = cast(Literal["mechanism_smoke", "selected_smoke", "full"], str(args.stage))
+        tasks = _task_filter(cast(str | None, args.tasks), accuracy)
         result = run_model_closed_loop(
             suite,
             accuracy,
@@ -286,6 +317,7 @@ def main() -> None:
             shard_index=int(args.shard_index),
             stage=stage,
             physical_gpu=cast(int | None, args.physical_gpu),
+            tasks=tasks,
         )
     else:
         raise AssertionError(f"unhandled command: {command}")

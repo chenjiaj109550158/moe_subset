@@ -6,15 +6,17 @@ Post-M11 trained-model oracle gate v2 — complete with an overall **STOP/PIVOT*
 
 ## Active benchmark subset-oracle pivot
 
-`benchmark_subset_oracle_v1` resumed on 2026-07-30 under the explicit hard-only
-execution amendment
-`configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml`. The frozen
-revision-2 base config and artifact root remain unchanged. Full execution now
-requires 2,608 actual GPT-OSS `(H=1,B=4)` hard-oracle rows across all six v17
-datasets; the remaining full previous-route rows are no longer scheduled. Seven
-completed previous-route rows and one user-interrupted failure marker are retained
-as provenance. Four hard shards are assigned in two waves across the two physical
-A100s, never more than one worker per GPU.
+`benchmark_subset_oracle_v1` was safely stopped on 2026-07-31 when the user
+further reduced the expensive full stage. The frozen revision-2 base config and
+artifact root remain unchanged. The new versioned execution amendment is
+`configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml`; it requires
+all 1,319 actual GPT-OSS GSM8K `(H=1,B=4)` hard-oracle rows and no other full-task
+accuracy rows. At the scope boundary, 536/1,319 GSM8K rows (213,043 tokens) and
+272 hard rows from HumanEval/MBPP+ were checksum-preserved. Seven previous-route
+rows plus all interruption markers remain provenance and are not aggregate
+requirements. Four deterministic shards remain assigned to two physical A100s;
+each GPU advances its own queue with at most one worker, avoiding cross-GPU
+long-tail waits.
 
 After hard aggregation, the next separately frozen scope is Qwen3-30B-A3B plus
 GSM8K `(H=8,B=32)` for previous-route versus pseudo-embedding development. No

@@ -16,14 +16,14 @@ actual model-quality results, and measured adapter memory are labeled separately
 
 The benchmark-aligned pivot reuses the checksum-valid v17 prompts, tokens, and
 evaluators without rerunning vanilla. Its frozen base config is
-`configs/benchmark/benchmark_subset_oracle_v1.yaml`; the explicit 2026-07-30
-scope amendment is
-`configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml`. The full
-stage completes only the selected GPT-OSS `(H=1,B=4)` hard-oracle policy over six
-datasets. Preserved partial previous-route rows are provenance, not a completed
-full baseline. The next planned, separately frozen experiment focuses on
-Qwen3-30B-A3B/GSM8K `(H=8,B=32)` and pseudo embedding; it does not authorize
-learned predictor training.
+`configs/benchmark/benchmark_subset_oracle_v1.yaml`. After preserving 808 actual
+hard rows from the superseded six-task scope, the explicit 2026-07-31 amendment
+`configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml` limits full
+accuracy execution to all 1,319 GPT-OSS GSM8K rows at `(H=1,B=4)`. Existing
+HumanEval/MBPP+/previous-route rows and interruption markers remain provenance
+and are excluded from the scoped aggregate. The next planned, separately frozen
+experiment focuses on Qwen3-30B-A3B/GSM8K `(H=8,B=32)` and pseudo embedding; it
+does not authorize learned predictor training.
 
 ## Trained-model oracle gate
 

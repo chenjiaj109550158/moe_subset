@@ -33,7 +33,11 @@ from pseudoroute.benchmark.runner import (
     _read_jsonl,
 )
 from pseudoroute.benchmark.scoring import score_response
-from pseudoroute.benchmark.subset_config import SubsetModelConfig, SubsetOracleSuiteConfig
+from pseudoroute.benchmark.subset_config import (
+    SubsetModelConfig,
+    SubsetOracleSuiteConfig,
+    TaskKey,
+)
 from pseudoroute.benchmark.subset_trace import sha256_json, write_json_atomic
 from pseudoroute.benchmark.tasks import BenchmarkExample, load_examples
 from pseudoroute.utils.determinism import seed_everything
@@ -667,6 +671,7 @@ def run_model_closed_loop(
     shard_index: int,
     stage: Literal["mechanism_smoke", "selected_smoke", "full"],
     physical_gpu: int | None = None,
+    tasks: tuple[TaskKey, ...] | None = None,
 ) -> list[dict[str, object]]:
     if shard_index < 0 or shard_index >= suite.closed_loop.sample_shards:
         raise ValueError("closed-loop shard index is outside the frozen shard count")
@@ -677,10 +682,18 @@ def run_model_closed_loop(
     model_config = _source_model(accuracy, model_subset).model_copy(
         update={"device": f"cuda:{actual_physical_gpu}"}
     )
+    task_filter = set(tasks) if tasks is not None else None
+    datasets = [
+        dataset
+        for dataset in accuracy.datasets
+        if task_filter is None or dataset.key in task_filter
+    ]
+    if task_filter is not None and {dataset.key for dataset in datasets} != task_filter:
+        raise ValueError(f"closed-loop task filter contains unknown tasks: {sorted(task_filter)}")
     smoke = stage != "full"
     resumed: list[dict[str, object]] = []
     all_complete = True
-    for dataset in accuracy.datasets:
+    for dataset in datasets:
         for source in _scoped_source_rows(
             suite,
             model_subset,
@@ -708,7 +721,7 @@ def run_model_closed_loop(
     model, tokenizer = _load_model(model_config, accuracy)
     ops = build_prefetch_ops(model, model_config.architecture)
     completed_rows: list[dict[str, object]] = []
-    for dataset in accuracy.datasets:
+    for dataset in datasets:
         examples = load_examples(dataset, cache_dir=accuracy.dataset_cache_dir)
         source_rows = _scoped_source_rows(
             suite, model_subset, dataset.key, shard_index=shard_index, smoke=smoke

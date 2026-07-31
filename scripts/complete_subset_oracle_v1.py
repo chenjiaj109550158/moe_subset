@@ -22,7 +22,7 @@ from pseudoroute.benchmark.subset_trace import sha256_file
 
 REPO = Path(__file__).resolve().parents[1]
 CONFIG = REPO / "configs/benchmark/benchmark_subset_oracle_v1.yaml"
-SCOPE_CONFIG = REPO / "configs/benchmark/benchmark_subset_oracle_v1_hard_only_full_v1.yaml"
+SCOPE_CONFIG = REPO / "configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml"
 OUTPUT = REPO / "artifacts/benchmark_subset_oracle_v1_r2_authoritative"
 STATUS = OUTPUT / "pipeline_status.json"
 LOGS = OUTPUT / "logs"
@@ -163,7 +163,7 @@ def _verify_and_record_execution_scope(scope: SubsetExecutionScope) -> None:
         "scope_fingerprint": scope.fingerprint(),
         "scope": scope.model_dump(mode="json"),
     }
-    path = OUTPUT / "resolved_execution_scope.json"
+    path = OUTPUT / "resolved_execution_scopes" / f"{scope.scope_id}.json"
     if path.is_file():
         existing = json.loads(path.read_text(encoding="utf-8"))
         stable_keys = (
@@ -203,7 +203,7 @@ def _record_execution_revision(scope: SubsetExecutionScope) -> None:
         "base_environment": "../environment.json",
         "execution_scope_id": scope.scope_id,
         "execution_scope_fingerprint": scope.fingerprint(),
-        "resolved_execution_scope": "../resolved_execution_scope.json",
+        "resolved_execution_scope": (f"../resolved_execution_scopes/{scope.scope_id}.json"),
     }
     path = OUTPUT / "execution_revisions" / f"{head}.json"
     if path.is_file():
@@ -304,6 +304,74 @@ def _run_one(stage: str, *arguments: str) -> None:
     _run_parallel([(stage, None, _command(*arguments))], stage)
 
 
+def _run_gpu_queues(
+    queues: dict[int, list[tuple[str, int, list[str]]]],
+    stage: str,
+) -> None:
+    """Run one worker per physical GPU and launch its next shard immediately."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    pending = {gpu: list(commands) for gpu, commands in queues.items()}
+    active: dict[int, tuple[subprocess.Popen[str], Any, dict[str, object]]] = {}
+    launched: list[dict[str, object]] = []
+    returncodes: dict[str, int] = {}
+    failed = False
+    try:
+        while active or (not failed and any(pending.values())):
+            if not failed:
+                for physical_gpu in sorted(pending):
+                    if physical_gpu in active or not pending[physical_gpu]:
+                        continue
+                    label, declared_gpu, command = pending[physical_gpu].pop(0)
+                    if declared_gpu != physical_gpu:
+                        raise RuntimeError("worker queue physical-GPU mismatch")
+                    log_path = LOGS / f"{stage}.{label}.log"
+                    stream = log_path.open("a", encoding="utf-8")
+                    stream.write(f"\n[{datetime.now(UTC).isoformat()}] {' '.join(command)}\n")
+                    stream.flush()
+                    process = subprocess.Popen(
+                        command,
+                        cwd=REPO,
+                        env=_offline_environment(),
+                        stdout=stream,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                    )
+                    metadata = {
+                        "label": label,
+                        "pid": process.pid,
+                        "ppid": os.getpid(),
+                        "physical_gpu": physical_gpu,
+                        "command": command,
+                        "log": str(log_path.relative_to(OUTPUT)),
+                    }
+                    launched.append(metadata)
+                    active[physical_gpu] = (process, stream, metadata)
+            _status(
+                "running",
+                stage,
+                active_workers=[metadata for _, _, metadata in active.values()],
+                workers=launched,
+                pending_workers=sum(len(commands) for commands in pending.values()),
+                progress=_progress(),
+                gpu_processes=_gpu_processes(),
+            )
+            for physical_gpu, (process, stream, metadata) in list(active.items()):
+                code = process.poll()
+                if code is None:
+                    continue
+                stream.close()
+                del active[physical_gpu]
+                returncodes[str(metadata["label"])] = code
+                failed = failed or code != 0
+            if active:
+                time.sleep(POLL_SECONDS)
+        if failed:
+            raise RuntimeError(f"{stage} worker failure: {returncodes}")
+    finally:
+        for _, stream, _ in active.values():
+            stream.close()
+
+
 def _selection() -> dict[str, dict[str, Any]]:
     path = OUTPUT / "selected_operating_points.json"
     result = json.loads(path.read_text(encoding="utf-8"))
@@ -338,6 +406,30 @@ def _full_worker_waves(
                 wave.append(queues[physical_gpu].pop(0))
         waves.append(wave)
     return waves
+
+
+def _full_worker_queues(
+    suite: Any,
+    selected: dict[str, dict[str, Any]],
+    scope: SubsetExecutionScope,
+) -> dict[int, list[tuple[str, int, int]]]:
+    """Return deterministic per-GPU queues; each GPU advances independently."""
+    expected_models = set(scope.full_stage.models)
+    if set(selected) != expected_models:
+        raise RuntimeError(
+            "selected models differ from the frozen hard-only execution scope: "
+            f"{sorted(selected)} != {sorted(expected_models)}"
+        )
+    model_keys = {model.key for model in suite.models}
+    if not expected_models.issubset(model_keys):
+        raise RuntimeError("execution scope references an unknown model")
+    queues: dict[int, list[tuple[str, int, int]]] = {}
+    for model_key in scope.full_stage.models:
+        physical_gpus = scope.full_stage.physical_gpus_by_model[model_key]
+        for shard in range(suite.closed_loop.sample_shards):
+            physical_gpu = physical_gpus[shard % len(physical_gpus)]
+            queues.setdefault(physical_gpu, []).append((model_key, shard, physical_gpu))
+    return queues
 
 
 def _validate_smoke(
@@ -453,13 +545,16 @@ def main() -> None:
                 model_keys=set(selected),
             )
         full_policies = ",".join(scope.full_stage.actual_policies)
-        for wave_index, assignments in enumerate(_full_worker_waves(suite, selected, scope)):
-            wave = []
-            for model_key, shard, physical_gpu in assignments:
+        full_tasks = ",".join(scope.full_stage.tasks)
+        queued_commands: dict[int, list[tuple[str, int, list[str]]]] = {}
+        for physical_gpu, assignments in _full_worker_queues(suite, selected, scope).items():
+            for model_key, shard, job_gpu in assignments:
+                if job_gpu != physical_gpu:
+                    raise RuntimeError("worker assignment physical-GPU mismatch")
                 point = selected[model_key]
-                wave.append(
+                queued_commands.setdefault(physical_gpu, []).append(
                     (
-                        f"{model_key}.shard_{shard}.gpu_{physical_gpu}",
+                        f"{model_key}.shard_{shard}.gpu_{job_gpu}",
                         physical_gpu,
                         _command(
                             "closed-loop",
@@ -476,12 +571,25 @@ def main() -> None:
                             "--stage",
                             "full",
                             "--physical-gpu",
-                            str(physical_gpu),
+                            str(job_gpu),
+                            "--tasks",
+                            full_tasks,
                         ),
                     )
                 )
-            _run_parallel(wave, f"hard_only_full_wave_{wave_index}")
-        _run_one("aggregate", "aggregate", "--actual-policies", full_policies)
+        _run_gpu_queues(queued_commands, "gpt_gsm8k_hard_full")
+        _run_one(
+            "aggregate",
+            "aggregate",
+            "--actual-policies",
+            full_policies,
+            "--tasks",
+            full_tasks,
+            "--execution-scope-id",
+            scope.scope_id,
+            "--execution-scope-fingerprint",
+            scope.fingerprint(),
+        )
         _run_one("validate", "validate")
         decision = json.loads((OUTPUT / "decision.json").read_text(encoding="utf-8"))
         _status(
