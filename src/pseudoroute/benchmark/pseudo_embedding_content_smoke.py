@@ -11,11 +11,12 @@ import sys
 import time
 import traceback
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any, cast
 
 import torch
+import torch.nn.functional as F
 import yaml
 from safetensors.torch import load_file
 from torch import Tensor
@@ -27,6 +28,10 @@ from pseudoroute.benchmark.prefetch import (
     physical_expert_bytes,
 )
 from pseudoroute.benchmark.pseudo_embedding_analysis_config import load_analysis_config
+from pseudoroute.benchmark.pseudo_embedding_calibration_free_analysis import (
+    Aggregate,
+    calibration_free_subsets,
+)
 from pseudoroute.benchmark.pseudo_embedding_route import (
     _route_metrics,
     _save_tensors_atomic,
@@ -56,6 +61,13 @@ TRUE_INDEPENDENT = "true_future_independent_zero"
 TRUE_CAUSAL = "true_future_causal_zero"
 DEPLOYABLE = (SAMPLED, RECENT_INDEPENDENT, RECENT_CAUSAL, RECENT_BLEND)
 DIAGNOSTIC = (TRUE_INDEPENDENT, TRUE_CAUSAL)
+PARENT_CANDIDATES = (
+    "zero_pseudo_all_anchors",
+    "recent_route_prior_w8",
+    "one_known_plus_seven_history",
+    "equal_evidence_future_blend",
+    "native_topk_core_plus_history_reserve",
+)
 DIRECT_VARIANTS = (
     QwenPseudoVariant(SAMPLED, "sampled_next_token", "independent", "zero"),
     QwenPseudoVariant(RECENT_INDEPENDENT, "provided_sequence", "independent", "zero"),
@@ -362,6 +374,172 @@ def _per_anchor(
     return result
 
 
+def _parent_candidate_replication(
+    samples: list[tuple[dict[str, Any], dict[str, Tensor]]],
+) -> dict[str, object]:
+    """Replicate only formulas frozen in the parent protocol; do not rerank this smoke."""
+    totals = {key: Aggregate() for key in PARENT_CANDIDATES}
+    by_boundary = {(key, boundary): Aggregate() for key in PARENT_CANDIDATES for boundary in (0, 8)}
+    by_sample = {
+        (key, str(row["sample_id"])): Aggregate() for row, _ in samples for key in PARENT_CANDIDATES
+    }
+    for row, tensors in samples:
+        sample_id = str(row["sample_id"])
+        ids = tensors["router_topk_ids"]
+        weights = tensors["router_topk_weights"]
+        probabilities = tensors[f"{SAMPLED}__pre_topk_probabilities"]
+        resident: dict[str, dict[int, tuple[int, ...]]] = {
+            key: {layer: () for layer in range(48)} for key in PARENT_CANDIDATES
+        }
+        for boundary_index, boundary_value in enumerate(tensors["boundaries"].tolist()):
+            boundary = int(boundary_value)
+            subsets = calibration_free_subsets(
+                probabilities[boundary_index],
+                ids,
+                weights,
+                boundary,
+                horizon=8,
+                budget=32,
+                experts=128,
+                top_k=8,
+            )
+            end = min(boundary + 8, ids.shape[0])
+            for key in PARENT_CANDIDATES:
+                for layer in range(48):
+                    arguments = (
+                        ids[boundary:end, layer],
+                        weights[boundary:end, layer],
+                        subsets[key][layer],
+                        resident[key][layer],
+                    )
+                    totals[key].update(*arguments)
+                    by_boundary[(key, boundary)].update(*arguments)
+                    by_sample[(key, sample_id)].update(*arguments)
+                    resident[key][layer] = subsets[key][layer]
+    return {
+        "role": "predeclared_parent_formula_replication_not_content_smoke_ranking",
+        "source_parent_config_fingerprint": (
+            "c09d70901bacafabdbacda398390574f7c24f67f634909d39b2084be3e04f898"
+        ),
+        "aggregates": {key: totals[key].as_dict() for key in PARENT_CANDIDATES},
+        "by_boundary": {
+            key: {str(boundary): by_boundary[(key, boundary)].as_dict() for boundary in (0, 8)}
+            for key in PARENT_CANDIDATES
+        },
+        "by_sample": {
+            key: {
+                str(row["sample_id"]): by_sample[(key, str(row["sample_id"]))].as_dict()
+                for row, _ in samples
+            }
+            for key in PARENT_CANDIDATES
+        },
+        "excluded_from_deployable_candidate_ranking": True,
+    }
+
+
+def _stratified_metrics(rows: list[dict[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    groupers: tuple[tuple[str, Callable[[dict[str, object]], str]], ...] = (
+        ("by_boundary", lambda row: str(row["boundary"])),
+        ("by_sample", lambda row: str(row["sample_id"])),
+        ("by_eight_layer_block", lambda row: f"{int(cast(Any, row['layer'])) // 8}"),
+    )
+    for label, value in groupers:
+        groups: dict[str, list[dict[str, object]]] = defaultdict(list)
+        for row in rows:
+            groups[value(row)].append(row)
+        result[label] = {
+            group: _aggregate_metrics(selected) for group, selected in sorted(groups.items())
+        }
+    return result
+
+
+def _centered_cosine(left: Tensor, right: Tensor) -> float:
+    return float(
+        F.cosine_similarity(
+            left.float() - left.float().mean(),
+            right.float() - right.float().mean(),
+            dim=0,
+        )
+    )
+
+
+def _router_sensitivity(
+    samples: list[tuple[dict[str, Any], dict[str, Tensor]]],
+) -> dict[str, object]:
+    direct = (*DEPLOYABLE[:-1], *DIAGNOSTIC)
+    alignment: dict[tuple[str, int], list[tuple[float, float]]] = defaultdict(list)
+    intervention: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    jaccard: dict[str, list[float]] = defaultdict(list)
+    anchor_one_max: dict[str, float] = defaultdict(float)
+    for _, tensors in samples:
+        natural = tensors["router_logits"]
+        sampled = tensors[f"{SAMPLED}__raw_router_logits"]
+        sampled_subsets = tensors[f"{SAMPLED}__subsets"]
+        for variant in direct:
+            predicted = tensors[f"{variant}__raw_router_logits"]
+            subsets = tensors[f"{variant}__subsets"]
+            anchor_one_max[variant] = max(
+                anchor_one_max[variant],
+                float((predicted[:, :, 0] - sampled[:, :, 0]).abs().max()),
+            )
+            for boundary_index, boundary_value in enumerate(tensors["boundaries"].tolist()):
+                boundary = int(boundary_value)
+                for layer in range(48):
+                    left = set(sampled_subsets[boundary_index, layer].tolist())
+                    right = set(subsets[boundary_index, layer].tolist())
+                    jaccard[variant].append(len(left & right) / len(left | right))
+                    for anchor in range(8):
+                        actual = natural[boundary + anchor, layer]
+                        probe = predicted[boundary_index, layer, anchor]
+                        alignment[(variant, anchor + 1)].append(
+                            (
+                                _centered_cosine(probe, actual),
+                                len(
+                                    set(probe.topk(8).indices.tolist())
+                                    & set(actual.topk(8).indices.tolist())
+                                )
+                                / 8,
+                            )
+                        )
+                        if variant != SAMPLED:
+                            baseline = sampled[boundary_index, layer, anchor]
+                            scale = float(actual.float().std()) + 1e-12
+                            centered_delta = (probe - probe.mean()) - (baseline - baseline.mean())
+                            intervention[variant].append(
+                                (
+                                    float(centered_delta.float().square().mean().sqrt()) / scale,
+                                    len(
+                                        set(probe.topk(8).indices.tolist())
+                                        & set(baseline.topk(8).indices.tolist())
+                                    )
+                                    / 8,
+                                )
+                            )
+    return {
+        "natural_alignment_by_anchor": {
+            variant: {
+                str(anchor): {
+                    "centered_logit_cosine": _mean(row[0] for row in alignment[(variant, anchor)]),
+                    "natural_top8_overlap": _mean(row[1] for row in alignment[(variant, anchor)]),
+                }
+                for anchor in range(1, 9)
+            }
+            for variant in direct
+        },
+        "intervention_vs_sampled_repeat": {
+            variant: {
+                "normalized_centered_logit_rms": _mean(row[0] for row in intervention[variant]),
+                "pseudo_top8_overlap": _mean(row[1] for row in intervention[variant]),
+                "subset_jaccard": _mean(jaccard[variant]),
+                "anchor1_max_absolute_logit_delta": anchor_one_max[variant],
+            }
+            for variant in direct
+            if variant != SAMPLED
+        },
+    }
+
+
 def _cost_report(rows: list[dict[str, Any]]) -> dict[str, object]:
     records = [record for row in rows for record in row["probe_costs"]]
     variants: dict[str, dict[str, object]] = {}
@@ -509,6 +687,7 @@ def _write_report(
     aggregates: dict[str, dict[str, int | float]],
     sensitivity: dict[str, object],
     decision: dict[str, object],
+    parent_replication: dict[str, object],
 ) -> None:
     lines = [
         f"# {ANALYSIS_ID}",
@@ -539,6 +718,14 @@ def _write_report(
         )
     recent = cast(dict[str, float], sensitivity["recent_independent_vs_sampled_repeat"])
     oracle = cast(dict[str, float], sensitivity["true_future_independent_vs_sampled_repeat"])
+    parent_rows = cast(dict[str, dict[str, Any]], parent_replication["aggregates"])
+    parent_best = max(
+        PARENT_CANDIDATES,
+        key=lambda key: (
+            float(parent_rows[key]["mean_selected_mass"]),
+            float(parent_rows[key]["mean_route_hit"]),
+        ),
+    )
     lines.extend(
         (
             "",
@@ -549,6 +736,10 @@ def _write_report(
             f"mass {recent['selected_mass_delta']:+.6f}.",
             f"- True-future independent content headroom versus sampled repeat: hit "
             f"{oracle['route_hit_delta']:+.6f}, mass {oracle['selected_mass_delta']:+.6f}.",
+            f"- Parent-formula replication is best for `{parent_best}` at hit "
+            f"{float(parent_rows[parent_best]['mean_route_hit']):.6f}, mass "
+            f"{float(parent_rows[parent_best]['mean_selected_mass']):.6f}; this diagnostic "
+            "does not rerank the frozen content-smoke candidates.",
             "",
             "## Calibration and claim boundary",
             "",
@@ -777,6 +968,9 @@ def run(config_path: Path, physical_gpu: int) -> dict[str, object]:
     if set(aggregates) != set((*DEPLOYABLE, *DIAGNOSTIC)):
         raise ValueError("content-smoke aggregate method set changed")
     per_anchor = _per_anchor(samples_with_tensors)
+    parent_replication = _parent_candidate_replication(samples_with_tensors)
+    stratified = _stratified_metrics(all_metrics)
+    router_sensitivity = _router_sensitivity(samples_with_tensors)
     costs = _cost_report(completed)
     cache_audit = _cache_rng_audit(completed)
     if not all(
@@ -796,6 +990,9 @@ def run(config_path: Path, physical_gpu: int) -> dict[str, object]:
     write_json_atomic(output / "resolved_execution_revision.json", _git_revision())
     write_json_atomic(output / "aggregates.json", aggregates)
     write_json_atomic(output / "per_anchor.json", per_anchor)
+    write_json_atomic(output / "parent_candidate_replication.json", parent_replication)
+    write_json_atomic(output / "stratified_metrics.json", stratified)
+    write_json_atomic(output / "router_sensitivity.json", router_sensitivity)
     write_json_atomic(output / "probe_costs.json", costs)
     write_json_atomic(output / "cache_rng_audit.json", cache_audit)
     write_json_atomic(output / "content_sensitivity.json", sensitivity)
@@ -804,7 +1001,13 @@ def run(config_path: Path, physical_gpu: int) -> dict[str, object]:
         json.dumps(row, sort_keys=True, separators=(",", ":")) for row in all_metrics
     ).encode()
     _write_bytes_atomic(output / "raw_metrics.jsonl.gz", gzip.compress(raw, mtime=0))
-    _write_report(output / "report.md", aggregates, sensitivity, decision)
+    _write_report(
+        output / "report.md",
+        aggregates,
+        sensitivity,
+        decision,
+        parent_replication,
+    )
     failed = sorted(str(path.relative_to(output)) for path in output.rglob("*.FAILED.json"))
     resume = {
         "schema_version": 1,
