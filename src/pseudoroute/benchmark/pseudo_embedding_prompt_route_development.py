@@ -156,6 +156,12 @@ def _single_aggregate(
     return result
 
 
+def realized_window_end(boundary: int, token_count: int, horizon: int = 8) -> int:
+    if boundary < 0 or boundary >= token_count:
+        raise ValueError("route boundary is outside the realized token sequence")
+    return min(boundary + horizon, token_count)
+
+
 def _aggregate(
     protocol: dict[str, Any],
     output: Path,
@@ -194,6 +200,7 @@ def _aggregate(
             method: {layer: () for layer in range(48)} for method in METHODS
         }
         for boundary_index, boundary in enumerate(boundaries):
+            end = realized_window_end(boundary, ids.shape[0])
             history_ids = (
                 prompt["prompt_router_topk_ids"] if boundary == 0 else ids[boundary - 8 : boundary]
             )
@@ -217,8 +224,8 @@ def _aggregate(
                 }
                 for method in METHODS:
                     aggregate = _single_aggregate(
-                        ids[boundary : boundary + 8, layer],
-                        weights[boundary : boundary + 8, layer],
+                        ids[boundary:end, layer],
+                        weights[boundary:end, layer],
                         subsets[method],
                         resident[method][layer],
                     )
@@ -226,7 +233,7 @@ def _aggregate(
                     by_boundary.setdefault((method, boundary), Aggregate()).merge(aggregate)
                     by_sample[(method, sample_id)].merge(aggregate)
                     by_block[(method, layer // 8)].merge(aggregate)
-                    for anchor in range(8):
+                    for anchor in range(end - boundary):
                         by_anchor[(method, anchor + 1)].merge(
                             _single_aggregate(
                                 ids[boundary + anchor, layer],
