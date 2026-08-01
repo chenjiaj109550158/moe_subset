@@ -125,14 +125,22 @@ closed-loop evaluation, and must not relabel this negative result.
 
 ## Exact check results
 
-Final post-change checks recorded 2026-07-27 UTC on Python 3.14.6, PyTorch
+Focused-pilot final checks recorded 2026-08-01 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 127 files already formatted.
+- `ruff format --check .`: PASS; 161 files already formatted.
 - `ruff check .`: PASS.
-- `mypy`: PASS; no issues in 76 source files.
-- Focused trained adapter/runner/trace/oracle tests: PASS; 16 passed in 6.76s.
-- `pytest -ra`: PASS; 99 passed, 3 expected skips in 12.01s.
+- `mypy src/pseudoroute`: PASS; no issues in 95 source files.
+- Focused pseudo/config/report/runner/closed-loop/shadow/subset tests: PASS; 27
+  passed.
+- `python -m pytest -ra`: PASS; 151 passed, 3 expected skips in 15.15s.
+- Focused artifact validation: PASS; 44 checksummed artifacts, six atomic route
+  samples, zero actual rows, four preserved failure markers, and terminal
+  `complete/report_v1`.
+
+Retained 2026-07-27 acceptance records below were not rerun in this focused
+session:
+
 - `PSEUDOROUTE_RUN_EXTERNAL=1 pytest -ra tests/integration/test_hf_mixtral.py`: PASS; 2 passed in 5.76s from the pinned cache.
 - `python -m build`: PASS; sdist and wheel built.
 - Offline post-change M11 `reproduce`: PASS at
@@ -163,7 +171,11 @@ None.
 
 ## Next exact tasks
 
-The trained oracle stage is terminal at **STOP/PIVOT**. No predictor training or production runtime work is authorized. Preserve the negative artifacts and require a new, scoped, predeclared research question before any follow-up.
+The focused pseudo-embedding v1 stage is terminal at **STOP/PIVOT**. Preserve its
+negative artifacts and do not resume held-out route or actual accuracy. No
+predictor training, expanded dataset scope, default-vector recalibration, or
+production runtime work is authorized. Any follow-up requires a new, scoped,
+predeclared research question.
 
 ## Decisions needing human review
 
