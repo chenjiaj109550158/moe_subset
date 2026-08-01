@@ -1,0 +1,67 @@
+schema_version: 1
+analysis_id: pseudo_embedding_calibration_free_prompt_route_smoke_v1
+status: protocol_frozen_before_model_execution
+source_content_smoke:
+  config: configs/analysis/pseudo_embedding_calibration_free_content_smoke_v1.yaml
+  config_sha256: 66cc4643310e8d1b1ed0239c57a02c86664510db16489b03fde90bd7f1c5f7f0
+  artifact_root: artifacts/pseudo_embedding_calibration_free_content_smoke_v1
+  artifact_manifest_sha256: 4e5a7d00d350ca2e455878b5ffff6354c2a64ce50675c38916be67162ca3d251
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+rows:
+  - row_index: 786
+    sample_id: test-786
+    content_tensor_sha256: 0565d99768f5fa9e191cc17e95f5c4bedaebf93be39b4b96e24c533f6df7345f
+  - row_index: 394
+    sample_id: test-394
+    content_tensor_sha256: cfe990eb177181fa7cf9146c903d9af499a1b28d1ad7aef8262209bf04760406
+route_token_cap: 16
+operating_point:
+  horizon: 8
+  budget: 32
+  routed_experts: 128
+  native_top_k: 8
+prompt_route_source:
+  current_policy_prefill_only: true
+  window: last_8_prompt_tokens
+  selected_mass_aggregation: native_topk_normalized_weights
+  boundary_zero_only: true
+generated_route_source:
+  current_policy_realized_previous_window_only: true
+  window: last_8_generated_tokens
+calibration_free:
+  learned_parameters: forbidden
+  fitted_coefficients: forbidden
+  offline_expert_priors: forbidden
+  offline_route_transition_tables: forbidden
+  default_vector_values: forbidden
+  future_true_tokens_in_deployable_methods: forbidden
+candidates:
+  - prompt_or_recent_route_prior
+  - sampled_known_plus_prompt_or_recent_history
+  - equal_sampled_pseudo_prompt_or_recent_history
+  - sampled_top8_core_plus_prompt_or_recent_history_fill
+  - equal_recent_pseudo_prompt_or_recent_history
+candidate_formulas:
+  history_window: prompt_last_8_at_boundary_0_else_generated_last_8
+  known_plus_history: p_sampled_anchor_1_plus_7_times_normalized_history
+  equal_sampled: p_sampled_anchor_1_plus_half_sampled_anchors_2_8_plus_3_5_history
+  core_fill: sampled_anchor_1_top_8_then_history_top_24
+  equal_recent: p_recent_anchor_1_plus_half_recent_anchors_2_8_plus_3_5_history
+ranking:
+  accuracy_used: false
+  order: [highest_mean_selected_mass, highest_mean_route_hit, lexical_key]
+progress_reference:
+  baseline: sampled_repeat_independent_zero
+  minimum_route_hit_improvement: 0.05
+  minimum_selected_mass_improvement: 0.05
+  minimum_simulated_transfer_reduction: 0.30
+requirements:
+  production_prefill_cache_unchanged_by_capture: true
+  production_rng_unchanged_by_capture: true
+  sample_atomic_checksum_resume: true
+  prompt_routes_not_from_other_requests: true
+result_role: two_row_mechanism_hypothesis_only_no_held_out_or_accuracy_authorization
+artifact_root: artifacts/pseudo_embedding_calibration_free_prompt_route_smoke_v1
