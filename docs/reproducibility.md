@@ -105,3 +105,51 @@ Unscheduled HumanEval/MBPP+/AIME/StrategyQA and previous-route artifacts remain
 under the artifact root as provenance, but the scoped summary, paired CI,
 decision, and audit include only GSM8K. A passing scoped gate is reported as
 `NARROW`, not as an all-task `GO`.
+
+## Qwen/GSM8K pseudo-embedding focused pilot v1
+
+The immutable config and resolved sample manifest are
+`configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml` and
+`configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json`. Their config
+fingerprint and manifest SHA-256 are respectively
+`a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc` and
+`21da28e5474d73a6631530f4b7ca70bb41d141bd41d9433b3584741755b82a71`.
+The artifact root is `artifacts/pseudo_embedding_qwen_gsm8k_v1`.
+
+Run or resume only from the pinned local caches:
+
+```bash
+HF_HUB_OFFLINE=1 \
+HF_DATASETS_OFFLINE=1 \
+TRANSFORMERS_OFFLINE=1 \
+python -m pseudoroute.benchmark.pseudo_embedding_runner run --gpu 1
+
+python -m pseudoroute.benchmark.pseudo_embedding_runner validate
+```
+
+The runner validates Git/environment/model/default-vector/source-trace
+provenance, allows at most one worker on a physical GPU, and commits each route
+sample as a checksummed JSON plus safetensors pair. A successful pair resumes
+without overwrite; `.FAILED.json` markers remain provenance. Aggregate artifacts
+include compressed raw rows, global metrics, sample-paired bootstrap CIs,
+layer/context/router-margin strata, concrete worst cases, measured probe costs,
+cache/RNG/native-semantics audits, decision, provenance, resume audit, and a
+checksummed artifact manifest.
+
+This completed run stopped after the four-row development gate. Therefore a
+resume/validate invocation does not load Qwen or start a GPU worker: held-out
+route evaluation and the fixed 16-row × three-policy actual pilot remain
+unauthorized by the frozen protocol. The six valid route samples are two
+mechanism rows and four development rows; actual closed-loop rows are zero.
+
+Development scoring uses the pre-existing checksum-verified v17 Qwen router
+tensors for the natural-route target. Fresh teacher-forced BF16 replay provides
+the deployable production context for the pseudo probe but did not reproduce the
+strict authoritative router tensors across processes on 4/4 rows; those parity
+measurements are retained and do not replace the scoring target. Route replay and
+expert transfer are open-loop and simulated respectively. Probe latency and
+temporary CUDA memory are measured. Task accuracy, exact-token identity, NLL,
+perplexity, route divergence under hard generation, and generation runtime are
+not measured because actual generation was forbidden. Identity-materialized rows
+are zero. The 444 unobserved default-vector pairs remain zero and the artifact is
+not a complete expert prior.

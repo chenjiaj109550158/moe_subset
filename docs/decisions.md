@@ -552,3 +552,55 @@ scoped aggregation, decision, and provenance only.
 **Migration required:** Lock the revision-2 execution-scope fingerprint, test
 task filtering and per-GPU queues, commit a clean execution revision, then resume
 the 783 missing GSM8K rows from their atomic sample artifacts.
+
+## D-20260801-036 — Stop the Qwen/GSM8K pseudo-embedding pilot at development
+
+**Status:** accepted
+**Context:** The separately frozen `pseudo_embedding_qwen_gsm8k_v1` pilot tested
+training-free native-Qwen shadow routing at `(H=8,B=32)`. Config fingerprint
+`a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc`, exact
+sample partitions, four mandatory variants, route/cost progress gates, held-out
+gap recovery, and a 16-row accuracy gate were committed before pseudo results.
+Native two-row mechanism smoke passed its cache, RNG, attention, RoPE, router,
+shadow-lifetime, information-boundary, and non-static-subset checks.
+
+On the four frozen development traces, hard oracle achieved route hit/selected
+mass 0.958714/0.976395, previous-route 0.609385/0.629428, and static frequency
+0.339705/0.346426. The primary sampled-next-token independent default-vector
+variant achieved 0.533015/0.534416. The strongest mandatory ablation was zero
+expert contribution at 0.566499/0.575402. All four mandatory variants regressed
+against previous-route, with paired 95% confidence intervals for both deltas
+strictly below zero. The optional expected-top-8 embedding also regressed at
+0.533448/0.534745. No mandatory variant met the two +0.05 improvement gates;
+some also missed 30% simulated transfer reduction.
+
+**Decision:** Record a focused **STOP/PIVOT** and select no pseudo variant. Apply
+the frozen early-stop rule: do not run the disjoint held-out route set and do not
+run hard-oracle, previous-route, or pseudo actual closed-loop accuracy. Preserve
+all six successful atomic route rows, raw/aggregate/stratified/worst-case/cost
+artifacts, checksums, and four failure markers. Do not train a learned predictor,
+expand GSM8K, change IDs/token caps, recalibrate defaults, or claim runtime
+speedup.
+
+**Alternatives considered:** Choose the least-negative zero ablation, rank using
+smoke or GSM8K correctness, continue to held-out despite the progress gate,
+materialize vanilla identities as accuracy evidence, silently tolerate replay
+drift, or enlarge the sample scope.
+
+**Consequences:** This negative result is limited to pinned Qwen/GSM8K
+`H=8,B=32`, four development traces, the declared training-free variants, and
+the reused default vectors. It shows that this pseudo construction does not
+shrink the previous-to-oracle route gap at the focused point. It is open-loop
+route evidence with measured probe cost and simulated transfer, not measured
+task accuracy or actual constrained generation. The default artifact has 444
+unobserved layer/expert pairs saved as zero and is not a complete prior. Fresh
+cross-process BF16 replay missed strict authoritative router tolerance on all
+four development rows; authoritative v17 tensors remained the scoring targets,
+and same-process mechanism smoke supplies native cache/RNG semantics evidence.
+
+**Experiments affected:** `pseudo_embedding_qwen_gsm8k_v1` only. Earlier GPT
+hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 conclusions are unchanged.
+
+**Migration required:** Any follow-up requires a new predeclared hypothesis and
+scope. Preserve this terminal artifact root and do not resume held-out or actual
+accuracy under v1.

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Complete the frozen Qwen3-30B-A3B/GSM8K `H=8,B=32` pseudo-embedding focused
+  pilot with native shadow attention/RoPE/router execution, cache/RNG audits,
+  route/cost/strata/worst-case artifacts, atomic resume, and a development-gated
+  STOP/PIVOT that forbids held-out and actual accuracy execution.
+
 - Complete the multi-model trained-MoE oracle gate with common OLMoE/Qwen/Mixtral/DeepSeek/gpt-oss adapters, trace schema v2, pinned real-text traces, oracle/cache sweeps, context/margin bootstrap summaries, 64-token closed loop, resumable envelopes, and a preserved overall STOP/PIVOT result.
 
 - Implement M11 benchmark runners, checksummed run envelopes, strict aggregation, Tables A–F, plot index/regeneration, concrete failure-case and negative-result reports, resumable primary reproduction, and `aggregate-results`/`reproduce`.

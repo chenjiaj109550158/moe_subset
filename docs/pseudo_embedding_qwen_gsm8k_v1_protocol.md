@@ -134,3 +134,20 @@ Final reporting separates reused measured vanilla accuracy, actual closed-loop
 accuracy, exact-token identity, open-loop route replay, simulated transfer/stall,
 measured probe cost, measured generation runtime, and any identity-materialized
 provenance. The pilot decision cannot override the earlier full-scope decisions.
+
+## Execution outcome (2026-08-01)
+
+The native Qwen mechanism smoke passed. On the four frozen development rows,
+previous-route achieved mean route hit 0.609385 and selected mass 0.629428. The
+primary sampled-next-token/default-vector variant achieved 0.533015 and 0.534416;
+the strongest mandatory variant was the zero-contribution ablation at 0.566499
+and 0.575402. All mandatory variants failed both predeclared +0.05 improvements.
+The optional expected-top-8 auxiliary also regressed to 0.533448/0.534745.
+
+The frozen development rule therefore selected no pseudo variant and returned
+`STOP/PIVOT`. Held-out route evaluation and all actual closed-loop generation
+were not run by protocol. Transfer remains simulated, probe cost is measured,
+and task accuracy is not measured for this pilot. Fresh cross-process BF16 replay
+did not meet strict authoritative router-tensor tolerance on any of the four
+development rows; the checksum-verified frozen v17 tensors were used as the
+natural-route scoring targets and the replay drift is retained as provenance.

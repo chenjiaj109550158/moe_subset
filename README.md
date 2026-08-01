@@ -12,18 +12,32 @@ floating-point checkpoints plus a separate native-MXFP4 tier and concluded
 **STOP/PIVOT** under the pinned v2 protocol. Simulated transfer/stall estimates,
 actual model-quality results, and measured adapter memory are labeled separately.
 
-## Active benchmark subset-oracle pivot
+## Completed benchmark subset and focused pseudo pilot
 
 The benchmark-aligned pivot reuses the checksum-valid v17 prompts, tokens, and
 evaluators without rerunning vanilla. Its frozen base config is
 `configs/benchmark/benchmark_subset_oracle_v1.yaml`. After preserving 808 actual
 hard rows from the superseded six-task scope, the explicit 2026-07-31 amendment
 `configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml` limits full
-accuracy execution to all 1,319 GPT-OSS GSM8K rows at `(H=1,B=4)`. Existing
+accuracy execution to all 1,319 GPT-OSS GSM8K rows at `(H=1,B=4)`. It completed
+1,242/1,319 for both vanilla and true hard closed loop, with exact-token
+agreement 1.0 and no paired gains or losses. Because `H=1,B=4` equals native
+top-k, this is a task-scoped `NARROW` natural-route ceiling, not multi-token
+subset evidence or runtime speedup. Existing
 HumanEval/MBPP+/previous-route rows and interruption markers remain provenance
-and are excluded from the scoped aggregate. The next planned, separately frozen
-experiment focuses on Qwen3-30B-A3B/GSM8K `(H=8,B=32)` and pseudo embedding; it
-does not authorize learned predictor training.
+and are excluded from the scoped aggregate.
+
+The separately frozen Qwen3-30B-A3B/GSM8K pseudo-embedding pilot at
+`(H=8,B=32)` is also complete with **STOP/PIVOT**. Native mechanism smoke passed,
+but all four mandatory training-free variants underperformed previous-route on
+the four predeclared development traces. The primary sampled-next-token/default-
+vector variant reached route hit 0.533015 and selected mass 0.534416 versus
+0.609385 and 0.629428 for previous-route. The zero-contribution ablation was the
+best mandatory variant at 0.566499/0.575402, still below previous-route. The
+frozen development gate therefore prohibited held-out route evaluation and
+actual closed-loop accuracy; no task-accuracy or identity-materialized pseudo
+rows were produced. See the [focused report](artifacts/pseudo_embedding_qwen_gsm8k_v1/report.md)
+and [protocol](docs/pseudo_embedding_qwen_gsm8k_v1_protocol.md).
 
 ## Trained-model oracle gate
 

@@ -2,25 +2,52 @@
 
 ## Current milestone
 
-Post-M11 trained-model oracle gate v2 — complete with an overall **STOP/PIVOT** decision. M11 remains complete and unchanged at deterministic tiny-model scope.
+Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 — complete with a scoped
+**STOP/PIVOT** decision. Earlier M11, trained-model, and subset-oracle artifacts
+remain complete and unchanged.
 
-## Active benchmark subset-oracle pivot
+## Qwen/GSM8K pseudo-embedding focused pilot
 
-`benchmark_subset_oracle_v1` was safely stopped on 2026-07-31 when the user
-further reduced the expensive full stage. The frozen revision-2 base config and
-artifact root remain unchanged. The new versioned execution amendment is
-`configs/benchmark/benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2.yaml`; it requires
-all 1,319 actual GPT-OSS GSM8K `(H=1,B=4)` hard-oracle rows and no other full-task
-accuracy rows. At the scope boundary, 536/1,319 GSM8K rows (213,043 tokens) and
-272 hard rows from HumanEval/MBPP+ were checksum-preserved. Seven previous-route
-rows plus all interruption markers remain provenance and are not aggregate
-requirements. Four deterministic shards remain assigned to two physical A100s;
-each GPU advances its own queue with at most one worker, avoiding cross-GPU
-long-tail waits.
+`pseudo_embedding_qwen_gsm8k_v1` froze config fingerprint
+`a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc`, exact
+sample IDs, route/cost gates, and the 16-row accuracy rule before any pseudo
+result. It used pinned Qwen revision `0d7cf239...` in BF16, frozen GSM8K v17
+trajectories, `H=8,B=32`, native top-8 routing, and 25% resident experts.
 
-After hard aggregation, the next separately frozen scope is Qwen3-30B-A3B plus
-GSM8K `(H=8,B=32)` for previous-route versus pseudo-embedding development. No
-learned predictor training is authorized.
+- Native two-row mechanism smoke passed 8-token windows, subset change,
+  evaluator, production cache identity/data/version, RNG, shadow discard,
+  attention/RoPE/router, and information-boundary audits.
+- Four development traces produced 24,576 sample/boundary/layer/method metric
+  rows. Oracle route hit/mass was 0.958714/0.976395; previous-route was
+  0.609385/0.629428; static frequency was 0.339705/0.346426.
+- The primary pseudo variant scored 0.533015/0.534416. The best mandatory
+  ablation, zero expert contribution, scored 0.566499/0.575402. Every mandatory
+  variant missed both required +0.05 improvements over previous-route; the
+  expected-top-8 auxiliary also regressed at 0.533448/0.534745.
+- Development therefore selected no variant and emitted **STOP/PIVOT**. The
+  frozen stop rule marked held-out route evaluation not run and forbade all
+  actual closed-loop accuracy. Measured task-accuracy rows and identity-
+  materialized rows are both zero.
+- Probe time/memory/router/attention costs are measured. Transfer is simulated;
+  stall is not estimated and no speedup is claimed. The reused default-vector
+  artifact contains 444 unobserved layer/expert pairs saved as zero and is not a
+  complete expert prior.
+- Six atomic route samples and their tensor checksums validate; four historical
+  failure markers are retained. Fresh cross-process BF16 replay met strict
+  authoritative router tolerance on 0/4 development rows, so authoritative v17
+  route tensors—not replay drift—were the natural-route scoring target.
+
+Artifacts: `artifacts/pseudo_embedding_qwen_gsm8k_v1/`. No learned predictor was
+trained and no model or dataset was downloaded.
+
+## Completed GPT-OSS/GSM8K hard scope
+
+`benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
+rows. Vanilla and true hard closed loop both scored 1,242/1,319 (94.162244%),
+with exact-token agreement 1.0 and no paired gains/losses. The scoped decision is
+`NARROW`; `H=1,B=4` equals native top-k and does not establish multi-token
+constrained-subset success or runtime speedup. Superseded rows and failure
+markers remain provenance.
 
 ## M11 file-level checklist
 

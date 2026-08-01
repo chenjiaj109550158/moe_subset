@@ -274,10 +274,16 @@ def _decision(
     reasons = []
     if not mechanism.get("mechanism_smoke_pass"):
         reasons.append("mechanism_smoke_failed")
-    if development is None or not development.get("progress_gate_pass"):
-        reasons.append("development_progress_gate_failed_or_not_reached")
-    if held_out is None or not held_out.get("held_out_route_gate_pass"):
-        reasons.append("held_out_strong_candidate_gate_failed_or_not_reached")
+    if development is None:
+        reasons.append("development_progress_gate_not_reached")
+    elif not development.get("progress_gate_pass"):
+        reasons.append("development_progress_gate_failed")
+    if held_out is None:
+        reasons.append("held_out_strong_candidate_gate_not_reached")
+    elif held_out.get("state") == "not_run_by_frozen_stop_rule":
+        reasons.append("held_out_route_not_run_by_frozen_development_stop_rule")
+    elif not held_out.get("held_out_route_gate_pass"):
+        reasons.append("held_out_strong_candidate_gate_failed")
     if actual is not None:
         policies = cast(dict[str, dict[str, Any]], actual["policies"])
         failed = [key for key, row in policies.items() if not row["accuracy_gate_pass"]]
@@ -352,6 +358,55 @@ def _report_markdown(
                 f"{float(row['estimated_transfer_reduction']):.6f}."
             )
         lines.append("")
+    development_path = output / "development_selection.json"
+    bootstrap_path = output / "route" / "development" / "paired_bootstrap.json"
+    if development_path.is_file():
+        development = _json(development_path)
+        bootstrap = {
+            str(row["left"]): row for row in cast(list[dict[str, Any]], _json(bootstrap_path))
+        }
+        lines.extend(
+            (
+                "## Frozen development gate",
+                "",
+                f"Progress gate pass: `{bool(development['progress_gate_pass'])}`; selected "
+                f"variant: `{development['selected_variant']}`. Ranking used route and measured "
+                "cost only, never GSM8K correctness or answers.",
+                "",
+            )
+        )
+        for candidate in cast(list[dict[str, Any]], development["candidates"]):
+            variant = str(candidate["variant"])
+            interval = bootstrap[variant]
+            failed = [
+                key
+                for key, value in cast(dict[str, bool], candidate["checks"]).items()
+                if not value
+            ]
+            lines.append(
+                f"- `{variant}`: hit delta "
+                f"{float(candidate['route_hit_improvement_over_previous']):+.6f} "
+                f"(paired 95% CI {float(interval['route_hit_ci95'][0]):+.6f} to "
+                f"{float(interval['route_hit_ci95'][1]):+.6f}); mass delta "
+                f"{float(candidate['selected_mass_improvement_over_previous']):+.6f} "
+                f"(paired 95% CI {float(interval['selected_mass_ci95'][0]):+.6f} to "
+                f"{float(interval['selected_mass_ci95'][1]):+.6f}); oracle-gap recovery "
+                f"{float(candidate['development_route_hit_gap_recovery']):+.6f}/"
+                f"{float(candidate['development_selected_mass_gap_recovery']):+.6f}; failed "
+                f"checks: `{','.join(failed)}`."
+            )
+        lines.append("")
+    cost_path = output / "route" / "development" / "probe_cost.json"
+    if cost_path.is_file():
+        lines.extend(("## Measured probe cost", ""))
+        for variant, row in sorted(cast(dict[str, dict[str, Any]], _json(cost_path)).items()):
+            lines.append(
+                f"- `{variant}`: {float(row['mean_probe_latency_seconds_measured']):.6f} "
+                f"s/boundary mean, {int(row['max_temporary_cuda_bytes_measured'])} temporary "
+                f"CUDA bytes peak, {int(row['router_calls'])} router calls, "
+                f"{int(row['attention_queries'])} attention queries."
+            )
+        lines.append("")
     expected_path = output / "expected_top_m_ablation.json"
     if expected_path.is_file():
         expected = _json(expected_path)
@@ -364,6 +419,9 @@ def _report_markdown(
                 "",
                 f"Measured mean probe latency: "
                 f"{float(expected['cost']['mean_probe_latency_seconds_measured']):.6f} s/boundary.",
+                f"Relative to previous route: hit "
+                f"{float(expected['route_hit_improvement_over_previous']):+.6f}, mass "
+                f"{float(expected['selected_mass_improvement_over_previous']):+.6f}.",
                 "",
             )
         )
@@ -384,6 +442,17 @@ def _report_markdown(
                 f"{float(row['total_runtime_seconds_measured']):.2f} s."
             )
         lines.append("")
+    else:
+        lines.extend(
+            (
+                "## Actual closed-loop generation",
+                "",
+                "Not run. The frozen development progress gate failed, so held-out route "
+                "selection and all actual accuracy generation were forbidden by protocol. "
+                "Measured task-accuracy rows: 0; identity-materialized rows: 0.",
+                "",
+            )
+        )
     lines.extend(
         (
             "## Measurement boundary",
@@ -394,9 +463,76 @@ def _report_markdown(
             "latency model. The default-vector artifact has 444 unobserved layer/expert pairs "
             "stored as zero and is not a complete expert prior.",
             "",
+            "The four development rows use checksum-verified authoritative v17 route tensors "
+            "for natural-route scoring. Fresh cross-process BF16 teacher-forced replay matched "
+            "the strict router tolerance on 0/4 rows; that drift is recorded but is not used as "
+            "the scoring target. Same-process mechanism smoke is the native cache/RNG/attention/"
+            "RoPE/router invariant evidence.",
+            "",
         )
     )
     return "\n".join(lines)
+
+
+def _provenance_audit(
+    suite: PseudoEmbeddingSuiteConfig,
+    manifest: SampleManifest,
+    output: Path,
+) -> dict[str, object]:
+    development = []
+    for reference in manifest.partitions["development"].rows:
+        json_path, tensor_path = _sample_paths(output, "development", reference.row_index)
+        row = _load_valid_sample(suite, json_path, tensor_path)
+        if row is None:
+            raise ValueError("development provenance audit is incomplete")
+        development.append(cast(dict[str, Any], row["parity"]))
+    held_out = _json(output / "held_out_route_gate.json")
+    actual_rows = sum(
+        1
+        for wave in (1, 2)
+        for reference in manifest.partitions[f"closed_loop_wave_{wave}"].rows
+        for policy in suite.policies
+        if closed_loop_sample_path(output, wave, reference.row_index, policy).is_file()
+    )
+    result = {
+        "schema_version": 1,
+        "state": "complete",
+        "suite_id": suite.suite_id,
+        "config_fingerprint": suite.fingerprint(),
+        "model_id": suite.model.model_id,
+        "model_revision": suite.model.revision,
+        "precision": suite.model.precision,
+        "dataset_revision": suite.dataset.revision,
+        "operating_point": {"horizon": 8, "budget": 32, "resident_fraction": 0.25},
+        "development_authoritative_trace_rows": len(development),
+        "development_authoritative_tensors_used_for_scoring": all(
+            bool(row["authoritative_route_tensors_used_for_scoring"]) for row in development
+        ),
+        "development_cross_process_replay_within_tolerance_rows": sum(
+            bool(row["current_replay_within_authoritative_tolerance"]) for row in development
+        ),
+        "development_current_replay_drift_is_scoring_input": False,
+        "held_out_route_state": held_out["state"],
+        "held_out_route_not_run_reason": held_out.get("reason"),
+        "actual_hard_closed_loop_rows": actual_rows,
+        "identity_materialized_rows": 0,
+        "label_or_correctness_used_for_variant_selection": False,
+        "future_v17_tokens_used_by_probe": False,
+        "route_replay_kind": "open_loop_teacher_forced",
+        "expert_transfer_kind": "simulated",
+        "stall_kind": "not_estimated_no_frozen_focused_v1_latency_model",
+        "probe_runtime_kind": "measured",
+        "task_accuracy_kind": "not_measured_stop_rule",
+        "network_downloads": False,
+        "default_vectors": {
+            "definition": suite.default_vectors.definition,
+            "fingerprint": suite.default_vectors.artifact_fingerprint,
+            "unobserved_layer_expert_pairs_saved_as_zero": 444,
+            "complete_expert_prior": False,
+        },
+    }
+    write_json_atomic(output / "provenance_audit.json", result)
+    return result
 
 
 def _write_markdown_atomic(path: Path, value: str) -> None:
@@ -505,6 +641,7 @@ def finalize(
     decision = _decision(suite, output)
     write_json_atomic(output / "decision.json", decision)
     _write_markdown_atomic(output / "report.md", _report_markdown(suite, output, decision))
+    _provenance_audit(suite, manifest, output)
     resume = _resume_audit(suite, manifest, output)
     artifact_manifest = build_artifact_manifest(suite, output)
     status = {

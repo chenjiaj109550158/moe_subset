@@ -276,16 +276,20 @@ def _development_gate(
 ) -> dict[str, object]:
     previous = aggregates["previous_route_commitment"]
     static = aggregates["static_frequency"]
+    oracle = aggregates["hard_oracle_commitment"]
+    route_gap = float(oracle["mean_route_hit"]) - float(previous["mean_route_hit"])
+    mass_gap = float(oracle["mean_selected_mass"]) - float(previous["mean_selected_mass"])
     candidates = []
     for variant in suite.variants:
         row = aggregates[variant.key]
+        route_improvement = float(row["mean_route_hit"]) - float(previous["mean_route_hit"])
+        mass_improvement = float(row["mean_selected_mass"]) - float(previous["mean_selected_mass"])
         checks = {
             "route_hit_improvement_pass": (
-                float(row["mean_route_hit"]) - float(previous["mean_route_hit"])
-                >= suite.progress_gate.minimum_route_hit_improvement_over_previous
+                route_improvement >= suite.progress_gate.minimum_route_hit_improvement_over_previous
             ),
             "selected_mass_improvement_pass": (
-                float(row["mean_selected_mass"]) - float(previous["mean_selected_mass"])
+                mass_improvement
                 >= suite.progress_gate.minimum_selected_mass_improvement_over_previous
             ),
             "not_worse_than_static_route_hit_pass": float(row["mean_route_hit"])
@@ -304,6 +308,16 @@ def _development_gate(
             {
                 "variant": variant.key,
                 "metrics": row,
+                "route_hit_improvement_over_previous": route_improvement,
+                "selected_mass_improvement_over_previous": mass_improvement,
+                "development_oracle_minus_previous_route_hit_gap": route_gap,
+                "development_oracle_minus_previous_selected_mass_gap": mass_gap,
+                "development_route_hit_gap_recovery": (
+                    route_improvement / route_gap if route_gap > 0 else 0.0
+                ),
+                "development_selected_mass_gap_recovery": (
+                    mass_improvement / mass_gap if mass_gap > 0 else 0.0
+                ),
                 "checks": checks,
                 "eligible": all(checks.values()),
             }
@@ -462,6 +476,16 @@ def aggregate_route_partition(
     write_json_atomic(root / "cache_rng_audit.json", audit)
     expected_key = "expected_top8_independent_default_topk"
     if expected_key in aggregates:
+        previous = aggregates["previous_route_commitment"]
+        oracle = aggregates["hard_oracle_commitment"]
+        route_improvement = float(aggregates[expected_key]["mean_route_hit"]) - float(
+            previous["mean_route_hit"]
+        )
+        mass_improvement = float(aggregates[expected_key]["mean_selected_mass"]) - float(
+            previous["mean_selected_mass"]
+        )
+        route_gap = float(oracle["mean_route_hit"]) - float(previous["mean_route_hit"])
+        mass_gap = float(oracle["mean_selected_mass"]) - float(previous["mean_selected_mass"])
         write_json_atomic(
             output / "expected_top_m_ablation.json",
             {
@@ -474,6 +498,14 @@ def aggregate_route_partition(
                 "metrics": aggregates[expected_key],
                 "cost": costs[expected_key],
                 "selection_role": "auxiliary_not_in_frozen_mandatory_variant_ranking",
+                "route_hit_improvement_over_previous": route_improvement,
+                "selected_mass_improvement_over_previous": mass_improvement,
+                "development_route_hit_gap_recovery": (
+                    route_improvement / route_gap if route_gap > 0 else 0.0
+                ),
+                "development_selected_mass_gap_recovery": (
+                    mass_improvement / mass_gap if mass_gap > 0 else 0.0
+                ),
                 "incompatible_proxy": False,
             },
         )
