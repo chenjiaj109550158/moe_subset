@@ -604,3 +604,55 @@ hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 conclusions are unchange
 **Migration required:** Any follow-up requires a new predeclared hypothesis and
 scope. Preserve this terminal artifact root and do not resume held-out or actual
 accuracy under v1.
+
+## D-20260801-037 — Keep calibration-free prompt routing at STOP/PIVOT
+
+**Status:** accepted
+**Context:** After D-20260801-036 stopped the original pseudo variants, the user
+authorized a calibration-free mechanism analysis without changing the focused
+model, task, `H=8,B=32` point, or terminal v1 decision. Tensor interventions and
+native two-row smokes found that repeated sampled content changes too slowly,
+recent token IDs do not help, exact future token contents have diagnostic
+headroom, and causal propagation with zero MoE residual is harmful. Capturing
+same-request prompt routes fixed the first-window static fallback. The four-row
+development protocol selected one equal sampled-pseudo/history candidate at
+0.664737 route hit and 0.688248 selected mass.
+
+The separately frozen eight-row held-out protocol used config SHA-256
+`1f6f5ab8372aa6f63796cfda49601745bf2736490ee21c8807fd9657b9a996ef`.
+It completed 393,216 route slots. The candidate achieved 0.658353 route hit,
+0.680584 selected mass, and 0.439423 simulated transfer reduction versus
+previous route 0.617671/0.637396. Gains were +0.040682/+0.043188 with paired 95%
+intervals [0.036001, 0.046422] and [0.038634, 0.049149]. Oracle-gap recovery was
+0.116775/0.125752. Both +0.05 improvements, both 25% gap recoveries, and both
+absolute references failed; transfer and every cache/RNG/information audit
+passed.
+
+**Decision:** Retain **STOP/PIVOT** and run no task accuracy or actual hard
+closed-loop generation. Preserve the completed eight-row artifact root and its
+manifest SHA-256
+`3f1b509d7d012e8266ee6a28e1863efb44f00a946b29646a484c859a5ecd08db`.
+Do not treat prompt-route gain as pseudo-embedding gain: roughly half of the
+observed improvement comes from replacing boundary-zero static frequency with
+same-request prompt routes. Keep post-hoc horizon schedules diagnostic only.
+
+**Alternatives considered:** Promote the development pass directly to accuracy,
+accept positive-but-subthreshold held-out intervals, tune an anchor cutoff on
+held-out rows, call prompt-history improvement a pseudo rollout success, use
+future-token or default-vector values, or expand the row set.
+
+**Consequences:** No learned/fitted value, offline expert prior, default-vector
+value, route-transition table, future true token, answer, correctness, or
+accuracy entered a deployable candidate. The result is open-loop route evidence
+with measured probe/replay cost and simulated transfer, not task accuracy,
+closed-loop quality, or speedup. A post-hoc three-anchor/history formula reached
+0.664205/0.687282 but is not validation and still misses the gate.
+
+**Experiments affected:** The calibration-free tensor, content-smoke,
+prompt-route smoke/development, and held-out analysis roots only. D-20260801-036,
+GPT hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 remain unchanged.
+
+**Migration required:** A future attempt should first test current-request
+online MoE-residual/state reuse and autoregressive shadow contents under a new
+committed protocol. New rows or expanded sample scope require explicit human
+authorization. No actual accuracy is permitted from this failed gate.

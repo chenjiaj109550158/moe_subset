@@ -52,3 +52,13 @@ layer-scoped expert IDs, native routing normalization, and exact prompt/sample
 identity. Prompt-route sample tensors and reports are written atomically with
 checksums and resume validation. Measured capture/model runtime is reported;
 transfer remains simulated and no speedup is claimed.
+
+## Completed result
+
+The repeated-zero control scored 0.524495 route hit and 0.534683 selected mass.
+Prompt/recent history alone reached 0.685628/0.716782. Adding the known sampled
+anchor reached 0.702393/0.733202, while reserving an anchor-1 top-8 core reached
+0.700277/0.733516; their route/mass tradeoff was too close to call robustly on
+two rows. All calibration-free prompt candidates passed the smoke progress
+references and audits, authorizing only the separately frozen four-row
+development comparison.

@@ -33,3 +33,13 @@ leave-one-out, boundary, anchor, and eight-layer-block results expose instabilit
 Passing produces only `candidate_for_new_frozen_held_out_route_protocol`.
 Held-out route replay would require another committed protocol. It does not
 authorize accuracy or revive the focused-v1 terminal `STOP/PIVOT` decision.
+
+## Completed result
+
+The equal sampled-pseudo/history candidate ranked first at 0.664737 route hit,
+0.688248 selected mass, and 0.445071 simulated transfer reduction. Against the
+frozen previous-route references, its gains were +0.055351/+0.058820, so it was
+the only candidate to pass both development +0.05 references. All four samples
+had positive gains, although one leave-one-out route gain was 0.048342. This
+instability is why the result authorized only the separately frozen eight-row
+held-out route protocol, not accuracy.

@@ -131,3 +131,13 @@ tensor-only execution:
 Before any deferred item runs, its exact rows, information regime, variants,
 cost cap, and stop rule must be committed. Diagnostic future-token or natural-
 state oracles remain ineligible for deployment claims.
+
+## Completion note
+
+The tensor analysis, native content smoke, prompt-route smoke, four-row
+development, and separately frozen eight-row held-out route gate are complete.
+The held-out candidate improved previous route consistently but failed every
+route/selected-mass strong-candidate threshold, so the final result remains
+`STOP/PIVOT` and no accuracy ran. The integrated findings, measured costs,
+post-hoc horizon diagnostic, and ordered next calibration-free experiments are
+recorded in `pseudo_embedding_calibration_free_synthesis_v1.md`.

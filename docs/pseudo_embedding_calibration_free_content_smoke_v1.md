@@ -58,3 +58,17 @@ must not use future tokens. This two-row mechanism result is hypothesis evidence
 only; even a positive result requires a new frozen four-row development and
 disjoint held-out protocol. No task accuracy, closed-loop hard generation, or
 speedup claim is permitted here.
+
+## Completed result
+
+Recent realized token contents did not improve the repeated sampled-token
+control: independent route hit/mass changed by -0.00513/-0.00138. Causal
+zero-residual propagation further changed them by -0.03695/-0.04259. The
+non-deployable exact-future-content independent oracle improved the control by
++0.04712/+0.05929, establishing content headroom while also showing that recent
+token IDs are not an adequate proxy. Adding online route history to recent
+content improved that weak content variant by +0.07983/+0.08774.
+
+All cache/RNG/shadow-lifetime audits passed. The result pivoted the next
+mechanism test from recent embeddings to same-request prompt/generated route
+history; it did not authorize accuracy.

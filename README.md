@@ -39,6 +39,19 @@ actual closed-loop accuracy; no task-accuracy or identity-materialized pseudo
 rows were produced. See the [focused report](artifacts/pseudo_embedding_qwen_gsm8k_v1/report.md)
 and [protocol](docs/pseudo_embedding_qwen_gsm8k_v1_protocol.md).
 
+A separately versioned, strictly calibration-free follow-up then analyzed the
+failure without relabeling v1. Native interventions found that repeated sampled
+content changes much less than natural routes, recent token IDs do not repair
+the hidden direction, and causal rollout with zero MoE residual is harmful.
+Same-request prompt/generated route history plus independent sampled-token
+pseudo scores passed four-row development, but failed the committed eight-row
+held-out gate: route hit/selected mass were 0.658353/0.680584 versus
+0.617671/0.637396 for previous route, only +0.040682/+0.043188. Oracle-gap
+recovery was 11.7%/12.6%, below 25%. The result is **STOP/PIVOT**; no accuracy or
+actual closed-loop rows were run. See the
+[calibration-free synthesis](docs/pseudo_embedding_calibration_free_synthesis_v1.md)
+and [held-out report](artifacts/pseudo_embedding_calibration_free_prompt_route_held_out_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

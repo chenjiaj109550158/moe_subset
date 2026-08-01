@@ -36,3 +36,18 @@ intervals. Failure is `STOP/PIVOT`. Passing only permits a separately frozen
 closed-loop pilot; it is not task accuracy, actual hard generation, or a speedup
 claim. Exact rows and all constants are fixed in
 `configs/analysis/pseudo_embedding_calibration_free_prompt_route_held_out_v1.yaml`.
+
+## Completed result
+
+All eight atomic rows completed and the checksum validator accepted 31
+artifacts. The selected candidate achieved route hit 0.658353, selected mass
+0.680584, and simulated transfer reduction 0.439423. Previous route achieved
+0.617671/0.637396, yielding +0.040682/+0.043188; paired 95% sample-bootstrap
+intervals were [0.036001, 0.046422] and [0.038634, 0.049149]. Oracle-gap recovery
+was only 0.116775/0.125752. Thus both absolute metrics, both +0.05 improvements,
+and both 25% gap-recovery checks failed; transfer and cache/RNG/information
+checks passed.
+
+The frozen decision is `STOP/PIVOT`. No task accuracy or actual hard closed-loop
+generation was run. See `pseudo_embedding_calibration_free_synthesis_v1.md` for
+the router-sensitivity analysis and explicitly post-hoc next hypotheses.

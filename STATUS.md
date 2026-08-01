@@ -2,8 +2,9 @@
 
 ## Current milestone
 
-Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 — complete with a scoped
-**STOP/PIVOT** decision. Earlier M11, trained-model, and subset-oracle artifacts
+Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 and its separately
+versioned calibration-free mechanism analysis — complete with scoped
+**STOP/PIVOT** decisions. Earlier M11, trained-model, and subset-oracle artifacts
 remain complete and unchanged.
 
 ## Qwen/GSM8K pseudo-embedding focused pilot
@@ -39,6 +40,45 @@ trajectories, `H=8,B=32`, native top-8 routing, and 25% resident experts.
 
 Artifacts: `artifacts/pseudo_embedding_qwen_gsm8k_v1/`. No learned predictor was
 trained and no model or dataset was downloaded.
+
+## Calibration-free pseudo-embedding mechanism analysis
+
+The follow-up preserved the terminal v1 decision and used no learned/fitted
+value, offline expert prior, route-transition table, default-vector value,
+future true token in a candidate, answer, correctness, or accuracy. The full
+plan and synthesis are in
+`docs/pseudo_embedding_calibration_free_synthesis_v1.md`.
+
+- Tensor and native-Qwen interventions show that the router is strongly
+  token/hidden-direction sensitive. Repeated pseudo content changes too little
+  across positions; recent token IDs do not help; a zero-residual causal shadow
+  makes routing worse. Exact future contents have diagnostic headroom, but are
+  forbidden for deployment.
+- Same-request prompt routes solved the first-window static fallback. Four-row
+  development selected the equal sampled-pseudo/history utility at
+  0.664737/0.688248, with +0.055351/+0.058820 over previous route.
+- A separately committed eight-row held-out route run completed 8/8 samples and
+  393,216 slots. The candidate scored 0.658353 route hit, 0.680584 selected
+  mass, and 0.439423 simulated transfer reduction versus previous-route
+  0.617671/0.637396.
+- Gains were positive on all eight samples, but only +0.040682/+0.043188. The
+  paired 95% intervals stayed below +0.05, oracle-gap recovery was only
+  0.116775/0.125752, and both absolute references failed. The strong-candidate
+  gate therefore emitted **STOP/PIVOT** and accuracy remained forbidden.
+- All 128 probe calls, eight prompt captures, cache/RNG/shadow/information
+  audits, atomic row pairs, checksums, resume audit, and 31-artifact manifest
+  validate. Probe/runtime is measured; transfer is simulated; actual hard
+  generation, task accuracy, exact-token identity, and speedup were not
+  measured.
+- Post-hoc horizon damping found a three-anchor/history hypothesis at
+  0.664205/0.687282, still below the frozen gate. Because it was observed after
+  held-out results, it is not validation and cannot be promoted without a new
+  disjoint protocol.
+
+Held-out artifacts:
+`artifacts/pseudo_embedding_calibration_free_prompt_route_held_out_v1/`.
+Artifact-manifest SHA-256:
+`3f1b509d7d012e8266ee6a28e1863efb44f00a946b29646a484c859a5ecd08db`.
 
 ## Completed GPT-OSS/GSM8K hard scope
 
@@ -128,15 +168,14 @@ closed-loop evaluation, and must not relabel this negative result.
 Focused-pilot final checks recorded 2026-08-01 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 161 files already formatted.
+- `ruff format --check .`: PASS; 183 files already formatted.
 - `ruff check .`: PASS.
-- `mypy src/pseudoroute`: PASS; no issues in 95 source files.
-- Focused pseudo/config/report/runner/closed-loop/shadow/subset tests: PASS; 27
-  passed.
-- `python -m pytest -ra`: PASS; 151 passed, 3 expected skips in 15.15s.
-- Focused artifact validation: PASS; 44 checksummed artifacts, six atomic route
-  samples, zero actual rows, four preserved failure markers, and terminal
-  `complete/report_v1`.
+- `mypy src/pseudoroute`: PASS; no issues in 101 source files.
+- Focused held-out/prompt/development/content/Qwen/subset tests: PASS; 26 passed.
+- `python -m pytest -ra`: PASS; 171 passed, 3 expected skips in 15.82s.
+- Five calibration-free artifact validators: PASS; manifest counts
+  11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
+  terminal `complete/report_v1` `STOP/PIVOT`.
 
 Retained 2026-07-27 acceptance records below were not rerun in this focused
 session:
@@ -171,11 +210,13 @@ None.
 
 ## Next exact tasks
 
-The focused pseudo-embedding v1 stage is terminal at **STOP/PIVOT**. Preserve its
-negative artifacts and do not resume held-out route or actual accuracy. No
-predictor training, expanded dataset scope, default-vector recalibration, or
-production runtime work is authorized. Any follow-up requires a new, scoped,
-predeclared research question.
+The focused pseudo-embedding v1 stage and calibration-free held-out follow-up
+are terminal at **STOP/PIVOT**. Preserve their negative artifacts and do not run
+actual accuracy. No predictor training, expanded dataset scope, default-vector
+recalibration, or production runtime work is authorized. The next defensible
+hypothesis is online current-request MoE-residual/state reuse plus autoregressive
+shadow content and predeclared horizon damping. Any execution needs a new,
+scoped protocol; new sample rows require explicit human authorization.
 
 ## Decisions needing human review
 

@@ -113,7 +113,7 @@ The immutable config and resolved sample manifest are
 `configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json`. Their config
 fingerprint and manifest SHA-256 are respectively
 `a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc` and
-`21da28e5474d73a6631530f4b7ca70bb41d141bd41d9433b3584741755b82a71`.
+`21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93`.
 The artifact root is `artifacts/pseudo_embedding_qwen_gsm8k_v1`.
 
 Run or resume only from the pinned local caches:
@@ -153,3 +153,32 @@ perplexity, route divergence under hard generation, and generation runtime are
 not measured because actual generation was forbidden. Identity-materialized rows
 are zero. The 444 unobserved default-vector pairs remain zero and the artifact is
 not a complete expert prior.
+
+## Calibration-free pseudo-embedding follow-up
+
+The follow-up protocols were committed before their corresponding model runs.
+They reuse only pinned local caches and fixed v17 rows. The final held-out route
+artifact is validated with:
+
+```bash
+python -m pseudoroute.benchmark.pseudo_embedding_prompt_route_held_out validate
+```
+
+Its immutable config is
+`configs/analysis/pseudo_embedding_calibration_free_prompt_route_held_out_v1.yaml`
+with SHA-256
+`1f6f5ab8372aa6f63796cfda49601745bf2736490ee21c8807fd9657b9a996ef`.
+It contains eight checksummed JSON+safetensors pairs, 31 manifest artifacts,
+10,000 paired sample-bootstrap draws, cache/RNG/information audits, measured
+probe and replay cost, and a `STOP/PIVOT` decision. The authoritative manifest
+SHA-256 is
+`3f1b509d7d012e8266ee6a28e1863efb44f00a946b29646a484c859a5ecd08db`.
+
+The runner uses same-request native prompt routes only at boundary zero and the
+preceding realized route window thereafter. Its candidate uses a synthetic zero
+probe interface but no default-vector value or offline route statistic. Static
+frequency reads `count` only as a reference; `mean` is never accessed. Route
+scoring is teacher-forced open-loop on saved v17 trajectories, transfer is
+simulated, and probe/replay cost is measured. Task accuracy, actual hard
+closed-loop generation, exact-token identity, NLL/perplexity, and speedup are not
+measured. Do not run an accuracy stage after the failed gate.
