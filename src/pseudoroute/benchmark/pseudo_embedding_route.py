@@ -19,7 +19,6 @@ from pseudoroute.benchmark.config import (
     load_accuracy_suite_config,
 )
 from pseudoroute.benchmark.prefetch import (
-    NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
     SubsetRouteRecord,
     load_default_vectors,
@@ -40,6 +39,7 @@ from pseudoroute.benchmark.runner import (
     _load_model,
     _read_jsonl,
 )
+from pseudoroute.benchmark.subset_closed_loop import _forward_capture
 from pseudoroute.benchmark.subset_trace import (
     sha256_file,
     sha256_json,
@@ -329,8 +329,8 @@ def run_route_sample(
     resident: dict[str, dict[int, tuple[int, ...]]] = {}
     previous_window: list[tuple[SubsetRouteRecord, ...]] | None = None
     expert_bytes = physical_expert_bytes(ops, 0)
-    with NativeRouteCaptureContext(ops) as execution:
-        for boundary in range(0, route_tokens, suite.operating_point.horizon):
+    for boundary in range(0, route_tokens, suite.operating_point.horizon):
+        with torch.inference_mode():
             end = min(boundary + suite.operating_point.horizon, route_tokens)
             boundaries.append(boundary)
             results = []
@@ -357,19 +357,13 @@ def run_route_sample(
                     dtype=torch.long,
                     device=inputs["input_ids"].device,
                 )
-                with torch.inference_mode():
-                    output = cast(
-                        Any,
-                        model(
-                            input_ids=token,
-                            past_key_values=cache,
-                            use_cache=True,
-                            return_dict=True,
-                        ),
-                    )
-                if output.past_key_values is not cache:
-                    raise RuntimeError("Qwen route replay replaced the production cache")
-                records = execution.drain()
+                output, records = _forward_capture(
+                    model,
+                    ops,
+                    token,
+                    cache,
+                    policy="natural",
+                )
                 if tuple(record.layer for record in records) != tuple(range(ops.num_layers)):
                     raise RuntimeError("Qwen route replay missed a routed layer")
                 window_steps.append(records)
