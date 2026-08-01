@@ -1,0 +1,171 @@
+schema_version: 1
+protocol_revision: 1
+suite_id: pseudo_embedding_qwen_gsm8k_v1
+artifact_root: artifacts/pseudo_embedding_qwen_gsm8k_v1
+protocol_document: docs/pseudo_embedding_qwen_gsm8k_v1_protocol.md
+source_accuracy:
+  suite_id: speculating_experts_accuracy_v17
+  config: configs/benchmark/speculating_experts_accuracy_v17.yaml
+  artifact_root: artifacts/speculating_experts_accuracy_v17
+  config_fingerprint: 896744077611beaf7692ee2c9ac94fcc5326268f86e8b5ff297960a0da152ff9
+  required_pipeline_state: complete
+  required_pipeline_stage: oracle_v17
+model:
+  key: qwen3_30b_a3b
+  architecture: qwen3_moe
+  model_id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+dataset:
+  key: gsm8k
+  dataset_id: openai/gsm8k
+  config: main
+  split: test
+  revision: 740312add88f781978c0658806c59bc2815b9866
+  frozen_rows: 1319
+  original_v17_max_new_tokens: 512
+  prompt_and_parser: exact_v17_reuse
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  resident_fraction: 0.25
+  routed_experts_per_layer: 128
+  native_top_k: 8
+default_vectors:
+  root: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/default_vectors
+  tensor_sha256: 2a315f6f3dc65ff62b656d0eb92b6781267e5dd13cbcaf4c09a5b5806060fd30
+  manifest_sha256: 3c5e645666e12eb96e6d693ca8251d81a8a04200cb5a2abab043226e32077f87
+  artifact_fingerprint: baae202908e3a2d3f11f980eb99c52e6815b51a7386f47654dd1e25fcbdab1fd
+  definition: mean_unweighted_selected_expert_output
+  unobserved_layer_expert_pairs: 444
+  unobserved_value: zero_vector
+sample_manifest:
+  path: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json
+  sha256: 21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93
+information_boundary:
+  primary_regime: online_post_sample
+  deployable_input: sampled_next_token_and_current_policy_production_cache_only
+  forbidden_inputs: [future_true_tokens, vanilla_future_trajectory, benchmark_answer, correctness]
+  production_cache: read_only_or_copy_on_write
+  production_hidden_state_mutation: forbidden
+  production_rng_mutation: forbidden
+  shadow_cache_lifetime: discard_after_each_boundary
+variants:
+  - key: sampled_next_independent_default_topk
+    content: sampled_next_token
+    attention: independent
+    expert_contribution: default_vector_selected_topk_mixture
+    role: primary
+  - key: current_token_independent_default_topk
+    content: current_token
+    attention: independent
+    expert_contribution: default_vector_selected_topk_mixture
+    role: content_baseline
+  - key: sampled_next_causal_default_topk
+    content: sampled_next_token
+    attention: causal
+    expert_contribution: default_vector_selected_topk_mixture
+    role: causal_ablation
+  - key: sampled_next_independent_zero
+    content: sampled_next_token
+    attention: independent
+    expert_contribution: zero
+    role: expert_contribution_ablation
+optional_expected_embedding:
+  status: deferred_unless_measured_cost_is_reasonable
+  top_m: 8
+  required_blocker_artifact_if_not_run: expected_top_m_blocker.json
+probe:
+  anchors: [1, 2, 3, 4, 5, 6, 7, 8]
+  position_rule: exact_future_cache_positions_with_native_qwen_rope
+  attention_semantics: native_qwen_attention
+  router_semantics: exact_native_qwen_gate
+  utility: sum_full_pre_topk_probabilities_over_anchors
+  contribution_mixture: native_topk_ids_and_normalized_weights
+  subset_selection: deterministic_exact_top32_per_layer
+  tie_break: ascending_layer_scoped_expert_id
+policies:
+  - hard_oracle_commitment
+  - previous_route_commitment
+  - pseudo_embedding_commitment
+route_evaluation:
+  development_source: existing_authoritative_four_trace_rows
+  held_out_source: teacher_forced_replay_of_saved_v17_token_trajectories_only
+  max_decode_tokens_per_sample: 128
+  boundary_rule: non_overlapping_start_zero_h8
+  bootstrap_samples: 10000
+  bootstrap_seed: 20260801
+  bootstrap_unit: sample
+  stratify_by: [layer, context_bucket, router_margin_bucket]
+  context_buckets: [0-31, 32-63, 64-127]
+  router_margin_buckets: held_out_per_layer_tertiles
+  worst_case_count: 100
+progress_gate:
+  ranking_uses_task_accuracy: false
+  minimum_route_hit_improvement_over_previous: 0.05
+  minimum_selected_mass_improvement_over_previous: 0.05
+  require_not_worse_than_static_frequency: true
+  required_resident_fraction: 0.25
+  minimum_estimated_transfer_reduction: 0.30
+  require_cache_rng_information_tests: true
+  require_measured_probe_costs: true
+  variant_ordering:
+    - highest_mean_selected_mass
+    - highest_mean_route_hit
+    - lowest_probe_latency
+    - lexical_variant_key
+held_out_strong_candidate_gate:
+  minimum_oracle_minus_previous_gap_recovery: 0.25
+  reference_minimum_mean_route_hit: 0.6967
+  reference_minimum_mean_selected_mass: 0.7162
+closed_loop:
+  required_only_after_progress_gate: true
+  sample_count: 16
+  first_wave_samples: 8
+  policies_share_exact_rows_prompt_decode_parser_and_caps: true
+  actual_generation: true
+  identity_materialization: forbidden
+  hard_mask_semantics: mask_outside_subset_before_native_topk_and_native_normalization
+  oracle_future: natural_lookahead_from_current_policy_context
+  previous_history: previous_realized_window_pre_mask_natural_routes
+  previous_first_window: frozen_static_frequency
+  pseudo_context: current_policy_context_only
+  atomic_unit: one_sample_policy_row
+  checksum_resume: true
+  maximum_workers_per_physical_gpu: 1
+  eta_checkpoint_after_first_wave: true
+  ask_before_second_wave_if_projected_total_hours_exceeds: 24.0
+accuracy_gate:
+  frozen_before_generation: true
+  samples: 16
+  vanilla_successes: 16
+  vanilla_accuracy: 1.0
+  allowed_drop_formula: max_1_ceil_2_sqrt_n_p_one_minus_p
+  allowed_drop_questions: 1
+  minimum_policy_successes: 15
+  paired_ci: paired_sample_bootstrap_percentile_95
+  bootstrap_samples: 10000
+  bootstrap_seed: 20260801
+cost_reporting:
+  require_measured_latency: true
+  require_peak_temporary_cuda_memory: true
+  require_router_calls: true
+  require_attention_queries: true
+  require_cpu_gpu_sync_count: true
+  transfer_and_stall: simulated_not_runtime
+decision:
+  labels: [GO, NARROW, STOP/PIVOT]
+  maximum_positive_label: NARROW
+  progress_gate_failure: STOP/PIVOT
+  no_full_dataset_claim: true
+  no_runtime_speedup_claim: true
+  learned_predictor_training: forbidden
