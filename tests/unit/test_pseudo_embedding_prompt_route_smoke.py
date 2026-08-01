@@ -9,6 +9,7 @@ from pseudoroute.benchmark.pseudo_embedding_prompt_route_smoke import (
     KNOWN_HISTORY,
     PROMPT_PRIOR,
     candidate_subsets,
+    native_weight_normalization_audit,
 )
 
 
@@ -55,3 +56,13 @@ def test_prompt_route_tie_break_uses_ascending_expert_id() -> None:
         experts=8,
     )
     assert result[PROMPT_PRIOR] == (0, 1, 2, 3)
+
+
+def test_native_weight_normalization_uses_bfloat16_precision_bound() -> None:
+    compatible = torch.tensor([[0.5009765625, 0.5009765625]])
+    error, tolerance = native_weight_normalization_audit(compatible, torch.bfloat16)
+    assert error == 0.001953125
+    assert tolerance == torch.finfo(torch.bfloat16).eps
+    incompatible = torch.tensor([[0.51, 0.51]])
+    error, tolerance = native_weight_normalization_audit(incompatible, torch.bfloat16)
+    assert error > tolerance

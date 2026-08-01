@@ -142,6 +142,18 @@ def candidate_subsets(
     }
 
 
+def native_weight_normalization_audit(
+    weights: Tensor,
+    native_dtype: torch.dtype,
+) -> tuple[float, float]:
+    """Return observed top-k sum error and the native floating-point epsilon bound."""
+    if not native_dtype.is_floating_point:
+        raise ValueError("native router weight dtype must be floating point")
+    error = float((weights.float().sum(dim=-1) - 1).abs().max())
+    tolerance = float(torch.finfo(native_dtype).eps)
+    return error, tolerance
+
+
 def _sample_paths(output: Path, row_index: int) -> tuple[Path, Path]:
     root = output / "prompt_route/samples" / f"{row_index:05d}"
     return root.with_suffix(".json"), root.with_suffix(".safetensors")
@@ -211,7 +223,11 @@ def _capture_prompt_route(
     weights = torch.stack([record.natural.weights[-8:].float() for record in records], dim=1)
     if logits.shape != (8, 48, 128) or ids.shape != (8, 48, 8):
         raise RuntimeError("prompt-route capture tensor shape changed")
-    if not torch.allclose(weights.sum(dim=-1), torch.ones((8, 48)), atol=1e-5, rtol=1e-5):
+    weight_sum_error, weight_sum_tolerance = native_weight_normalization_audit(
+        weights,
+        next(model.parameters()).dtype,
+    )
+    if weight_sum_error > weight_sum_tolerance:
         raise RuntimeError("prompt-route selected weights are not normalized")
     signature_after = _cache_mutation_signature(cache)
     cache_unchanged = signature_before == signature_after
@@ -236,6 +252,8 @@ def _capture_prompt_route(
         "captured_prompt_tokens": 8,
         "capture_source": "same_request_current_policy_native_prefill",
         "route_normalization": "native_topk_normalized_weights",
+        "max_selected_weight_sum_error": weight_sum_error,
+        "native_bfloat16_weight_sum_tolerance": weight_sum_tolerance,
         "prompt_sha256": sha256_json(rendered),
         "input_ids_sha256": sha256_json(inputs["input_ids"].detach().cpu().tolist()),
         "capture_prefill_latency_seconds_measured": elapsed,
