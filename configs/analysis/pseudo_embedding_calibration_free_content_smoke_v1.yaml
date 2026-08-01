@@ -1,0 +1,60 @@
+schema_version: 1
+analysis_id: pseudo_embedding_calibration_free_content_smoke_v1
+status: protocol_frozen_before_model_execution
+parent_analysis:
+  config: configs/analysis/pseudo_embedding_calibration_free_analysis_v1.yaml
+  config_fingerprint: c09d70901bacafabdbacda398390574f7c24f67f634909d39b2084be3e04f898
+source_suite:
+  config: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml
+  config_fingerprint: a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+rows:
+  - row_index: 786
+    sample_id: test-786
+  - row_index: 394
+    sample_id: test-394
+route_token_cap: 16
+operating_point:
+  horizon: 8
+  budget: 32
+  routed_experts: 128
+  native_top_k: 8
+calibration_free:
+  learned_parameters: forbidden
+  fitted_coefficients: forbidden
+  offline_expert_priors: forbidden
+  offline_route_transition_tables: forbidden
+  default_vector_values: forbidden
+  recent_content_source: current_policy_prompt_and_realized_token_history_only
+  recent_content_order: last_seven_tokens_chronological
+  recent_history_source: current_policy_realized_routes_only
+deployable_variants:
+  - sampled_repeat_independent_zero
+  - recent_window_independent_zero
+  - recent_window_causal_zero
+  - recent_window_equal_history_blend
+diagnostic_oracles:
+  - true_future_independent_zero
+  - true_future_causal_zero
+diagnostic_oracles_excluded_from_deployable_ranking: true
+candidate_metrics:
+  - route_hit
+  - selected_mass
+  - per_anchor_route_hit
+  - subset_churn
+  - simulated_transfer_reduction
+  - measured_probe_latency
+  - measured_temporary_cuda_memory
+mechanism_requirements:
+  - production_cache_unchanged
+  - production_rng_unchanged
+  - shadow_cache_discarded
+  - native_attention
+  - native_rope
+  - native_router
+  - no_future_token_in_deployable_variant
+result_role: mechanism_hypothesis_only_no_held_out_or_accuracy_authorization
+artifact_root: artifacts/pseudo_embedding_calibration_free_content_smoke_v1
