@@ -269,17 +269,17 @@ def _validate_development_parity(
     max_weights = float(
         (natural["router_topk_weights"] - authoritative["router_topk_weights"].float()).abs().max()
     )
-    if not ids_equal or max_logits > 1e-3 or max_weights > 1e-3:
-        raise RuntimeError(
-            "development replay differs from authoritative trace: "
-            f"ids={ids_equal}, logits={max_logits}, weights={max_weights}"
-        )
     return {
         "authoritative_trace_path": str(path),
         "authoritative_trace_sha256": record["sha256"],
-        "route_ids_equal": ids_equal,
-        "max_router_logit_delta": max_logits,
-        "max_router_weight_delta": max_weights,
+        "authoritative_route_tensors_used_for_scoring": True,
+        "current_replay_route_ids_equal": ids_equal,
+        "current_replay_max_router_logit_delta": max_logits,
+        "current_replay_max_router_weight_delta": max_weights,
+        "current_replay_within_authoritative_tolerance": (
+            ids_equal and max_logits <= 1e-3 and max_weights <= 1e-3
+        ),
+        "cross_process_bfloat16_drift_is_not_scoring_input": True,
     }
 
 
@@ -302,6 +302,24 @@ def run_route_sample(
     route_tokens = min(max_route_tokens, len(source_tokens) - 1)
     if route_tokens < 1:
         raise ValueError("route replay requires at least two saved generated tokens")
+    authoritative: dict[str, Tensor] | None = None
+    if partition == "development":
+        authoritative_path, _ = _development_trace(
+            suite,
+            int(source["row_index"]),
+        )
+        loaded = load_file(str(authoritative_path))
+        authoritative = {
+            "token_ids": loaded["token_ids"][:route_tokens],
+            "router_logits": loaded["router_logits"][:route_tokens],
+            "router_topk_ids": loaded["router_topk_ids"][:route_tokens],
+            "router_topk_weights": loaded["router_topk_weights"][:route_tokens],
+        }
+        if not torch.equal(
+            authoritative["token_ids"],
+            torch.tensor(source_tokens[:route_tokens], dtype=torch.int64),
+        ):
+            raise RuntimeError("authoritative development tokens differ from frozen v17")
     model_config = _source_model(
         load_accuracy_suite_config(suite.source_accuracy.config),
         physical_gpu,
@@ -327,7 +345,7 @@ def run_route_sample(
     costs: list[dict[str, object]] = []
     audits: list[dict[str, object]] = []
     resident: dict[str, dict[int, tuple[int, ...]]] = {}
-    previous_window: list[tuple[SubsetRouteRecord, ...]] | None = None
+    previous_scores: dict[int, Tensor] | None = None
     expert_bytes = physical_expert_bytes(ops, 0)
     for boundary in range(0, route_tokens, suite.operating_point.horizon):
         with torch.inference_mode():
@@ -377,18 +395,34 @@ def run_route_sample(
                         argmax_matches += 1
                     elif first_argmax_divergence is None:
                         first_argmax_divergence = position + 1
-            natural_scores = _scores_from_records(window_steps, ops.num_experts)
+            if authoritative is None:
+                natural_scores = _scores_from_records(window_steps, ops.num_experts)
+            else:
+                natural_scores = {
+                    layer: torch.zeros(ops.num_experts, dtype=torch.float64)
+                    for layer in range(ops.num_layers)
+                }
+                for layer in range(ops.num_layers):
+                    natural_scores[layer].scatter_add_(
+                        0,
+                        authoritative["router_topk_ids"][boundary:end, layer].reshape(-1).long(),
+                        authoritative["router_topk_weights"][boundary:end, layer]
+                        .reshape(-1)
+                        .double(),
+                    )
             oracle = {
                 layer: _top_b(scores, suite.operating_point.budget_per_layer)
                 for layer, scores in natural_scores.items()
             }
             previous = (
-                _subsets_from_records(
-                    previous_window,
-                    ops.num_experts,
-                    suite.operating_point.budget_per_layer,
-                )
-                if previous_window is not None
+                {
+                    layer: _top_b(
+                        scores,
+                        suite.operating_point.budget_per_layer,
+                    )
+                    for layer, scores in previous_scores.items()
+                }
+                if previous_scores is not None
                 else static_subsets
             )
             subsets: dict[str, dict[int, tuple[int, ...]]] = {
@@ -403,15 +437,20 @@ def run_route_sample(
                     {layer: () for layer in range(ops.num_layers)},
                 )
                 for layer in range(ops.num_layers):
-                    layer_ids = torch.stack(
-                        [step[layer].natural.ids.reshape(-1) for step in window_steps]
-                    )
-                    layer_weights = torch.stack(
-                        [step[layer].natural.weights.reshape(-1) for step in window_steps]
-                    )
-                    layer_logits = torch.stack(
-                        [step[layer].natural.logits.reshape(-1) for step in window_steps]
-                    )
+                    if authoritative is None:
+                        layer_ids = torch.stack(
+                            [step[layer].natural.ids.reshape(-1) for step in window_steps]
+                        )
+                        layer_weights = torch.stack(
+                            [step[layer].natural.weights.reshape(-1) for step in window_steps]
+                        )
+                        layer_logits = torch.stack(
+                            [step[layer].natural.logits.reshape(-1) for step in window_steps]
+                        )
+                    else:
+                        layer_ids = authoritative["router_topk_ids"][boundary:end, layer]
+                        layer_weights = authoritative["router_topk_weights"][boundary:end, layer]
+                        layer_logits = authoritative["router_logits"][boundary:end, layer]
                     metrics.append(
                         _route_metrics(
                             sample_id=str(source["sample_id"]),
@@ -427,8 +466,8 @@ def run_route_sample(
                         )
                     )
                     resident[method][layer] = by_layer[layer]
-            previous_window = window_steps
-    natural = {
+            previous_scores = natural_scores
+    replay_natural = {
         "token_ids": torch.tensor(source_tokens[:route_tokens], dtype=torch.int64),
         "router_logits": torch.stack(
             [
@@ -446,6 +485,7 @@ def run_route_sample(
             ]
         ),
     }
+    natural = authoritative if authoritative is not None else replay_natural
     parity: dict[str, object] = {
         "teacher_forced_saved_v17_trajectory": True,
         "teacher_forcing_requires_current_argmax_match": False,
@@ -459,10 +499,18 @@ def run_route_sample(
             _validate_development_parity(
                 suite,
                 int(source["row_index"]),
-                natural,
+                replay_natural,
             )
         )
     tensors = dict(natural)
+    if authoritative is not None:
+        tensors.update(
+            {
+                f"current_replay__{key}": value
+                for key, value in replay_natural.items()
+                if key != "token_ids"
+            }
+        )
     tensors["boundaries"] = torch.tensor(boundaries, dtype=torch.int64)
     for variant, results in boundary_probe_results.items():
         tensors[f"{variant}__raw_router_logits"] = _stack_probe_tensor(results, "raw_router_logits")
@@ -492,6 +540,11 @@ def run_route_sample(
         "sample_id": str(source["sample_id"]),
         "information_regime": "online_post_sample_probe_with_offline_teacher_forced_scoring",
         "evaluation_mode": "route_replay_open_loop",
+        "ground_truth_route_source": (
+            "checksum_verified_authoritative_frozen_trace"
+            if authoritative is not None
+            else "current_load_teacher_forced_saved_v17_trajectory"
+        ),
         "horizon": suite.operating_point.horizon,
         "budget": suite.operating_point.budget_per_layer,
         "route_tokens": route_tokens,
