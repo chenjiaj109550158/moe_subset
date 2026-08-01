@@ -384,6 +384,7 @@ def _report(
     candidates: dict[str, dict[str, int | float]],
     decision: dict[str, object],
     previous: dict[str, Any],
+    leave_one_out: dict[str, dict[str, dict[str, object]]],
 ) -> str:
     lines = [
         f"# {config.analysis_id}",
@@ -416,6 +417,10 @@ def _report(
     horizon = cast(dict[str, Any], sensitivity["horizon"])
     temporal = cast(dict[str, Any], sensitivity["temporal_persistence"])
     components = cast(dict[str, Any], sensitivity["component_interventions"])
+    best = str(decision["best_observed_candidate"])
+    stability = list(leave_one_out[best].values())
+    route_stability = [float(cast(Any, row["route_hit_improvement"])) for row in stability]
+    mass_stability = [float(cast(Any, row["selected_mass_improvement"])) for row in stability]
     lines.extend(
         (
             "",
@@ -432,6 +437,9 @@ def _report(
             f"- Removing default contributions changes pseudo top-8 overlap to "
             f"{components['zero']['pseudo_topk_overlap']:.6f} and subset Jaccard to "
             f"{components['zero']['subset_jaccard']:.6f} relative to primary.",
+            f"- `{best}` paired leave-one-out hit improvement ranges from "
+            f"{min(route_stability):+.6f} to {max(route_stability):+.6f}; mass improvement "
+            f"ranges from {min(mass_stability):+.6f} to {max(mass_stability):+.6f}.",
             "",
             "## Claim boundary",
             "",
@@ -505,6 +513,7 @@ def run(config: AnalysisConfig) -> dict[str, object]:
     candidate_horizon: dict[tuple[str, int], Aggregate] = defaultdict(Aggregate)
     source_horizon: dict[tuple[str, int], Aggregate] = defaultdict(Aggregate)
     source_layer: dict[tuple[str, int], Aggregate] = defaultdict(Aggregate)
+    source_sample: dict[tuple[str, str], Aggregate] = defaultdict(Aggregate)
     component_values: dict[str, list[tuple[float, float]]] = defaultdict(list)
     component_jaccard: dict[str, list[float]] = defaultdict(list)
     natural_temporal: dict[int, list[tuple[float, float]]] = defaultdict(list)
@@ -568,6 +577,12 @@ def run(config: AnalysisConfig) -> dict[str, object]:
                 for method in SOURCE_METHODS:
                     subset = source_subsets[(sample.sample_id, boundary, layer, method)]
                     source_layer[(method, layer)].update(ids, weights, subset, tuple())
+                    source_sample[(method, sample.sample_id)].update(
+                        ids,
+                        weights,
+                        subset,
+                        tuple(),
+                    )
                     for anchor in range(end - boundary):
                         source_horizon[(method, anchor + 1)].update(
                             ids[anchor : anchor + 1],
@@ -751,15 +766,32 @@ def run(config: AnalysisConfig) -> dict[str, object]:
         }
         for key in candidate_keys
     }
-    leave_one_out: dict[str, dict[str, dict[str, int | float]]] = {}
+    previous_per_sample = {
+        sample.sample_id: source_sample[("previous_route_commitment", sample.sample_id)].as_dict()
+        for sample in config.source.samples
+    }
+    leave_one_out: dict[str, dict[str, dict[str, object]]] = {}
     for key in candidate_keys:
         leave_one_out[key] = {}
         for excluded in config.source.samples:
-            aggregate = Aggregate()
+            candidate_aggregate = Aggregate()
+            previous_aggregate = Aggregate()
             for included in config.source.samples:
                 if included.sample_id != excluded.sample_id:
-                    aggregate.merge(candidate_sample[(key, included.sample_id)])
-            leave_one_out[key][excluded.sample_id] = aggregate.as_dict()
+                    candidate_aggregate.merge(candidate_sample[(key, included.sample_id)])
+                    previous_aggregate.merge(
+                        source_sample[("previous_route_commitment", included.sample_id)]
+                    )
+            candidate_row = candidate_aggregate.as_dict()
+            previous_row = previous_aggregate.as_dict()
+            leave_one_out[key][excluded.sample_id] = {
+                "candidate": candidate_row,
+                "previous_route": previous_row,
+                "route_hit_improvement": float(candidate_row["mean_route_hit"])
+                - float(previous_row["mean_route_hit"]),
+                "selected_mass_improvement": float(candidate_row["mean_selected_mass"])
+                - float(previous_row["mean_selected_mass"]),
+            }
     sensitivity: dict[str, object] = {
         "horizon": horizon,
         "temporal_persistence": temporal,
@@ -772,7 +804,10 @@ def run(config: AnalysisConfig) -> dict[str, object]:
     write_json_atomic(output / "source_audit.json", source_audit)
     write_json_atomic(output / "sensitivity.json", sensitivity)
     write_json_atomic(output / "candidate_aggregates.json", candidate_metrics)
-    write_json_atomic(output / "candidate_per_sample.json", per_sample)
+    write_json_atomic(
+        output / "candidate_per_sample.json",
+        {"candidates": per_sample, "previous_route": previous_per_sample},
+    )
     write_json_atomic(output / "candidate_leave_one_out.json", leave_one_out)
     write_json_atomic(output / "decision.json", decision)
     raw_payload = "\n".join(
@@ -781,7 +816,14 @@ def run(config: AnalysisConfig) -> dict[str, object]:
     _write_bytes_atomic(output / "candidate_rows.jsonl.gz", gzip.compress(raw_payload, mtime=0))
     _write_markdown_atomic(
         output / "report.md",
-        _report(config, sensitivity, candidate_metrics, decision, previous),
+        _report(
+            config,
+            sensitivity,
+            candidate_metrics,
+            decision,
+            previous,
+            leave_one_out,
+        ),
     )
     provenance = {
         "schema_version": 1,
