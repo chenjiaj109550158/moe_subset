@@ -6,6 +6,7 @@ import json
 import os
 import time
 import traceback
+from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
@@ -20,6 +21,7 @@ from pseudoroute.benchmark.config import (
     load_accuracy_suite_config,
 )
 from pseudoroute.benchmark.prefetch import (
+    NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
     SubsetRouteRecord,
     load_default_vectors,
@@ -34,13 +36,19 @@ from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
     QwenPseudoProbeResult,
     QwenPseudoVariant,
+    _restore_rng,
+    _rng_equal,
+    _rng_snapshot,
 )
 from pseudoroute.benchmark.runner import (
     _encode_saved_rendered_prompt,
     _load_model,
     _read_jsonl,
 )
-from pseudoroute.benchmark.subset_closed_loop import _forward_capture
+from pseudoroute.benchmark.subset_closed_loop import (
+    _cache_mutation_signature,
+    _forward_capture,
+)
 from pseudoroute.benchmark.subset_trace import (
     sha256_file,
     sha256_json,
@@ -304,6 +312,7 @@ def run_route_sample(
         | None
     ) = None,
     include_reference_methods: bool = True,
+    capture_prompt_route_window: int | None = None,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     rendered = str(source["rendered_prompt"])
@@ -335,11 +344,71 @@ def run_route_sample(
     )
     inputs = _encode_saved_rendered_prompt(tokenizer, model_config, rendered)
     prompt_token_ids = tuple(int(value) for value in inputs["input_ids"][0].tolist())
-    with torch.inference_mode():
-        prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
+    prompt_records: tuple[SubsetRouteRecord, ...] | None = None
+    prompt_rng_unchanged = True
+    if capture_prompt_route_window is None:
+        with torch.inference_mode():
+            prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
+    else:
+        if (
+            capture_prompt_route_window < 1
+            or inputs["input_ids"].shape[1] < capture_prompt_route_window
+        ):
+            raise ValueError("prompt route capture window is outside the rendered prompt")
+        device = next(model.parameters()).device
+        rng_before = _rng_snapshot(device)
+        try:
+            with NativeRouteCaptureContext(ops) as context, torch.inference_mode():
+                prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
+                prompt_records = context.drain()
+            prompt_rng_unchanged = _rng_equal(rng_before, _rng_snapshot(device))
+        finally:
+            _restore_rng(device, rng_before)
+        if not prompt_rng_unchanged:
+            raise RuntimeError("prompt route capture changed generation RNG")
     cache = prefill.past_key_values
     if cache is None:
         raise RuntimeError("Qwen route replay did not return a cache")
+    prompt_route_tensors: dict[str, Tensor] = {}
+    prompt_route_audit: dict[str, object] | None = None
+    if prompt_records is not None:
+        if tuple(record.layer for record in prompt_records) != tuple(range(ops.num_layers)):
+            raise RuntimeError("prompt route capture missed a routed layer")
+        window = cast(int, capture_prompt_route_window)
+        prompt_logits = torch.stack(
+            [record.natural.logits[-window:].float() for record in prompt_records],
+            dim=1,
+        )
+        prompt_ids = torch.stack(
+            [record.natural.ids[-window:] for record in prompt_records],
+            dim=1,
+        )
+        prompt_weights = torch.stack(
+            [record.natural.weights[-window:].float() for record in prompt_records],
+            dim=1,
+        )
+        weight_error = float((prompt_weights.sum(dim=-1) - 1).abs().max())
+        weight_tolerance = float(torch.finfo(next(model.parameters()).dtype).eps)
+        if weight_error > weight_tolerance:
+            raise RuntimeError("captured prompt route weights violate native precision")
+        cache_signature = _cache_mutation_signature(cache)
+        prompt_route_tensors = {
+            "prompt_token_ids": inputs["input_ids"][0, -window:].detach().cpu().long(),
+            "prompt_router_logits": prompt_logits,
+            "prompt_router_topk_ids": prompt_ids,
+            "prompt_router_topk_weights": prompt_weights,
+        }
+        prompt_route_audit = {
+            "window": window,
+            "same_request_native_prefill": True,
+            "production_cache_signature_unchanged_after_extraction": (
+                cache_signature == _cache_mutation_signature(cache)
+            ),
+            "generation_rng_unchanged": prompt_rng_unchanged,
+            "max_selected_weight_sum_error": weight_error,
+            "native_weight_sum_tolerance": weight_tolerance,
+            "future_generated_tokens_used": False,
+        }
     prefill_argmax = int(prefill.logits[:, -1].argmax())
     argmax_matches = int(prefill_argmax == source_tokens[0])
     argmax_compared = 1
@@ -350,6 +419,7 @@ def run_route_sample(
     boundary_probe_results: dict[str, list[QwenPseudoProbeResult]] = {
         probe.variant.key: [] for probe in probes
     }
+    boundary_reference_subsets: dict[str, list[dict[int, tuple[int, ...]]]] = defaultdict(list)
     boundaries: list[int] = []
     metrics: list[dict[str, object]] = []
     costs: list[dict[str, object]] = []
@@ -455,6 +525,12 @@ def run_route_sample(
                         "static_frequency": static_subsets,
                     }
                 )
+                for method in (
+                    "hard_oracle_commitment",
+                    "previous_route_commitment",
+                    "static_frequency",
+                ):
+                    boundary_reference_subsets[method].append(subsets[method])
             subsets.update({result.variant: result.subsets for result in results})
             for method, by_layer in subsets.items():
                 resident.setdefault(
@@ -528,6 +604,7 @@ def run_route_sample(
             )
         )
     tensors = dict(natural)
+    tensors.update(prompt_route_tensors)
     if authoritative is not None:
         tensors.update(
             {
@@ -537,6 +614,11 @@ def run_route_sample(
             }
         )
     tensors["boundaries"] = torch.tensor(boundaries, dtype=torch.int64)
+    for method, reference_results in boundary_reference_subsets.items():
+        tensors[f"{method}__subsets"] = torch.tensor(
+            [[result[layer] for layer in range(ops.num_layers)] for result in reference_results],
+            dtype=torch.int64,
+        )
     for variant, results in boundary_probe_results.items():
         tensors[f"{variant}__raw_router_logits"] = _stack_probe_tensor(results, "raw_router_logits")
         tensors[f"{variant}__pre_topk_probabilities"] = _stack_probe_tensor(
@@ -578,6 +660,7 @@ def run_route_sample(
         "metrics": metrics,
         "probe_costs": costs,
         "cache_rng_audits": audits,
+        "prompt_route_capture_audit": prompt_route_audit,
         "parity": parity,
         "source_v17_row_sha256": sha256_json(source),
         "source_token_ids_sha256": sha256_json(source_tokens),
