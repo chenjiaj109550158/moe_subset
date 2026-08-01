@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import torch
 from transformers import Qwen3MoeConfig, Qwen3MoeForCausalLM
 
@@ -212,3 +213,92 @@ def test_expected_top_m_uses_sampling_logits_without_rng_or_cache_mutation() -> 
     assert result.audit["expected_top_m"] == 2
     assert result.audit["production_cache_signature_unchanged"] is True
     assert result.audit["production_rng_unchanged"] is True
+
+
+def test_provided_anchor_sequence_uses_each_native_token_without_state_mutation() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    rng = torch.random.get_rng_state().clone()
+    probe = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        _defaults(),
+        QwenPseudoVariant(
+            "recent_window_independent_zero",
+            "provided_sequence",
+            "independent",
+            "zero",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    )
+    result = probe.predict(
+        cache,
+        sampled_next_token_id=4,
+        current_token_id=3,
+        anchor_token_ids=(4, 5),
+    )
+    fork = _fork_cache_copy_on_write(cache)
+    with NativeRouteCaptureContext(ops) as capture, torch.inference_mode():
+        model(
+            input_ids=torch.tensor([[4]]),
+            past_key_values=fork,
+            use_cache=True,
+            return_dict=True,
+        )
+        records = capture.drain()
+    assert torch.equal(result.raw_router_logits[0][0], records[0].natural.logits[0])
+    assert not torch.equal(result.raw_router_logits[0][0], result.raw_router_logits[0][1])
+    assert result.audit["anchor_token_ids_supplied"] is True
+    assert result.audit["production_cache_signature_unchanged"] is True
+    assert result.audit["production_rng_unchanged"] is True
+    assert _cache_mutation_signature(cache) == signature
+    assert torch.equal(torch.random.get_rng_state(), rng)
+
+
+def test_provided_anchor_sequence_rejects_missing_or_misplaced_ids() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    cache = _prefill(model)
+    provided = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        _defaults(),
+        QwenPseudoVariant(
+            "recent_window_causal_zero",
+            "provided_sequence",
+            "causal",
+            "zero",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    )
+    with pytest.raises(ValueError, match="one token ID per pseudo anchor"):
+        provided.predict(
+            cache,
+            sampled_next_token_id=4,
+            current_token_id=3,
+            anchor_token_ids=(4,),
+        )
+    sampled = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        _defaults(),
+        QwenPseudoVariant(
+            "sampled_next_independent_zero",
+            "sampled_next_token",
+            "independent",
+            "zero",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    )
+    with pytest.raises(ValueError, match="only valid for provided_sequence"):
+        sampled.predict(
+            cache,
+            sampled_next_token_id=4,
+            current_token_id=3,
+            anchor_token_ids=(4, 5),
+        )

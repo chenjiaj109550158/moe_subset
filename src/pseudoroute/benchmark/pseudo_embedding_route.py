@@ -6,6 +6,7 @@ import json
 import os
 import time
 import traceback
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -295,6 +296,14 @@ def run_route_sample(
     partition: str,
     max_route_tokens: int,
     physical_gpu: int,
+    anchor_token_provider: (
+        Callable[
+            [QwenPseudoVariant, int, tuple[int, ...], tuple[int, ...]],
+            tuple[int, ...] | None,
+        ]
+        | None
+    ) = None,
+    include_reference_methods: bool = True,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     rendered = str(source["rendered_prompt"])
@@ -325,6 +334,7 @@ def run_route_sample(
         physical_gpu,
     )
     inputs = _encode_saved_rendered_prompt(tokenizer, model_config, rendered)
+    prompt_token_ids = tuple(int(value) for value in inputs["input_ids"][0].tolist())
     with torch.inference_mode():
         prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
     cache = prefill.past_key_values
@@ -353,6 +363,16 @@ def run_route_sample(
             boundaries.append(boundary)
             results = []
             for probe in probes:
+                anchor_token_ids = (
+                    anchor_token_provider(
+                        probe.variant,
+                        boundary,
+                        prompt_token_ids,
+                        tuple(source_tokens),
+                    )
+                    if anchor_token_provider is not None
+                    else None
+                )
                 results.append(
                     probe.predict(
                         cache,
@@ -362,6 +382,7 @@ def run_route_sample(
                             planning_logits if probe.variant.content == "expected_top_m" else None
                         ),
                         expected_top_m=suite.optional_expected_embedding.top_m,
+                        anchor_token_ids=anchor_token_ids,
                     )
                 )
             for result in results:
@@ -425,11 +446,15 @@ def run_route_sample(
                 if previous_scores is not None
                 else static_subsets
             )
-            subsets: dict[str, dict[int, tuple[int, ...]]] = {
-                "hard_oracle_commitment": oracle,
-                "previous_route_commitment": previous,
-                "static_frequency": static_subsets,
-            }
+            subsets: dict[str, dict[int, tuple[int, ...]]] = {}
+            if include_reference_methods:
+                subsets.update(
+                    {
+                        "hard_oracle_commitment": oracle,
+                        "previous_route_commitment": previous,
+                        "static_frequency": static_subsets,
+                    }
+                )
             subsets.update({result.variant: result.subsets for result in results})
             for method, by_layer in subsets.items():
                 resident.setdefault(

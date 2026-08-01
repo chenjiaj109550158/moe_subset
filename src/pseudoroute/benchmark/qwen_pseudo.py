@@ -22,7 +22,12 @@ from pseudoroute.benchmark.subset_closed_loop import (
     _fork_cache_copy_on_write,
 )
 
-PseudoContent = Literal["sampled_next_token", "current_token", "expected_top_m"]
+PseudoContent = Literal[
+    "sampled_next_token",
+    "current_token",
+    "expected_top_m",
+    "provided_sequence",
+]
 PseudoAttention = Literal["independent", "causal"]
 ExpertContribution = Literal["default_vector_selected_topk_mixture", "zero"]
 
@@ -145,11 +150,21 @@ class QwenPseudoEmbeddingProbe:
         current_token_id: int,
         sequence: int,
         expected_embedding: Tensor | None,
+        anchor_token_ids: tuple[int, ...] | None,
     ) -> Tensor:
         if self.variant.content == "expected_top_m":
             if expected_embedding is None:
                 raise ValueError("expected_top_m requires a deployable sampling-step embedding")
             return expected_embedding[:, None, :].expand(-1, sequence, -1)
+        if self.variant.content == "provided_sequence":
+            if anchor_token_ids is None or len(anchor_token_ids) != sequence:
+                raise ValueError("provided_sequence requires one token ID per pseudo anchor")
+            ids = torch.tensor(
+                [anchor_token_ids],
+                dtype=torch.long,
+                device=next(self.model.parameters()).device,
+            )
+            return cast(Tensor, self._base.embed_tokens(ids))
         token_id = (
             sampled_next_token_id
             if self.variant.content == "sampled_next_token"
@@ -226,6 +241,7 @@ class QwenPseudoEmbeddingProbe:
         sampled_next_token_id: int,
         current_token_id: int,
         expected_embedding: Tensor | None,
+        anchor_token_ids: tuple[int, ...] | None,
     ) -> tuple[
         dict[int, Tensor],
         dict[int, Tensor],
@@ -239,8 +255,9 @@ class QwenPseudoEmbeddingProbe:
                 current_token_id,
                 1,
                 expected_embedding,
+                ((anchor_token_ids[anchor_idx],) if anchor_token_ids is not None else None),
             )
-            for _ in self.anchors
+            for anchor_idx in range(len(self.anchors))
         ]
         masks_and_positions = [
             self._position_inputs(value, (position,), cast(Cache, cache))
@@ -278,6 +295,7 @@ class QwenPseudoEmbeddingProbe:
         sampled_next_token_id: int,
         current_token_id: int,
         expected_embedding: Tensor | None,
+        anchor_token_ids: tuple[int, ...] | None,
     ) -> tuple[
         dict[int, Tensor],
         dict[int, Tensor],
@@ -290,6 +308,7 @@ class QwenPseudoEmbeddingProbe:
             current_token_id,
             len(self.anchors),
             expected_embedding,
+            anchor_token_ids,
         )
         attention_mask, position_embeddings = self._position_inputs(
             hidden,
@@ -322,6 +341,7 @@ class QwenPseudoEmbeddingProbe:
         current_token_id: int,
         next_token_logits: Tensor | None = None,
         expected_top_m: int = 8,
+        anchor_token_ids: tuple[int, ...] | None = None,
     ) -> QwenPseudoProbeResult:
         """Predict one H-window subset without mutating production state or RNG."""
         device = next(self.model.parameters()).device
@@ -337,6 +357,11 @@ class QwenPseudoEmbeddingProbe:
                 raise ValueError("expected_top_m is outside the vocabulary")
         elif next_token_logits is not None:
             raise ValueError("next_token_logits are only valid for expected_top_m")
+        if self.variant.content == "provided_sequence":
+            if anchor_token_ids is None or len(anchor_token_ids) != len(self.anchors):
+                raise ValueError("provided_sequence requires one token ID per pseudo anchor")
+        elif anchor_token_ids is not None:
+            raise ValueError("anchor_token_ids are only valid for provided_sequence")
         sync_count = 0
         allocated_before = 0
         if device.type == "cuda":
@@ -366,6 +391,7 @@ class QwenPseudoEmbeddingProbe:
                         sampled_next_token_id,
                         current_token_id,
                         expected_embedding,
+                        anchor_token_ids,
                     )
                 else:
                     logits, probabilities, topk_ids, topk_weights = self._causal_rollout(
@@ -374,6 +400,7 @@ class QwenPseudoEmbeddingProbe:
                         sampled_next_token_id,
                         current_token_id,
                         expected_embedding,
+                        anchor_token_ids,
                     )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -432,8 +459,13 @@ class QwenPseudoEmbeddingProbe:
                 "deployable_inputs": (
                     "sampling_step_logits_and_current_policy_production_cache_only"
                     if self.variant.content == "expected_top_m"
-                    else "sampled_next_token_and_current_policy_production_cache_only"
+                    else (
+                        "caller_supplied_anchor_token_ids_and_current_policy_production_cache"
+                        if self.variant.content == "provided_sequence"
+                        else "sampled_next_token_and_current_policy_production_cache_only"
+                    )
                 ),
+                "anchor_token_ids_supplied": anchor_token_ids is not None,
                 "expected_top_m": (
                     expected_top_m if self.variant.content == "expected_top_m" else None
                 ),
