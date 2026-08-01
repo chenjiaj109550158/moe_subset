@@ -88,7 +88,9 @@ an incompatible proxy cannot replace it.
 
 Development uses only the four existing traces and a maximum of 128 saved decode
 tokens per row. Held-out natural routes may be added only by teacher-forced replay
-of the saved v17 token trajectories. Windows are non-overlapping from boundary
+of the saved v17 token trajectories. A current-load argmax mismatch is recorded
+but does not invalidate forced replay; development router tensors still require
+exact authoritative-trace parity. Windows are non-overlapping from boundary
 zero. Raw data retain every sample/boundary/layer/anchor router score and subset,
 plus route hit, selected/full mass, fallback, churn, estimated transfer, latency,
 temporary memory, attention queries, router calls, and synchronization count.

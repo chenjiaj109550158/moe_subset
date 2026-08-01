@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import traceback
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,8 +19,8 @@ from pseudoroute.benchmark.config import (
     load_accuracy_suite_config,
 )
 from pseudoroute.benchmark.prefetch import (
+    NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
-    SubsetExecutionContext,
     SubsetRouteRecord,
     load_default_vectors,
     physical_expert_bytes,
@@ -311,8 +312,10 @@ def run_route_sample(
     cache = prefill.past_key_values
     if cache is None:
         raise RuntimeError("Qwen route replay did not return a cache")
-    if int(prefill.logits[:, -1].argmax()) != source_tokens[0]:
-        raise RuntimeError("Qwen route replay prefill token differs from frozen v17")
+    prefill_argmax = int(prefill.logits[:, -1].argmax())
+    argmax_matches = int(prefill_argmax == source_tokens[0])
+    argmax_compared = 1
+    first_argmax_divergence = None if argmax_matches else 0
     current_token_id = int(inputs["input_ids"][0, -1])
     planning_logits = cast(Tensor, prefill.logits[:, -1]).detach()
     natural_steps: list[tuple[SubsetRouteRecord, ...]] = []
@@ -326,7 +329,7 @@ def run_route_sample(
     resident: dict[str, dict[int, tuple[int, ...]]] = {}
     previous_window: list[tuple[SubsetRouteRecord, ...]] | None = None
     expert_bytes = physical_expert_bytes(ops, 0)
-    with SubsetExecutionContext(ops, "natural") as execution:
+    with NativeRouteCaptureContext(ops) as execution:
         for boundary in range(0, route_tokens, suite.operating_point.horizon):
             end = min(boundary + suite.operating_point.horizon, route_tokens)
             boundaries.append(boundary)
@@ -375,10 +378,11 @@ def run_route_sample(
                 planning_logits = cast(Tensor, output.logits[:, -1]).detach()
                 if position + 1 < len(source_tokens):
                     predicted = int(output.logits[:, -1].argmax())
-                    if predicted != source_tokens[position + 1]:
-                        raise RuntimeError(
-                            f"Qwen teacher replay diverged at decode position {position}"
-                        )
+                    argmax_compared += 1
+                    if predicted == source_tokens[position + 1]:
+                        argmax_matches += 1
+                    elif first_argmax_divergence is None:
+                        first_argmax_divergence = position + 1
             natural_scores = _scores_from_records(window_steps, ops.num_experts)
             oracle = {
                 layer: _top_b(scores, suite.operating_point.budget_per_layer)
@@ -450,7 +454,11 @@ def run_route_sample(
     }
     parity: dict[str, object] = {
         "teacher_forced_saved_v17_trajectory": True,
-        "prefill_and_each_next_token_equal": True,
+        "teacher_forcing_requires_current_argmax_match": False,
+        "v17_argmax_matches": argmax_matches,
+        "v17_argmax_compared": argmax_compared,
+        "v17_argmax_agreement": argmax_matches / argmax_compared,
+        "first_v17_argmax_divergence": first_argmax_divergence,
     }
     if partition == "development":
         parity.update(
@@ -622,23 +630,44 @@ def run_route_partition(
         source = source_rows[reference.row_index]
         if source["sample_id"] != reference.sample_id:
             raise ValueError(f"sample manifest/source mismatch: {reference}")
-        row, tensors = run_route_sample(
-            suite,
-            model,
-            tokenizer,
-            ops,
-            source,
-            probes,
-            static_subsets,
-            partition=partition,
-            max_route_tokens=max_tokens,
-            physical_gpu=physical_gpu,
-        )
         json_path, tensor_path = _sample_paths(
             output,
             partition,
             reference.row_index,
         )
+        try:
+            row, tensors = run_route_sample(
+                suite,
+                model,
+                tokenizer,
+                ops,
+                source,
+                probes,
+                static_subsets,
+                partition=partition,
+                max_route_tokens=max_tokens,
+                physical_gpu=physical_gpu,
+            )
+        except Exception as error:
+            failure = json_path.with_name(f"{json_path.stem}.{os.getpid()}.FAILED.json")
+            write_json_atomic(
+                failure,
+                {
+                    "schema_version": 1,
+                    "state": "failed",
+                    "suite_id": suite.suite_id,
+                    "config_fingerprint": suite.fingerprint(),
+                    "partition": partition,
+                    "row_index": reference.row_index,
+                    "sample_id": reference.sample_id,
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                    "traceback": traceback.format_exc(),
+                    "pid": os.getpid(),
+                    "ppid": os.getppid(),
+                },
+            )
+            raise
         _save_tensors_atomic(tensor_path, tensors)
         row.update(
             {
