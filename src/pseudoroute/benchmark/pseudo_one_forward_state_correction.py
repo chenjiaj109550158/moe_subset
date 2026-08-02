@@ -470,6 +470,10 @@ def _manifest() -> dict[str, object]:
 def _report() -> str:
     policies = _json(OUTPUT / "development" / "aggregates.json")["policies"]
     comparisons = _json(OUTPUT / "development" / "comparisons.json")
+    sensitivity = _json(OUTPUT / "development" / "router_sensitivity.json")["comparisons"]
+    anchors = _json(OUTPUT / "development" / "anchor_strata.json")
+    audit = _json(OUTPUT / "development" / "audit.json")
+    resume = _json(OUTPUT / "resume_audit.json")
     decision = _json(OUTPUT / "development" / "decision.json")
     lines = [
         "# One-forward state correction v1",
@@ -489,13 +493,51 @@ def _report() -> str:
         )
     lines.extend(["", "## Comparisons", ""])
     for key, values in comparisons.items():
+        bootstrap = values["paired_bootstrap"]
         lines.append(
             f"- {key}: route-hit delta {float(values['mean_route_hit_delta']):+.6f}, "
             f"selected-mass delta {float(values['mean_selected_mass_delta']):+.6f}, "
+            f"paired 95% intervals "
+            f"{bootstrap['route_hit_delta_percentile_95']} and "
+            f"{bootstrap['selected_mass_delta_percentile_95']}; "
             f"route signal `{values['route_signal']}`."
         )
     lines.extend(
         [
+            "",
+            "## Mechanism diagnosis",
+            "",
+            "| Variant | Anchor-1 hit | Anchor-1 mass | Centered-logit RMS vs base | "
+            "Pseudo top-8 overlap vs base |",
+            "|---|---:|---:|---:|---:|",
+        ]
+    )
+    for spec in SPECS[1:]:
+        anchor = anchors[spec.key]["1"]
+        router = sensitivity[spec.key]
+        lines.append(
+            f"| {spec.key} | {float(anchor['mean_route_hit']):.6f} | "
+            f"{float(anchor['mean_selected_mass']):.6f} | "
+            f"{float(router['normalized_centered_logit_rms']):.6f} | "
+            f"{float(router['pseudo_top8_overlap_with_uncorrected']):.6f} |"
+        )
+    baseline_anchor = anchors[SPECS[0].key]["1"]
+    lines.extend(
+        [
+            "",
+            f"The uncorrected anchor-1 reference is "
+            f"{float(baseline_anchor['mean_route_hit']):.6f} route hit and "
+            f"{float(baseline_anchor['mean_selected_mass']):.6f} selected mass. "
+            "Both linear velocity terms perturb this strongest known-token anchor and "
+            "do not recover the loss at later anchors.",
+            "",
+            "## Integrity",
+            "",
+            f"All cache/RNG/shadow/information audits pass: `{audit['all_pass']}`. "
+            f"Validated atomic sample-policy pairs: "
+            f"{resume['sample_policy_rows_validated']}; failed markers: "
+            f"{len(resume['failed_markers_preserved'])}; checksum resume: "
+            f"`{resume['checksum_resume_pass']}`.",
             "",
             f"Development-only decision: **{decision['decision']}**.",
             "",
