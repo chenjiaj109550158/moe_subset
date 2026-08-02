@@ -71,6 +71,19 @@ SIMPLE_SPECS = (
     PolicySpec("previous_route_commitment", "previous"),
 )
 
+ADVANCED_SPECS = (
+    _pseudo("expected_top4_repeat_independent", "expected_top4_repeat_independent"),
+    _pseudo("expected_top8_repeat_independent", "expected_top8_repeat_independent"),
+    _pseudo("expected_top16_repeat_independent", "expected_top16_repeat_independent"),
+    _pseudo(
+        "expected_top8_norm_matched_independent",
+        "expected_top8_norm_matched_independent",
+    ),
+    _pseudo("sampled_then_expected_top8_causal", "sampled_then_expected_top8_causal"),
+    _pseudo("self_greedy_causal", "self_greedy_causal"),
+    _pseudo("self_expected_top8_causal", "self_expected_top8_causal"),
+)
+
 
 def _json(path: Path) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
@@ -136,13 +149,15 @@ def _git_head() -> str:
     ).stdout.strip()
 
 
-def run_simple(
+def run_wave(
+    wave: str,
     *,
     physical_gpu: int,
     shard_index: int,
     shard_count: int,
 ) -> dict[str, object]:
     config, samples = _protocol()
+    specs = SIMPLE_SPECS if wave == "simple_content_attention" else ADVANCED_SPECS
     if shard_count < 1 or not 0 <= shard_index < shard_count:
         raise ValueError("invalid composition shard")
     references = [
@@ -153,11 +168,11 @@ def run_simple(
     missing = [
         (reference, spec)
         for reference in references
-        for spec in SIMPLE_SPECS
+        for spec in specs
         if _valid("development", reference, spec) is None
     ]
     if not missing:
-        return {"state": "already_complete", "rows": len(references) * len(SIMPLE_SPECS)}
+        return {"state": "already_complete", "rows": len(references) * len(specs)}
     suite = load_pseudo_embedding_config(config["source_suite"]["config"])
     accuracy = load_accuracy_suite_config(suite.source_accuracy.config)
     model_config = _source_model(accuracy, physical_gpu)
@@ -198,7 +213,7 @@ def run_simple(
                 sample_manifest_sha256=SAMPLES_SHA256,
             )
             row["execution_git_head"] = revision
-            row["analysis_wave"] = "simple_content_attention"
+            row["analysis_wave"] = wave
             _save_tensors_atomic(tensor_path, tensors)
             row["tensor_sha256"] = sha256_file(tensor_path)
             row["tensor_bytes"] = tensor_path.stat().st_size
@@ -225,7 +240,7 @@ def run_simple(
             raise
     return {
         "state": "complete",
-        "wave": "simple_content_attention",
+        "wave": wave,
         "shard_index": shard_index,
         "completed_now": completed,
     }
@@ -233,7 +248,7 @@ def run_simple(
 
 def _parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("run-simple",))
+    parser.add_argument("command", choices=("run-simple", "run-advanced"))
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--shard-index", type=int, required=True)
     parser.add_argument("--shard-count", type=int, default=2)
@@ -242,7 +257,12 @@ def _parse() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse()
-    result = run_simple(
+    result = run_wave(
+        (
+            "simple_content_attention"
+            if args.command == "run-simple"
+            else "expected_and_autoregressive"
+        ),
         physical_gpu=args.gpu,
         shard_index=args.shard_index,
         shard_count=args.shard_count,

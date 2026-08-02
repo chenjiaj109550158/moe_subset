@@ -219,6 +219,37 @@ def test_expected_top_m_uses_sampling_logits_without_rng_or_cache_mutation() -> 
     assert result.audit["production_rng_unchanged"] is True
 
 
+def test_sampled_then_expected_and_norm_matched_contents_are_audited() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    logits = torch.full((1, model.config.vocab_size), -10.0)
+    logits[0, 3] = 2.0
+    logits[0, 4] = 1.0
+    result = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        _defaults(),
+        QwenPseudoVariant(
+            "sampled_then_expected",
+            "sampled_then_expected_top_m",
+            "causal",
+            "default_vector_selected_topk_mixture",
+            "sampled_token",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        _prefill(model),
+        sampled_next_token_id=3,
+        current_token_id=2,
+        next_token_logits=logits,
+        expected_top_m=2,
+    )
+    assert result.audit["expected_top_m"] == 2
+    assert result.audit["expected_embedding_norm"] == "sampled_token"
+    assert result.audit["production_cache_signature_unchanged"] is True
+
+
 def test_provided_anchor_sequence_uses_each_native_token_without_state_mutation() -> None:
     model = _model()
     ops = Qwen3MoePrefetchOps(model)

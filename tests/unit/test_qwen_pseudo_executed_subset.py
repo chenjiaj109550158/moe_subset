@@ -122,3 +122,41 @@ def test_native_expert_execution_without_subset_uses_full_natural_topk() -> None
         )
     assert result.audit["execution_scope"] == "full_native_topk"
     assert result.audit["executed_ids_within_supplied_subset"] is None
+
+
+def test_autoregressive_native_execution_uses_shadow_predictions_and_subset() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    subsets = {layer: (0, 1, 2) for layer in range(ops.num_layers)}
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    rng = torch.random.get_rng_state().clone()
+    for content in ("self_greedy", "self_expected_top_m"):
+        result = QwenPseudoEmbeddingProbe(
+            model,
+            ops,
+            None,
+            QwenPseudoVariant(
+                content,
+                content,  # type: ignore[arg-type]
+                "causal",
+                "native_expert_execution",
+            ),
+            anchors=(1, 2),
+            budget=3,
+        ).predict(
+            cache,
+            sampled_next_token_id=4,
+            current_token_id=3,
+            expected_top_m=2,
+            execution_subsets=subsets,
+            execution_subset_source="previous_realized_window_subset",
+        )
+        assert result.cost.attention_calls == ops.num_layers * 2
+        assert result.audit["autoregressive_shadow_content"] is True
+        assert result.audit["executed_ids_within_supplied_subset"] is True
+        for layer in range(ops.num_layers):
+            assert result.raw_router_logits[layer].shape == (2, ops.num_experts)
+            assert result.shadow_moe_residuals[layer].shape == (2, ops.hidden_size)
+    assert _cache_mutation_signature(cache) == signature
+    assert torch.equal(torch.random.get_rng_state(), rng)

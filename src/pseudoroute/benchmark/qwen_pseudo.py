@@ -27,9 +27,13 @@ PseudoContent = Literal[
     "sampled_next_token",
     "current_token",
     "expected_top_m",
+    "sampled_then_expected_top_m",
+    "self_greedy",
+    "self_expected_top_m",
     "provided_sequence",
 ]
 PseudoAttention = Literal["independent", "causal"]
+ExpectedEmbeddingNorm = Literal["raw", "sampled_token"]
 ExpertContribution = Literal[
     "default_vector_selected_topk_mixture",
     "native_expert_execution",
@@ -44,6 +48,7 @@ class QwenPseudoVariant:
     content: PseudoContent
     attention: PseudoAttention
     expert_contribution: ExpertContribution
+    expected_embedding_norm: ExpectedEmbeddingNorm = "raw"
 
 
 @dataclass(frozen=True)
@@ -142,6 +147,13 @@ class QwenPseudoEmbeddingProbe:
                 raise ValueError("Qwen default-vector count shape mismatch")
         if variant.content == "current_token" and variant.attention == "causal":
             raise ValueError("the frozen pilot has no current-token causal variant")
+        if variant.content.startswith("self_") and variant.attention != "causal":
+            raise ValueError("autoregressive pseudo content requires causal attention")
+        if variant.expected_embedding_norm != "raw" and variant.content not in {
+            "expected_top_m",
+            "sampled_then_expected_top_m",
+        }:
+            raise ValueError("expected-embedding norm mode is invalid for this content")
         self.model = model
         self.ops = ops
         self.variant = variant
@@ -168,11 +180,24 @@ class QwenPseudoEmbeddingProbe:
         sequence: int,
         expected_embedding: Tensor | None,
         anchor_token_ids: tuple[int, ...] | None,
+        anchor_start: int = 0,
     ) -> Tensor:
         if self.variant.content == "expected_top_m":
             if expected_embedding is None:
                 raise ValueError("expected_top_m requires a deployable sampling-step embedding")
             return expected_embedding[:, None, :].expand(-1, sequence, -1)
+        if self.variant.content == "sampled_then_expected_top_m":
+            if expected_embedding is None:
+                raise ValueError("sampled_then_expected_top_m requires sampling-step logits")
+            hidden = expected_embedding[:, None, :].expand(-1, sequence, -1).clone()
+            if anchor_start == 0:
+                sampled = torch.tensor(
+                    [[sampled_next_token_id]],
+                    dtype=torch.long,
+                    device=hidden.device,
+                )
+                hidden[:, 0] = self._base.embed_tokens(sampled)[:, 0]
+            return hidden
         if self.variant.content == "provided_sequence":
             if anchor_token_ids is None or len(anchor_token_ids) != sequence:
                 raise ValueError("provided_sequence requires one token ID per pseudo anchor")
@@ -194,6 +219,29 @@ class QwenPseudoEmbeddingProbe:
             device=next(self.model.parameters()).device,
         )
         return cast(Tensor, self._base.embed_tokens(ids))
+
+    def _expected_embedding(
+        self,
+        logits: Tensor,
+        top_m: int,
+        sampled_next_token_id: int,
+    ) -> Tensor:
+        selected_logits, selected_ids = logits.float().topk(top_m, dim=-1)
+        weights = selected_logits.softmax(dim=-1).to(dtype=next(self.model.parameters()).dtype)
+        embeddings = self._base.embed_tokens(selected_ids.to(logits.device))
+        expected = (weights.to(logits.device).unsqueeze(-1) * embeddings).sum(dim=1)
+        if self.variant.expected_embedding_norm == "sampled_token":
+            sampled = torch.tensor(
+                [[sampled_next_token_id]],
+                dtype=torch.long,
+                device=logits.device,
+            )
+            reference = self._base.embed_tokens(sampled)[:, 0]
+            expected = expected * (
+                reference.float().norm(dim=-1, keepdim=True)
+                / expected.float().norm(dim=-1, keepdim=True).clamp_min(1e-12)
+            ).to(expected.dtype)
+        return cast(Tensor, expected)
 
     def _position_inputs(
         self,
@@ -307,6 +355,7 @@ class QwenPseudoEmbeddingProbe:
                 1,
                 expected_embedding,
                 ((anchor_token_ids[anchor_idx],) if anchor_token_ids is not None else None),
+                anchor_idx,
             )
             for anchor_idx in range(len(self.anchors))
         ]
@@ -383,6 +432,7 @@ class QwenPseudoEmbeddingProbe:
             len(self.anchors),
             expected_embedding,
             anchor_token_ids,
+            0,
         )
         attention_mask, position_embeddings = self._position_inputs(
             hidden,
@@ -431,6 +481,77 @@ class QwenPseudoEmbeddingProbe:
             moe_residuals,
         )
 
+    def _autoregressive_rollout(
+        self,
+        production_cache: object,
+        positions: tuple[int, ...],
+        sampled_next_token_id: int,
+        expected_top_m: int,
+        execution_subsets: dict[int, tuple[int, ...]] | None,
+    ) -> tuple[
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+    ]:
+        cache = _fork_cache_copy_on_write(production_cache)
+        token = torch.tensor(
+            [[sampled_next_token_id]],
+            dtype=torch.long,
+            device=next(self.model.parameters()).device,
+        )
+        hidden = cast(Tensor, self._base.embed_tokens(token))
+        logits: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        probabilities: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        topk_ids: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        topk_weights: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        executed_ids: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        moe_residuals: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        for position in positions:
+            attention_mask, position_embeddings = self._position_inputs(
+                hidden,
+                (position,),
+                cast(Cache, cache),
+            )
+            for layer_idx in range(self.ops.num_layers):
+                hidden, route, full_probs, executed_route, moe_residual = self._layer_step(
+                    layer_idx,
+                    hidden,
+                    cast(Cache, cache),
+                    attention_mask,
+                    position_embeddings,
+                    None,
+                    (execution_subsets[layer_idx] if execution_subsets is not None else None),
+                )
+                logits[layer_idx].append(route.logits[0].detach().float().cpu())
+                probabilities[layer_idx].append(full_probs[0].detach().cpu())
+                topk_ids[layer_idx].append(route.ids[0].detach().cpu())
+                topk_weights[layer_idx].append(route.weights[0].detach().float().cpu())
+                if executed_route is not None:
+                    executed_ids[layer_idx].append(executed_route.ids[0].detach().cpu())
+                    moe_residuals[layer_idx].append(moe_residual[0, 0].detach().cpu())
+            final_hidden = self._base.norm(hidden)
+            next_logits = cast(Any, self.model).lm_head(final_hidden[:, -1])
+            if self.variant.content == "self_greedy":
+                next_token = next_logits.argmax(dim=-1, keepdim=True)
+                hidden = cast(Tensor, self._base.embed_tokens(next_token))
+            else:
+                hidden = self._expected_embedding(
+                    next_logits,
+                    expected_top_m,
+                    int(next_logits.argmax(dim=-1)[0]),
+                )[:, None, :]
+        return (
+            {layer: torch.stack(values) for layer, values in logits.items()},
+            {layer: torch.stack(values) for layer, values in probabilities.items()},
+            {layer: torch.stack(values) for layer, values in topk_ids.items()},
+            {layer: torch.stack(values) for layer, values in topk_weights.items()},
+            {layer: torch.stack(values) for layer, values in executed_ids.items() if values},
+            {layer: torch.stack(values) for layer, values in moe_residuals.items() if values},
+        )
+
     def predict(
         self,
         production_cache: object,
@@ -452,13 +573,21 @@ class QwenPseudoEmbeddingProbe:
         cache_before = _cache_mutation_signature(production_cache)
         rng_before = _rng_snapshot(device)
         expected_embedding = None
-        if self.variant.content == "expected_top_m":
+        boundary_expected = self.variant.content in {
+            "expected_top_m",
+            "sampled_then_expected_top_m",
+        }
+        if boundary_expected:
             if next_token_logits is None or tuple(next_token_logits.shape[:1]) != (1,):
-                raise ValueError("expected_top_m requires one row of next-token logits")
+                raise ValueError("expected content requires one row of next-token logits")
             if expected_top_m < 1 or expected_top_m > next_token_logits.shape[-1]:
                 raise ValueError("expected_top_m is outside the vocabulary")
         elif next_token_logits is not None:
-            raise ValueError("next_token_logits are only valid for expected_top_m")
+            raise ValueError("next_token_logits are only valid for boundary-expected content")
+        if self.variant.content == "self_expected_top_m" and (
+            expected_top_m < 1 or expected_top_m > cast(Any, self.model).config.vocab_size
+        ):
+            raise ValueError("self expected_top_m is outside the vocabulary")
         if self.variant.content == "provided_sequence":
             if anchor_token_ids is None or len(anchor_token_ids) != len(self.anchors):
                 raise ValueError("provided_sequence requires one token ID per pseudo anchor")
@@ -508,16 +637,27 @@ class QwenPseudoEmbeddingProbe:
         try:
             with torch.inference_mode():
                 if next_token_logits is not None:
-                    selected_logits, selected_ids = next_token_logits.float().topk(
+                    expected_embedding = self._expected_embedding(
+                        next_token_logits.to(device),
                         expected_top_m,
-                        dim=-1,
+                        sampled_next_token_id,
                     )
-                    weights = selected_logits.softmax(dim=-1).to(
-                        dtype=next(self.model.parameters()).dtype
+                if self.variant.content.startswith("self_"):
+                    (
+                        logits,
+                        probabilities,
+                        topk_ids,
+                        topk_weights,
+                        shadow_executed_topk_ids,
+                        shadow_moe_residuals,
+                    ) = self._autoregressive_rollout(
+                        production_cache,
+                        positions,
+                        sampled_next_token_id,
+                        expected_top_m,
+                        execution_subsets,
                     )
-                    embeddings = self._base.embed_tokens(selected_ids.to(device))
-                    expected_embedding = (weights.to(device).unsqueeze(-1) * embeddings).sum(dim=1)
-                if self.variant.attention == "independent":
+                elif self.variant.attention == "independent":
                     (
                         logits,
                         probabilities,
@@ -617,7 +757,7 @@ class QwenPseudoEmbeddingProbe:
         )
         attention_calls = (
             self.ops.num_layers * len(self.anchors)
-            if self.variant.attention == "independent"
+            if self.variant.attention == "independent" or self.variant.content.startswith("self_")
             else self.ops.num_layers
         )
         return QwenPseudoProbeResult(
@@ -654,7 +794,7 @@ class QwenPseudoEmbeddingProbe:
                 "information_regime": "online_post_sample",
                 "deployable_inputs": (
                     "sampling_step_logits_and_current_policy_production_cache_only"
-                    if self.variant.content == "expected_top_m"
+                    if boundary_expected
                     else (
                         "caller_supplied_anchor_token_ids_and_current_policy_production_cache"
                         if self.variant.content == "provided_sequence"
@@ -706,8 +846,12 @@ class QwenPseudoEmbeddingProbe:
                     sum(escape_counts.values()) if escape_counts is not None else None
                 ),
                 "expected_top_m": (
-                    expected_top_m if self.variant.content == "expected_top_m" else None
+                    expected_top_m
+                    if boundary_expected or self.variant.content == "self_expected_top_m"
+                    else None
                 ),
+                "expected_embedding_norm": self.variant.expected_embedding_norm,
+                "autoregressive_shadow_content": self.variant.content.startswith("self_"),
                 "forbidden_inputs_present": False,
                 "production_cache_sequence_length_before": boundary_length,
                 "production_cache_sequence_length_after": _cache_length(production_cache),

@@ -98,6 +98,13 @@ ContentVariant = Literal[
     "recent_sequence_causal",
     "exact_future_independent",
     "exact_future_causal",
+    "expected_top4_repeat_independent",
+    "expected_top8_repeat_independent",
+    "expected_top16_repeat_independent",
+    "expected_top8_norm_matched_independent",
+    "sampled_then_expected_top8_causal",
+    "self_greedy_causal",
+    "self_expected_top8_causal",
 ]
 
 
@@ -341,13 +348,20 @@ def _probe_for_spec(
         return None
     if spec.content is None or spec.residual is None:
         raise ValueError("pseudo policy spec is incomplete")
-    content: PseudoContent = (
-        "provided_sequence"
-        if spec.content.startswith(("recent", "exact"))
-        else "current_token"
-        if spec.content.startswith("current")
-        else "sampled_next_token"
-    )
+    if spec.content.startswith(("recent", "exact")):
+        content: PseudoContent = "provided_sequence"
+    elif spec.content.startswith("current"):
+        content = "current_token"
+    elif spec.content.startswith("expected"):
+        content = "expected_top_m"
+    elif spec.content.startswith("sampled_then_expected"):
+        content = "sampled_then_expected_top_m"
+    elif spec.content.startswith("self_greedy"):
+        content = "self_greedy"
+    elif spec.content.startswith("self_expected"):
+        content = "self_expected_top_m"
+    else:
+        content = "sampled_next_token"
     attention: PseudoAttention = "causal" if spec.content.endswith("causal") else "independent"
     contribution: ExpertContribution = (
         "native_expert_execution"
@@ -360,7 +374,17 @@ def _probe_for_spec(
         model,
         ops,
         None,
-        QwenPseudoVariant(spec.key, content, attention, contribution),
+        QwenPseudoVariant(
+            spec.key,
+            content,
+            attention,
+            contribution,
+            (
+                "sampled_token"
+                if spec.content == "expected_top8_norm_matched_independent"
+                else "raw"
+            ),
+        ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
     )
@@ -372,7 +396,7 @@ def _anchor_ids(
     prompt_tokens: tuple[int, ...],
     source_tokens: tuple[int, ...],
 ) -> tuple[int, ...] | None:
-    if spec.content is None or spec.content.startswith("sampled_repeat"):
+    if spec.content is None or spec.content.startswith(("sampled", "current", "expected", "self")):
         return None
     if spec.content.startswith("recent_sequence"):
         return recent_anchor_token_ids(boundary, prompt_tokens, source_tokens)
@@ -583,6 +607,7 @@ def run_policy_sample(
     )
     history = route_scores(prompt_route_records, tail_tokens=HORIZON, experts=ops.num_experts)
     prompt_tokens = tuple(int(value) for value in inputs["input_ids"][0].tolist())
+    planning_logits = cast(Tensor, prefill.logits[:, -1]).detach()
     probe = _probe_for_spec(
         model,
         ops,
@@ -640,7 +665,12 @@ def run_policy_sample(
         elif spec.role == "static":
             active = static_subsets
         else:
-            if probe is None or spec.selection is None or spec.residual is None:
+            if (
+                probe is None
+                or spec.selection is None
+                or spec.residual is None
+                or spec.content is None
+            ):
                 raise AssertionError("pseudo policy construction failed")
             anchor_ids = _anchor_ids(spec, boundary, prompt_tokens, source_tokens)
             result = probe.predict(
@@ -650,6 +680,18 @@ def run_policy_sample(
                     prompt_tokens[-1] if boundary == 0 else source_tokens[boundary - 1]
                 ),
                 anchor_token_ids=anchor_ids,
+                next_token_logits=(
+                    planning_logits
+                    if spec.content.startswith(("expected", "sampled_then_expected"))
+                    else None
+                ),
+                expected_top_m=(
+                    4
+                    if spec.content == "expected_top4_repeat_independent"
+                    else 16
+                    if spec.content == "expected_top16_repeat_independent"
+                    else 8
+                ),
                 provided_residuals=(
                     transformed if spec.residual != "zero" and not shadow_expert_execution else None
                 ),
@@ -716,6 +758,7 @@ def run_policy_sample(
             window_routes.append(records)
             window_residuals.append(output_bank)
             window_router_inputs.append(input_bank)
+            planning_logits = cast(Tensor, output.logits[:, -1]).detach()
             natural_logits.append(torch.stack([record.natural.logits[0] for record in records]))
             natural_ids.append(torch.stack([record.natural.ids[0] for record in records]))
             natural_weights.append(torch.stack([record.natural.weights[0] for record in records]))
