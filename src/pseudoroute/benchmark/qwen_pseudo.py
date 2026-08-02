@@ -30,6 +30,7 @@ PseudoContent = Literal[
     "sampled_then_expected_top_m",
     "self_greedy",
     "self_expected_top_m",
+    "self_topk_particles",
     "provided_sequence",
 ]
 PseudoAttention = Literal["independent", "causal"]
@@ -49,6 +50,7 @@ class QwenPseudoVariant:
     attention: PseudoAttention
     expert_contribution: ExpertContribution
     expected_embedding_norm: ExpectedEmbeddingNorm = "raw"
+    particle_count: int = 1
 
 
 @dataclass(frozen=True)
@@ -149,6 +151,11 @@ class QwenPseudoEmbeddingProbe:
             raise ValueError("the frozen pilot has no current-token causal variant")
         if variant.content.startswith("self_") and variant.attention != "causal":
             raise ValueError("autoregressive pseudo content requires causal attention")
+        if variant.content == "self_topk_particles":
+            if variant.particle_count not in (2, 4):
+                raise ValueError("particle rollout requires a fixed count of two or four")
+        elif variant.particle_count != 1:
+            raise ValueError("particle count is only valid for particle rollout")
         if variant.expected_embedding_norm != "raw" and variant.content not in {
             "expected_top_m",
             "sampled_then_expected_top_m",
@@ -552,6 +559,161 @@ class QwenPseudoEmbeddingProbe:
             {layer: torch.stack(values) for layer, values in moe_residuals.items() if values},
         )
 
+    def _particle_rollout(
+        self,
+        production_cache: object,
+        positions: tuple[int, ...],
+        sampled_next_token_id: int,
+        execution_subsets: dict[int, tuple[int, ...]] | None,
+    ) -> tuple[
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
+    ]:
+        token = torch.tensor(
+            [[sampled_next_token_id]],
+            dtype=torch.long,
+            device=next(self.model.parameters()).device,
+        )
+        particles: list[tuple[object, Tensor, float]] = [
+            (
+                _fork_cache_copy_on_write(production_cache),
+                cast(Tensor, self._base.embed_tokens(token)),
+                0.0,
+            )
+        ]
+        logits: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        probabilities: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        topk_ids: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        topk_weights: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        executed_ids: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        moe_residuals: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        for anchor_index, position in enumerate(positions):
+            realized: list[dict[str, Any]] = []
+            for cache, particle_hidden, log_weight in particles:
+                attention_mask, position_embeddings = self._position_inputs(
+                    particle_hidden,
+                    (position,),
+                    cast(Cache, cache),
+                )
+                layer_values: dict[int, dict[str, Tensor]] = {}
+                hidden = particle_hidden
+                for layer_idx in range(self.ops.num_layers):
+                    hidden, route, full_probs, executed_route, moe_residual = self._layer_step(
+                        layer_idx,
+                        hidden,
+                        cast(Cache, cache),
+                        attention_mask,
+                        position_embeddings,
+                        None,
+                        (execution_subsets[layer_idx] if execution_subsets is not None else None),
+                    )
+                    values = {
+                        "logits": route.logits[0].detach().float().cpu(),
+                        "probabilities": full_probs[0].detach().cpu(),
+                        "topk_ids": route.ids[0].detach().cpu(),
+                        "topk_weights": route.weights[0].detach().float().cpu(),
+                        "residual": moe_residual[0, 0].detach().cpu(),
+                    }
+                    if executed_route is not None:
+                        values["executed_ids"] = executed_route.ids[0].detach().cpu()
+                    layer_values[layer_idx] = values
+                final_hidden = self._base.norm(hidden)
+                next_logits = cast(Any, self.model).lm_head(final_hidden[:, -1])
+                realized.append(
+                    {
+                        "cache": cache,
+                        "log_weight": log_weight,
+                        "next_logits": next_logits,
+                        "layers": layer_values,
+                    }
+                )
+            mixture = torch.tensor(
+                [float(value["log_weight"]) for value in realized],
+                dtype=torch.float64,
+            ).softmax(dim=0)
+            representative = int(mixture.argmax())
+            for layer_idx in range(self.ops.num_layers):
+                layer_logits = torch.stack(
+                    [
+                        cast(dict[str, Tensor], value["layers"][layer_idx])["logits"]
+                        for value in realized
+                    ]
+                )
+                layer_probabilities = torch.stack(
+                    [
+                        cast(dict[str, Tensor], value["layers"][layer_idx])["probabilities"]
+                        for value in realized
+                    ]
+                )
+                layer_residuals = torch.stack(
+                    [
+                        cast(dict[str, Tensor], value["layers"][layer_idx])["residual"]
+                        for value in realized
+                    ]
+                )
+                mixed_logits = (mixture[:, None] * layer_logits.double()).sum(dim=0)
+                mixed_probabilities = (mixture[:, None] * layer_probabilities.double()).sum(dim=0)
+                selected_weights, selected_ids = mixed_probabilities.topk(self.ops.top_k)
+                if bool(cast(Any, self.model).config.norm_topk_prob):
+                    selected_weights = selected_weights / selected_weights.sum().clamp_min(1e-12)
+                logits[layer_idx].append(mixed_logits.float())
+                probabilities[layer_idx].append(mixed_probabilities.float())
+                topk_ids[layer_idx].append(selected_ids)
+                topk_weights[layer_idx].append(selected_weights.float())
+                representative_values = cast(
+                    dict[str, Tensor],
+                    realized[representative]["layers"][layer_idx],
+                )
+                if "executed_ids" in representative_values:
+                    executed_ids[layer_idx].append(representative_values["executed_ids"])
+                    moe_residuals[layer_idx].append(
+                        (mixture[:, None] * layer_residuals.double())
+                        .sum(dim=0)
+                        .to(layer_residuals.dtype)
+                    )
+            if anchor_index + 1 == len(positions):
+                continue
+            branches: list[tuple[float, int, int, object, Tensor]] = []
+            for parent_index, value in enumerate(realized):
+                next_logits = cast(Tensor, value["next_logits"])
+                log_probabilities = next_logits.float().log_softmax(dim=-1)
+                selected_log_probs, selected_ids = log_probabilities.topk(
+                    self.variant.particle_count,
+                    dim=-1,
+                )
+                for rank in range(self.variant.particle_count):
+                    token_id = int(selected_ids[0, rank])
+                    branch_token = selected_ids[:, rank : rank + 1]
+                    branch_hidden = cast(Tensor, self._base.embed_tokens(branch_token))
+                    branches.append(
+                        (
+                            float(value["log_weight"]) + float(selected_log_probs[0, rank]),
+                            token_id,
+                            parent_index,
+                            _fork_cache_copy_on_write(value["cache"]),
+                            branch_hidden,
+                        )
+                    )
+            branches.sort(key=lambda value: (-value[0], value[1], value[2]))
+            particles = [
+                (cache, hidden, log_weight)
+                for log_weight, _token_id, _parent, cache, hidden in branches[
+                    : self.variant.particle_count
+                ]
+            ]
+        return (
+            {layer: torch.stack(values) for layer, values in logits.items()},
+            {layer: torch.stack(values) for layer, values in probabilities.items()},
+            {layer: torch.stack(values) for layer, values in topk_ids.items()},
+            {layer: torch.stack(values) for layer, values in topk_weights.items()},
+            {layer: torch.stack(values) for layer, values in executed_ids.items() if values},
+            {layer: torch.stack(values) for layer, values in moe_residuals.items() if values},
+        )
+
     def predict(
         self,
         production_cache: object,
@@ -642,7 +804,21 @@ class QwenPseudoEmbeddingProbe:
                         expected_top_m,
                         sampled_next_token_id,
                     )
-                if self.variant.content.startswith("self_"):
+                if self.variant.content == "self_topk_particles":
+                    (
+                        logits,
+                        probabilities,
+                        topk_ids,
+                        topk_weights,
+                        shadow_executed_topk_ids,
+                        shadow_moe_residuals,
+                    ) = self._particle_rollout(
+                        production_cache,
+                        positions,
+                        sampled_next_token_id,
+                        execution_subsets,
+                    )
+                elif self.variant.content.startswith("self_"):
                     (
                         logits,
                         probabilities,
@@ -755,8 +931,13 @@ class QwenPseudoEmbeddingProbe:
             if device.type == "cuda"
             else 0
         )
+        query_calls = self.ops.num_layers * (
+            1 + (len(self.anchors) - 1) * self.variant.particle_count
+            if self.variant.content == "self_topk_particles"
+            else len(self.anchors)
+        )
         attention_calls = (
-            self.ops.num_layers * len(self.anchors)
+            query_calls
             if self.variant.attention == "independent" or self.variant.content.startswith("self_")
             else self.ops.num_layers
         )
@@ -784,7 +965,7 @@ class QwenPseudoEmbeddingProbe:
                     if provided_residuals is not None
                     else 0
                 ),
-                attention_queries=self.ops.num_layers * len(self.anchors),
+                attention_queries=query_calls,
                 attention_calls=attention_calls,
                 router_calls=attention_calls,
                 expert_calls=attention_calls if native_execution else 0,
@@ -852,6 +1033,12 @@ class QwenPseudoEmbeddingProbe:
                 ),
                 "expected_embedding_norm": self.variant.expected_embedding_norm,
                 "autoregressive_shadow_content": self.variant.content.startswith("self_"),
+                "particle_count": self.variant.particle_count,
+                "particle_utility_aggregation": (
+                    "normalized_path_probability_weighted"
+                    if self.variant.content == "self_topk_particles"
+                    else None
+                ),
                 "forbidden_inputs_present": False,
                 "production_cache_sequence_length_before": boundary_length,
                 "production_cache_sequence_length_after": _cache_length(production_cache),

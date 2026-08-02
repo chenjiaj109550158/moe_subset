@@ -105,6 +105,8 @@ ContentVariant = Literal[
     "sampled_then_expected_top8_causal",
     "self_greedy_causal",
     "self_expected_top8_causal",
+    "self_top2_particle_probability_weighted",
+    "self_top4_particle_probability_weighted",
 ]
 
 
@@ -360,6 +362,8 @@ def _probe_for_spec(
         content = "self_greedy"
     elif spec.content.startswith("self_expected"):
         content = "self_expected_top_m"
+    elif spec.content.startswith("self_top"):
+        content = "self_topk_particles"
     else:
         content = "sampled_next_token"
     attention: PseudoAttention = "causal" if spec.content.endswith("causal") else "independent"
@@ -383,6 +387,13 @@ def _probe_for_spec(
                 "sampled_token"
                 if spec.content == "expected_top8_norm_matched_independent"
                 else "raw"
+            ),
+            (
+                2
+                if spec.content == "self_top2_particle_probability_weighted"
+                else 4
+                if spec.content == "self_top4_particle_probability_weighted"
+                else 1
             ),
         ),
         anchors=tuple(range(1, HORIZON + 1)),

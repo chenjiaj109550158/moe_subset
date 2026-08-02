@@ -160,3 +160,36 @@ def test_autoregressive_native_execution_uses_shadow_predictions_and_subset() ->
             assert result.shadow_moe_residuals[layer].shape == (2, ops.hidden_size)
     assert _cache_mutation_signature(cache) == signature
     assert torch.equal(torch.random.get_rng_state(), rng)
+
+
+def test_top2_particle_rollout_aggregates_routes_without_mutating_production() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    subsets = {layer: (0, 1, 2) for layer in range(ops.num_layers)}
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    result = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "top2_particles",
+            "self_topk_particles",
+            "causal",
+            "native_expert_execution",
+            particle_count=2,
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        cache,
+        sampled_next_token_id=4,
+        current_token_id=3,
+        execution_subsets=subsets,
+        execution_subset_source="previous_realized_window_subset",
+    )
+    assert result.cost.expert_calls == ops.num_layers * 3
+    assert result.audit["particle_count"] == 2
+    assert result.audit["particle_utility_aggregation"] == "normalized_path_probability_weighted"
+    assert result.audit["executed_ids_within_supplied_subset"] is True
+    assert _cache_mutation_signature(cache) == signature

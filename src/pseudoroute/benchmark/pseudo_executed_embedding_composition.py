@@ -90,6 +90,16 @@ ADVANCED_SPECS = (
     _pseudo("self_expected_top8_causal", "self_expected_top8_causal"),
 )
 ALL_DEVELOPMENT_SPECS = (*SIMPLE_SPECS, *ADVANCED_SPECS)
+PARTICLE_SPECS = (
+    _pseudo(
+        "self_top2_particle_probability_weighted",
+        "self_top2_particle_probability_weighted",
+    ),
+    _pseudo(
+        "self_top4_particle_probability_weighted",
+        "self_top4_particle_probability_weighted",
+    ),
+)
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -164,7 +174,13 @@ def run_wave(
     shard_count: int,
 ) -> dict[str, object]:
     config, samples = _protocol()
-    specs = SIMPLE_SPECS if wave == "simple_content_attention" else ADVANCED_SPECS
+    specs = (
+        SIMPLE_SPECS
+        if wave == "simple_content_attention"
+        else PARTICLE_SPECS
+        if wave == "particle_follow_up"
+        else ADVANCED_SPECS
+    )
     if shard_count < 1 or not 0 <= shard_index < shard_count:
         raise ValueError("invalid composition shard")
     references = [
@@ -533,7 +549,12 @@ def _parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("run-simple", "run-advanced", "aggregate-development"),
+        choices=(
+            "run-simple",
+            "run-advanced",
+            "run-particles",
+            "aggregate-development",
+        ),
     )
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)
@@ -550,6 +571,8 @@ def main() -> None:
         (
             "simple_content_attention"
             if args.command == "run-simple"
+            else "particle_follow_up"
+            if args.command == "run-particles"
             else "expected_and_autoregressive"
         ),
         physical_gpu=args.gpu,
