@@ -66,6 +66,23 @@ actual accuracy stages were not run. See the
 [residual-window protocol](docs/pseudo_embedding_qwen_gsm8k_residual_window_v1.md)
 and [report](artifacts/pseudo_embedding_qwen_gsm8k_residual_window_v1/report.md).
 
+The subsequent composition analysis changed the residual source in the crucial
+way: each pseudo forward now executes Qwen's native experts and obtains a fresh
+MoE residual from the pseudo hidden state. Boundary zero can execute native
+top-8 after full-expert prefill; every later boundary executes only the
+preceding realized per-layer B=32 subset. The calibration-free
+`self_greedy_causal` rollout was selected on four development rows at
+0.788767/0.805782 route hit/selected mass. On eight disjoint held-out route rows
+it reached 0.765119/0.784870, versus 0.611168/0.621438 for previous route and
+0.669112/0.682921 for sampled-token repeat. All cache/RNG/information audits
+passed. Deterministic top-2 and top-4 particle branches added at most
+0.000621 route hit over greedy while roughly doubling or quadrupling probe
+latency. This is a route-analysis **NARROW**, not a full pilot GO: the protocol
+did not compute held-out oracle-gap recovery and authorized no task accuracy,
+free generation, exact-token, or runtime-speedup claim. See the
+[composition protocol](docs/pseudo_executed_embedding_composition_v1.md) and
+[route report](artifacts/pseudo_executed_embedding_composition_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

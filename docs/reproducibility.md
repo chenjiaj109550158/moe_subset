@@ -215,3 +215,52 @@ or task accuracy. Probe/replay latency and CUDA temporary memory are measured;
 transfer and stall are simulated. No model/dataset download, default-vector
 value, offline calibration statistic, learned parameter, or accuracy-based
 selection was used.
+
+## Executed-pseudo embedding composition analysis
+
+The immutable config and sample manifest are
+`configs/analysis/pseudo_executed_embedding_composition_v1.yaml` and
+`configs/analysis/pseudo_executed_embedding_composition_v1_samples.json`, with
+SHA-256 values
+`35d9ef891c4bccf8603cc0e4b98d8cbb51022a82f11ed72782293e374938e8f9` and
+`d554e10eed706e9bc35bdfbb91c58347c7e7a23fe23526460b06fc4e76bdaac1`.
+They were committed before any composition-model result. Run or resume the
+predeclared waves offline, with at most one worker per physical GPU:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_executed_embedding_composition run-simple --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_executed_embedding_composition run-advanced --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_executed_embedding_composition run-particles --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_executed_embedding_composition run-held-out --gpu 0 --shard-index 0 --shard-count 2
+python -m pseudoroute.benchmark.pseudo_executed_embedding_composition validate
+```
+
+Use GPU 1 with shard index 1 for the complementary shard. Successful
+JSON+safetensors pairs are checksum-resumed without overwrite. The final root
+contains 104 validated rows: 64 development, eight particle follow-up, and 32
+held-out route rows. Its 242-entry manifest has SHA-256
+`e00e88fa8c20c90682f49b52415792681d688c02b74c887cb32be348d5efcac7`.
+Four `.FAILED.json` markers are intentionally retained: two current-token
+dispatch failures and two particle-attention configuration failures; later
+checksum-valid rows do not erase their provenance.
+
+Every deployable pseudo policy executes native attention/RoPE/router semantics
+on disposable shadow state. Boundary zero permits full native top-8 execution;
+later boundaries execute only the policy's previous realized B=32 layer subset,
+so the MoE residual is freshly produced by the pseudo forward rather than copied
+from the previous window. Production cache identities/data/version counters and
+RNG are audited unchanged. No default-vector values, learned/fitted parameters,
+future true tokens, answers, correctness, or accuracy select a deployable
+variant. Exact-future rows are diagnostics only.
+
+Route hit and selected mass are teacher-forced measurements on each policy's own
+hard-subset state. Probe/replay latency and temporary memory are measured;
+transfer reduction is simulated. The terminal `NARROW` applies only to this
+route analysis. Held-out oracle-gap recovery, task accuracy, free generation,
+exact-token agreement, NLL/perplexity, closed-loop runtime, and runtime speedup
+were not measured, so this artifact cannot by itself authorize or support those
+claims.

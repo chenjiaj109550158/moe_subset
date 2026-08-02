@@ -697,3 +697,63 @@ model `STOP/PIVOT`, and M11 are unchanged.
 A future calibration-free attempt must predeclare how it addresses late-anchor
 and late-layer decay; it may not reuse these development results as held-out
 validation. New rows or any accuracy execution require new authorization.
+
+## D-20260802-039 — Narrow the executed-pseudo composition to route evidence
+
+**Status:** accepted
+
+**Context:** The previous residual-bank experiment copied the preceding window's
+MoE output into a new pseudo pass. The user clarified the intended mechanism:
+run the pseudo embedding through the actual MoE at every planning step, using
+the preceding realized per-layer subset for expert execution. Full-expert
+prefill permits native top-8 execution at boundary zero; all later boundaries
+execute only the prior B=32 subset. A separately committed protocol froze four
+development and eight disjoint held-out route IDs, content/attention variants,
+particle follow-ups, route-only ranking, and gates before model results. It used
+no learned or calibrated values.
+
+Development selected `self_greedy_causal` at 0.788767 route hit and 0.805782
+selected mass. On held-out rows it reached 0.765119/0.784870 versus
+0.611168/0.621438 for previous route and 0.669112/0.682921 for sampled-token
+repeat. Its aggregate gains over previous route were +0.153951/+0.163432; paired
+sample-bootstrap 95% intervals were [0.139943, 0.168826] and
+[0.148633, 0.179291]. Simulated transfer reduction was 0.555027. Every
+cache/RNG/shadow/information audit passed. Top-2 and top-4 probability-weighted
+particle rollouts improved route hit over greedy by only +0.000590/+0.000621 and
+selected mass by +0.002408/+0.001951, while measured probe latency increased
+from 2.1108 seconds to 4.0874/7.9009 seconds on development.
+
+**Decision:** Record **NARROW** only for calibration-free Qwen/GSM8K
+`H=8,B=32` route analysis. Fresh autoregressive pseudo state plus a native MoE
+residual executed under the previous subset materially closes more route error
+than repeated sampled-token content or previous route. Keep greedy self-rollout
+as the best composition; do not promote particle branching. Do not execute task
+accuracy under this analysis protocol: it deliberately did not compute the
+predeclared oracle-gap recovery condition or freeze a paired allowed-drop rule
+for generation.
+
+**Alternatives considered:** Reuse the prior window's residual bank, use zero
+MoE contribution, repeat sampled/current/expected-token embeddings independently,
+use causal recent true tokens, rank exact-future diagnostics, promote particles
+for their tiny metric gain, or infer a full-pilot GO from route metrics alone.
+
+**Consequences:** The final root validates 104 atomic rows and 242 checksummed
+artifacts; manifest SHA-256 is
+`e00e88fa8c20c90682f49b52415792681d688c02b74c887cb32be348d5efcac7`.
+Four failure markers remain provenance, including the particle causal-dispatch
+bug fixed in commit `a58bd6f`. Measurements are teacher-forced on each policy's
+own hard-subset state, not vanilla route replay, but they are not free generation
+or task accuracy. Transfer is simulated; probe/replay time and memory are
+measured. No exact-token, NLL/perplexity, runtime-speedup, or full-dataset claim
+is supported.
+
+**Experiments affected:** Only
+`pseudo_executed_embedding_composition_v1`. Earlier pseudo `STOP/PIVOT`, GPT
+hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 decisions remain
+unchanged.
+
+**Migration required:** Any actual closed-loop pilot needs a new committed
+execution amendment that freezes the same policy/IDs/token caps, adds an
+oracle-gap computation and paired accuracy allowed-drop before generation, and
+keeps sample scope within prior authorization. Expanded rows, learned predictors,
+or default-vector recalibration still require explicit human authorization.

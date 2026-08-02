@@ -204,17 +204,21 @@ closed-loop evaluation, and must not relabel this negative result.
 Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 189 files already formatted.
+- `ruff format --check .`: PASS; 196 files already formatted.
 - `ruff check .`: PASS.
-- `mypy src/pseudoroute`: PASS; no issues in 103 source files.
+- `mypy src/pseudoroute`: PASS; no issues in 105 source files.
 - Focused residual-window/Qwen/shadow tests: PASS; 28 passed.
-- `python -m pytest -ra`: PASS; 185 passed, 3 expected skips in 15.47s.
+- Particle-dispatch focused tests: PASS; 12 passed.
+- `python -m pytest -ra`: PASS; 194 passed, 3 expected skips in 16.31s.
 - Five calibration-free artifact validators: PASS; manifest counts
   11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
   terminal `complete/report_v1` `STOP/PIVOT`.
 - Residual-window validator: PASS; 64/64 atomic sample-policy rows, 171 manifest
   artifacts, zero failed markers, and terminal `complete/report_v1`
   `STOP/PIVOT`.
+- Executed-pseudo composition validator: PASS; 104/104 atomic sample-policy
+  rows, 242 manifest artifacts, four preserved failure markers, and terminal
+  `complete/report_v1` route-analysis `NARROW`.
 
 Retained 2026-07-27 acceptance records below were not rerun in this focused
 session:
@@ -249,13 +253,16 @@ None.
 
 ## Next exact tasks
 
-The focused pseudo-embedding v1 stage, calibration-free held-out follow-up, and
-policy-state previous-window residual experiment are terminal at
-**STOP/PIVOT**. Preserve their negative artifacts and do not run actual accuracy.
-No predictor training, expanded dataset scope, default-vector recalibration, or
-production runtime work is authorized. A future attempt needs a separately
-frozen hypothesis that addresses the observed late-anchor and late-layer decay;
-new sample rows require explicit human authorization.
+The original focused pseudo-embedding v1 stage, calibration-free prompt-route
+follow-up, and previous-window residual-bank experiment remain terminal at
+**STOP/PIVOT**. The newer executed-pseudo composition analysis is terminal at a
+route-only **NARROW**: preserve its positive held-out route evidence, but do not
+run actual accuracy from this analysis protocol because held-out oracle-gap
+recovery and a paired allowed-drop rule were not frozen here. A generation stage
+requires a new committed execution amendment using fixed existing IDs and gates
+before any accuracy is observed. No predictor training, expanded dataset scope,
+default-vector recalibration, or production runtime work is authorized; new
+sample rows require explicit human authorization.
 
 ## Decisions needing human review
 
