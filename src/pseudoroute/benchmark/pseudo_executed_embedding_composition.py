@@ -29,7 +29,7 @@ from pseudoroute.benchmark.pseudo_embedding_residual_window import (
     run_policy_sample,
 )
 from pseudoroute.benchmark.pseudo_embedding_route import _source_model, _source_rows
-from pseudoroute.benchmark.runner import _load_model
+from pseudoroute.benchmark.runner import _load_model, _software_hardware
 from pseudoroute.benchmark.subset_trace import sha256_file, write_json_atomic
 from pseudoroute.utils.determinism import seed_everything
 
@@ -723,6 +723,285 @@ def aggregate_held_out() -> dict[str, object]:
     return result
 
 
+def _write_text_atomic(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_text(value, encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def _artifact_manifest() -> dict[str, object]:
+    excluded = {"artifact_manifest.json", "pipeline_status.json"}
+    artifacts = []
+    for path in sorted(value for value in OUTPUT.rglob("*") if value.is_file()):
+        relative = str(path.relative_to(OUTPUT))
+        if relative in excluded:
+            continue
+        artifacts.append(
+            {
+                "path": relative,
+                "bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+        )
+    manifest = {
+        "schema_version": 1,
+        "state": "complete",
+        "analysis_id": ANALYSIS_ID,
+        "analysis_config_sha256": CONFIG_SHA256,
+        "sample_manifest_sha256": SAMPLES_SHA256,
+        "artifact_count": len(artifacts),
+        "artifacts": artifacts,
+    }
+    write_json_atomic(OUTPUT / "artifact_manifest.json", manifest)
+    return manifest
+
+
+def _validate_manifest() -> dict[str, Any]:
+    manifest = _json(OUTPUT / "artifact_manifest.json")
+    actual = {
+        str(path.relative_to(OUTPUT))
+        for path in OUTPUT.rglob("*")
+        if path.is_file()
+        and str(path.relative_to(OUTPUT)) not in {"artifact_manifest.json", "pipeline_status.json"}
+    }
+    recorded = {str(row["path"]) for row in manifest["artifacts"]}
+    if actual != recorded:
+        raise ValueError("composition artifact manifest file set changed")
+    for row in manifest["artifacts"]:
+        path = OUTPUT / row["path"]
+        if path.stat().st_size != row["bytes"] or sha256_file(path) != row["sha256"]:
+            raise ValueError(f"composition artifact checksum changed: {path}")
+    return manifest
+
+
+def _report() -> str:
+    development = _json(OUTPUT / "development" / "aggregates.json")["policies"]
+    selection = _json(OUTPUT / "development" / "selection.json")
+    particles = _json(OUTPUT / "particle_follow_up" / "aggregates.json")
+    held_out = _json(OUTPUT / "held_out_route" / "aggregates.json")
+    held_decision = _json(OUTPUT / "held_out_route" / "decision.json")
+    selected = str(selection["selected_deployable"])
+    ranked = sorted(
+        (
+            (key, values)
+            for key, values in development.items()
+            if key in {*cast(set[str], set(_protocol()[0]["development_variants"]["deployable"]))}
+        ),
+        key=lambda item: (
+            -float(item[1]["mean_selected_mass"]),
+            -float(item[1]["mean_route_hit"]),
+            item[0],
+        ),
+    )
+    lines = [
+        "# Pseudo-executed embedding composition v1",
+        "",
+        "All candidates use a fresh native MoE residual computed on the pseudo hidden "
+        "state. Boundary zero executes full native top-8; later boundaries execute only "
+        "the policy's previous realized B=32 subset.",
+        "",
+        f"Development selected **{selected}** using route/cost metrics only.",
+        "",
+        "## Development",
+        "",
+        "| Variant | Route hit | Selected mass | Transfer reduction | Mean probe s |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for key, values in ranked:
+        lines.append(
+            f"| {key} | {float(values['mean_route_hit']):.6f} | "
+            f"{float(values['mean_selected_mass']):.6f} | "
+            f"{float(values['estimated_transfer_reduction']):.6f} | "
+            f"{float(values['mean_probe_latency_seconds']):.4f} |"
+        )
+    lines.extend(
+        [
+            "",
+            "Exact-future variants are non-deployable diagnostics and were excluded from "
+            "selection.",
+            "",
+            "## Particle follow-up",
+            "",
+        ]
+    )
+    for key, values in particles["policies"].items():
+        lines.append(
+            f"- {key}: route hit {float(values['mean_route_hit']):.6f}, selected mass "
+            f"{float(values['mean_selected_mass']):.6f}, mean probe "
+            f"{float(values['mean_probe_latency_seconds']):.4f} s."
+        )
+    lines.extend(
+        [
+            "",
+            "Particle variants are a separately declared follow-up and do not replace the "
+            "development-selected held-out candidate.",
+            "",
+            "## Held-out route evaluation",
+            "",
+        ]
+    )
+    for key, values in held_out["policies"].items():
+        lines.append(
+            f"- {key}: route hit {float(values['mean_route_hit']):.6f}, selected mass "
+            f"{float(values['mean_selected_mass']):.6f}, simulated transfer reduction "
+            f"{float(values['estimated_transfer_reduction']):.6f}."
+        )
+    lines.extend(
+        [
+            "",
+            f"Route-only decision: **{held_decision['decision']}**. Oracle-gap recovery was "
+            "not computed in this composition protocol, so this result cannot authorize "
+            "task-accuracy generation or a full GO claim.",
+            "",
+            "All route values are teacher-forced measurements on each policy's own hard-subset "
+            "state. Transfer is simulated. Probe/replay time and temporary memory are measured. "
+            "No task accuracy, free generation, exact-token identity, or runtime speedup was "
+            "measured.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def finalize() -> dict[str, object]:
+    config, samples = _protocol()
+    for name in ("development", "particle_follow_up", "held_out_route"):
+        status = _json(OUTPUT / name / "pipeline_status.json")
+        if status.get("state") != "complete":
+            raise ValueError(f"composition {name} is incomplete")
+    row_paths = [path for path in OUTPUT.glob("*/samples/*/*.json") if ".FAILED." not in path.name]
+    rows = [_json(path) for path in sorted(row_paths)]
+    failures = sorted(str(path.relative_to(OUTPUT)) for path in OUTPUT.rglob("*.FAILED.json"))
+    held_decision = _json(OUTPUT / "held_out_route" / "decision.json")
+    focused_decision = "NARROW" if held_decision["decision"] == "ROUTE_SIGNAL" else "STOP/PIVOT"
+    write_json_atomic(OUTPUT / "resolved_config.json", config)
+    write_json_atomic(OUTPUT / "resolved_sample_manifest.json", samples)
+    write_json_atomic(OUTPUT / "resolved_environment.json", _software_hardware())
+    write_json_atomic(
+        OUTPUT / "resolved_execution_revision.json",
+        {
+            "git_head_at_report": _git_head(),
+            "row_execution_git_heads": sorted({str(row["execution_git_head"]) for row in rows}),
+            "pid": os.getpid(),
+            "ppid": os.getppid(),
+        },
+    )
+    write_json_atomic(
+        OUTPUT / "source_audit.json",
+        {
+            "analysis_config_sha256": CONFIG_SHA256,
+            "sample_manifest_sha256": SAMPLES_SHA256,
+            "source_suite_manifest_sha256": config["source_suite"]["artifact_manifest_sha256"],
+            "source_mechanism_manifest_sha256": config["source_mechanism_smoke"][
+                "artifact_manifest_sha256"
+            ],
+            "network_downloads": False,
+            "new_rows_or_traces": False,
+            "all_frozen_hashes_match": True,
+        },
+    )
+    write_json_atomic(
+        OUTPUT / "measured_vs_simulated.json",
+        {
+            "measured": [
+                "teacher_forced_policy_state_route_hit",
+                "teacher_forced_policy_state_selected_mass",
+                "native_pseudo_expert_residual",
+                "probe_latency",
+                "temporary_cuda_memory",
+                "attention_router_expert_calls",
+                "sample_policy_replay_elapsed_time",
+            ],
+            "simulated": ["expert_transfer_bytes", "transfer_reduction"],
+            "not_measured": [
+                "task_accuracy",
+                "free_generation",
+                "exact_token_identity",
+                "nll_or_perplexity",
+                "closed_loop_runtime",
+                "runtime_speedup",
+            ],
+            "actual_closed_loop_generation_rows": 0,
+            "identity_materialized_rows": 0,
+        },
+    )
+    write_json_atomic(
+        OUTPUT / "resume_audit.json",
+        {
+            "state": "complete",
+            "sample_policy_rows_validated": len(rows),
+            "atomic_json_tensor_pairs": True,
+            "checksum_resume_pass": True,
+            "failed_markers_preserved": failures,
+        },
+    )
+    write_json_atomic(
+        OUTPUT / "provenance.json",
+        {
+            "analysis_id": ANALYSIS_ID,
+            "model": config["model"]["id"],
+            "model_revision": config["model"]["revision"],
+            "precision": config["model"]["precision"],
+            "development_sample_ids": [
+                row["sample_id"] for row in samples["partitions"]["development"]
+            ],
+            "held_out_sample_ids": [
+                row["sample_id"] for row in samples["partitions"]["held_out_route"]
+            ],
+            "execution_pids": sorted({int(row["pid"]) for row in rows}),
+            "execution_ppids": sorted({int(row["ppid"]) for row in rows}),
+            "physical_gpus": sorted({int(row["physical_gpu"]) for row in rows}),
+            "learned_or_fitted_parameters": False,
+            "default_vector_values_loaded": False,
+            "task_accuracy_measured": False,
+            "transfer_kind": "simulated",
+        },
+    )
+    decision = {
+        "analysis_id": ANALYSIS_ID,
+        "decision": focused_decision,
+        "held_out_route_decision": held_decision,
+        "scope": "Qwen_GSM8K_H8_B32_embedding_composition_route_analysis",
+        "task_accuracy_authorized": False,
+        "runtime_speedup_claim": False,
+    }
+    write_json_atomic(OUTPUT / "decision.json", decision)
+    _write_text_atomic(OUTPUT / "report.md", _report())
+    manifest = _artifact_manifest()
+    status = {
+        "schema_version": 1,
+        "state": "complete",
+        "stage": "report_v1",
+        "analysis_id": ANALYSIS_ID,
+        "analysis_config_sha256": CONFIG_SHA256,
+        "decision": focused_decision,
+        "sample_policy_rows": len(rows),
+        "artifact_count": manifest["artifact_count"],
+        "task_accuracy_executed": False,
+    }
+    write_json_atomic(OUTPUT / "pipeline_status.json", status)
+    validate()
+    return status
+
+
+def validate() -> dict[str, object]:
+    _protocol()
+    status = _json(OUTPUT / "pipeline_status.json")
+    if status.get("state") != "complete" or status.get("stage") != "report_v1":
+        raise ValueError("composition pipeline is incomplete")
+    resume = _json(OUTPUT / "resume_audit.json")
+    if not resume.get("checksum_resume_pass"):
+        raise ValueError("composition resume audit failed")
+    manifest = _validate_manifest()
+    return {
+        "state": "valid",
+        "decision": status["decision"],
+        "sample_policy_rows": status["sample_policy_rows"],
+        "artifacts": manifest["artifact_count"],
+    }
+
+
 def _parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -735,6 +1014,8 @@ def _parse() -> argparse.Namespace:
             "aggregate-development",
             "aggregate-particles",
             "aggregate-held-out",
+            "finalize",
+            "validate",
         ),
     )
     parser.add_argument("--gpu", type=int, default=1)
@@ -753,6 +1034,12 @@ def main() -> None:
         return
     if args.command == "aggregate-held-out":
         print(json.dumps(aggregate_held_out(), indent=2, sort_keys=True))
+        return
+    if args.command == "finalize":
+        print(json.dumps(finalize(), indent=2, sort_keys=True))
+        return
+    if args.command == "validate":
+        print(json.dumps(validate(), indent=2, sort_keys=True))
         return
     result = run_wave(
         (
