@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "analysis_id": "pseudo_embedding_qwen_gsm8k_residual_window_v1",
+  "selection": {
+    "source_population": 1319,
+    "excluded_existing_frozen_rows": 30,
+    "eligible_new_held_out_population": 1289,
+    "accuracy_correctness_or_ground_truth_used": false,
+    "new_held_out_rank_payload": "pseudo_embedding_qwen_gsm8k_residual_window_v1|heldout-route-ranking-v1|{row_index}|{sample_id}",
+    "ranking": "ascending_sha256_then_ascending_row_index",
+    "new_held_out_allocation": "first_eight_eligible_after_excluding_all_rows_in_original_pseudo_embedding_qwen_gsm8k_v1_manifest",
+    "development_rule": "reuse_original_four_frozen_development_rows",
+    "mechanism_rule": "reuse_original_two_frozen_mechanism_rows",
+    "closed_loop_rule": "reuse_original_sixteen_frozen_unexecuted_closed_loop_rows"
+  },
+  "partitions": {
+    "mechanism_smoke": {
+      "rows": [
+        {"row_index": 786, "sample_id": "test-786"},
+        {"row_index": 394, "sample_id": "test-394"}
+      ]
+    },
+    "development": {
+      "rows": [
+        {"row_index": 0, "sample_id": "test-0"},
+        {"row_index": 439, "sample_id": "test-439"},
+        {"row_index": 879, "sample_id": "test-879"},
+        {"row_index": 1318, "sample_id": "test-1318"}
+      ]
+    },
+    "held_out_route_new": {
+      "rows": [
+        {"row_index": 88, "sample_id": "test-88", "sha256_rank": "001f525692cd800fb39da1738e1e9cd7b08caa64738826b6d7234df6e1da8241"},
+        {"row_index": 898, "sample_id": "test-898", "sha256_rank": "00643a34fc191963d3b611d4a1f3cb83fdb8aaaf106367dec021005e42069b63"},
+        {"row_index": 141, "sample_id": "test-141", "sha256_rank": "006bbb6e92a43151bb766af773bee55d3bd1d7e15e0804136064d864d199eaf5"},
+        {"row_index": 819, "sample_id": "test-819", "sha256_rank": "009ecbb258f54eb7b2314569c292f57bdd59ca1d81da2a3a8ff8145642b56c8f"},
+        {"row_index": 1250, "sample_id": "test-1250", "sha256_rank": "00ffe3639b5e165154341f571fb349bd56415278e2f7d619a8b2a48262cbc015"},
+        {"row_index": 1110, "sample_id": "test-1110", "sha256_rank": "011852c026912045f18a46c3e88229a6fdc45e525e5363495816337d8d089b1d"},
+        {"row_index": 1049, "sample_id": "test-1049", "sha256_rank": "01251b9cf9c6ed81c3035431a0cfb4ef5534e914c9aac11669b4701089ec404a"},
+        {"row_index": 1222, "sample_id": "test-1222", "sha256_rank": "016a715df1484c90148934628abd63a0edbfaa6396d7cd27b1b6c1233e96048d"}
+      ]
+    },
+    "closed_loop_wave_1": {
+      "rows": [
+        {"row_index": 44, "sample_id": "test-44"},
+        {"row_index": 632, "sample_id": "test-632"},
+        {"row_index": 444, "sample_id": "test-444"},
+        {"row_index": 519, "sample_id": "test-519"},
+        {"row_index": 1311, "sample_id": "test-1311"},
+        {"row_index": 1264, "sample_id": "test-1264"},
+        {"row_index": 825, "sample_id": "test-825"},
+        {"row_index": 252, "sample_id": "test-252"}
+      ]
+    },
+    "closed_loop_wave_2": {
+      "rows": [
+        {"row_index": 668, "sample_id": "test-668"},
+        {"row_index": 892, "sample_id": "test-892"},
+        {"row_index": 1136, "sample_id": "test-1136"},
+        {"row_index": 850, "sample_id": "test-850"},
+        {"row_index": 760, "sample_id": "test-760"},
+        {"row_index": 842, "sample_id": "test-842"},
+        {"row_index": 87, "sample_id": "test-87"},
+        {"row_index": 658, "sample_id": "test-658"}
+      ]
+    }
+  }
+}
+
