@@ -7,18 +7,24 @@ import json
 import os
 import subprocess
 import traceback
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, cast
 
 import torch
 import yaml
+from safetensors.torch import load_file
 
 from pseudoroute.benchmark.config import load_accuracy_suite_config
 from pseudoroute.benchmark.prefetch import Qwen3MoePrefetchOps
 from pseudoroute.benchmark.pseudo_embedding_config import load_pseudo_embedding_config
 from pseudoroute.benchmark.pseudo_embedding_residual_window import (
     PolicySpec,
+    _aggregate_policy,
+    _paired_bootstrap,
+    _per_sample,
     _save_tensors_atomic,
+    _write_gzip_jsonl,
     run_policy_sample,
 )
 from pseudoroute.benchmark.pseudo_embedding_route import _source_model, _source_rows
@@ -83,6 +89,7 @@ ADVANCED_SPECS = (
     _pseudo("self_greedy_causal", "self_greedy_causal"),
     _pseudo("self_expected_top8_causal", "self_expected_top8_causal"),
 )
+ALL_DEVELOPMENT_SPECS = (*SIMPLE_SPECS, *ADVANCED_SPECS)
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -246,17 +253,299 @@ def run_wave(
     }
 
 
+def _audit_pass(row: dict[str, Any]) -> bool:
+    if not row["prompt_capture_audit"]["production_rng_unchanged"]:
+        return False
+    for audit in row["cache_rng_audits"]:
+        if not all(
+            (
+                audit.get("production_cache_signature_unchanged", False),
+                audit.get("production_rng_unchanged", False),
+                audit.get("shadow_cache_discarded", False),
+                not audit.get("forbidden_inputs_present", True),
+            )
+        ):
+            return False
+        if row["shadow_expert_execution"] and not all(
+            (
+                audit.get("shadow_expert_execution", False),
+                audit.get("full_pre_mask_scores_all_experts", False),
+                audit.get("shadow_residual_finite", False),
+                audit.get("shadow_residual_nonzero", False),
+            )
+        ):
+            return False
+    return True
+
+
+def _router_sensitivity(
+    references: list[dict[str, Any]],
+    specs: tuple[PolicySpec, ...],
+) -> dict[str, object]:
+    baseline_key = "sampled_repeat_independent"
+    output: dict[str, object] = {}
+    for spec in specs:
+        if spec.role != "pseudo" or spec.key == "provided_previous_residual_control":
+            continue
+        squared = 0.0
+        baseline_energy = 0.0
+        overlap = 0
+        slots = 0
+        for reference in references:
+            row_index = int(reference["row_index"])
+            candidate = load_file(str(_paths("development", row_index, spec.key)[1]))[
+                "pseudo_router_logits"
+            ].double()
+            baseline = load_file(str(_paths("development", row_index, baseline_key)[1]))[
+                "pseudo_router_logits"
+            ].double()
+            candidate = candidate - candidate.mean(dim=-1, keepdim=True)
+            baseline = baseline - baseline.mean(dim=-1, keepdim=True)
+            squared += float((candidate - baseline).square().sum())
+            baseline_energy += float(baseline.square().sum())
+            candidate_ids = candidate.topk(TOP_K, dim=-1).indices
+            baseline_ids = baseline.topk(TOP_K, dim=-1).indices
+            overlap += int(
+                (candidate_ids.unsqueeze(-1) == baseline_ids.unsqueeze(-2)).any(dim=-1).sum()
+            )
+            slots += candidate_ids.numel()
+        output[spec.key] = {
+            "normalized_centered_logit_rms": (
+                (squared / baseline_energy) ** 0.5 if baseline_energy else 0.0
+            ),
+            "pseudo_top8_overlap_with_sampled_repeat": overlap / slots,
+            "compared_router_slots": slots,
+        }
+    return {
+        "reference": baseline_key,
+        "comparisons": output,
+    }
+
+
+def _composition_strata(
+    rows: list[dict[str, Any]],
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    grouped: dict[str, dict[str, dict[str, float]]] = defaultdict(
+        lambda: defaultdict(
+            lambda: {
+                "route_hits": 0.0,
+                "route_slots": 0.0,
+                "selected_mass_hit": 0.0,
+                "selected_mass_total": 0.0,
+            }
+        )
+    )
+    observations: list[dict[str, object]] = []
+    for row in rows:
+        tensors = load_file(
+            str(_paths("development", int(row["row_index"]), str(row["policy"]))[1])
+        )
+        ids = tensors["natural_router_topk_ids"]
+        weights = tensors["natural_router_topk_weights"].float()
+        subsets = tensors["subsets"]
+        boundaries = [int(value) for value in tensors["boundaries"].tolist()]
+        for boundary_index, boundary in enumerate(boundaries):
+            end = (
+                boundaries[boundary_index + 1]
+                if boundary_index + 1 < len(boundaries)
+                else ids.shape[0]
+            )
+            for token_index in range(boundary, end):
+                anchor = token_index - boundary + 1
+                for layer in range(ids.shape[1]):
+                    allowed = set(int(value) for value in subsets[boundary_index, layer])
+                    token_ids = ids[token_index, layer]
+                    token_weights = weights[token_index, layer]
+                    mask = torch.tensor([int(value) in allowed for value in token_ids])
+                    observation = {
+                        "policy": str(row["policy"]),
+                        "sample_id": str(row["sample_id"]),
+                        "boundary": boundary,
+                        "anchor": anchor,
+                        "layer": layer,
+                        "route_hits": int(mask.sum()),
+                        "route_slots": int(mask.numel()),
+                        "selected_mass_hit": float(token_weights[mask].double().sum()),
+                        "selected_mass_total": float(token_weights.double().sum()),
+                    }
+                    observations.append(observation)
+                    for axis, value in (
+                        ("anchor", str(anchor)),
+                        ("layer", str(layer)),
+                        ("layer_block", str(layer // 8)),
+                    ):
+                        key = f"{axis}/{row['policy']}/{value}"
+                        aggregate = grouped[axis][key]
+                        for field in aggregate:
+                            aggregate[field] += float(cast(int | float, observation[field]))
+    strata: dict[str, object] = {}
+    for axis, values in grouped.items():
+        strata[axis] = {
+            key: {
+                **aggregate,
+                "mean_route_hit": aggregate["route_hits"] / aggregate["route_slots"],
+                "mean_selected_mass": (
+                    aggregate["selected_mass_hit"] / aggregate["selected_mass_total"]
+                ),
+            }
+            for key, aggregate in sorted(values.items())
+        }
+    worst = sorted(
+        observations,
+        key=lambda row: (
+            float(cast(float, row["selected_mass_hit"]))
+            / float(cast(float, row["selected_mass_total"])),
+            float(cast(int, row["route_hits"])) / float(cast(int, row["route_slots"])),
+            str(row["policy"]),
+            str(row["sample_id"]),
+            cast(int, row["boundary"]),
+            cast(int, row["anchor"]),
+            cast(int, row["layer"]),
+        ),
+    )[:200]
+    return strata, worst
+
+
+def aggregate_development() -> dict[str, object]:
+    config, samples = _protocol()
+    references = samples["partitions"]["development"]
+    rows: list[dict[str, Any]] = []
+    for reference in references:
+        for spec in ALL_DEVELOPMENT_SPECS:
+            row = _valid("development", reference, spec)
+            if row is None:
+                raise RuntimeError(f"missing development row: {reference['sample_id']}/{spec.key}")
+            rows.append(row)
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[str(row["policy"])].append(row)
+    aggregates = {
+        policy: _aggregate_policy(policy_rows) for policy, policy_rows in sorted(grouped.items())
+    }
+    eligible = set(config["development_variants"]["deployable"])
+    selected = sorted(
+        eligible,
+        key=lambda key: (
+            -float(aggregates[key]["mean_selected_mass"]),
+            -float(aggregates[key]["mean_route_hit"]),
+            -float(aggregates[key]["estimated_transfer_reduction"]),
+            float(aggregates[key]["mean_probe_latency_seconds"]),
+            key,
+        ),
+    )[0]
+    baseline = "sampled_repeat_independent"
+    previous = "previous_route_commitment"
+    paired_baseline = _paired_bootstrap(
+        {str(row["sample_id"]): _per_sample(row) for row in grouped[selected]},
+        {str(row["sample_id"]): _per_sample(row) for row in grouped[baseline]},
+    )
+    paired_previous = _paired_bootstrap(
+        {str(row["sample_id"]): _per_sample(row) for row in grouped[selected]},
+        {str(row["sample_id"]): _per_sample(row) for row in grouped[previous]},
+    )
+    root = OUTPUT / "development"
+    write_json_atomic(
+        root / "aggregates.json",
+        {
+            "analysis_id": ANALYSIS_ID,
+            "analysis_config_sha256": CONFIG_SHA256,
+            "policies": aggregates,
+        },
+    )
+    write_json_atomic(
+        root / "selection.json",
+        {
+            "analysis_id": ANALYSIS_ID,
+            "selected_deployable": selected,
+            "ranking_uses_accuracy": False,
+            "diagnostics_excluded": True,
+            "selected_minus_sampled_repeat": {
+                "mean_route_hit": float(aggregates[selected]["mean_route_hit"])
+                - float(aggregates[baseline]["mean_route_hit"]),
+                "mean_selected_mass": float(aggregates[selected]["mean_selected_mass"])
+                - float(aggregates[baseline]["mean_selected_mass"]),
+            },
+            "selected_minus_previous_route": {
+                "mean_route_hit": float(aggregates[selected]["mean_route_hit"])
+                - float(aggregates[previous]["mean_route_hit"]),
+                "mean_selected_mass": float(aggregates[selected]["mean_selected_mass"])
+                - float(aggregates[previous]["mean_selected_mass"]),
+            },
+        },
+    )
+    write_json_atomic(
+        root / "paired_bootstrap.json",
+        {
+            "selected_vs_sampled_repeat": paired_baseline,
+            "selected_vs_previous_route": paired_previous,
+        },
+    )
+    write_json_atomic(
+        root / "router_sensitivity.json",
+        _router_sensitivity(references, ALL_DEVELOPMENT_SPECS),
+    )
+    strata, worst = _composition_strata(rows)
+    write_json_atomic(root / "stratified_metrics.json", strata)
+    write_json_atomic(root / "worst_cases.json", worst)
+    _write_gzip_jsonl(
+        root / "raw_metrics.jsonl.gz",
+        [cast(dict[str, object], metric) for row in rows for metric in row["metrics"]],
+    )
+    audit = {
+        "all_pass": all(_audit_pass(row) for row in rows),
+        "sample_policy_rows": len(rows),
+        "cache_rng_shadow_information": True,
+        "future_true_tokens_only_in_diagnostics": True,
+        "accuracy_or_correctness_used": False,
+    }
+    write_json_atomic(root / "audit.json", audit)
+    write_json_atomic(
+        root / "cost_report.json",
+        {
+            policy: {
+                key: value
+                for key, value in aggregate.items()
+                if key
+                in {
+                    "mean_probe_latency_seconds",
+                    "max_temporary_cuda_bytes",
+                    "attention_queries",
+                    "attention_calls",
+                    "router_calls",
+                    "expert_calls",
+                    "total_sample_policy_elapsed_seconds",
+                }
+            }
+            for policy, aggregate in aggregates.items()
+        },
+    )
+    result = {
+        "state": "complete",
+        "sample_policy_rows": len(rows),
+        "selected_deployable": selected,
+        "all_audits_pass": audit["all_pass"],
+    }
+    write_json_atomic(root / "pipeline_status.json", result)
+    return result
+
+
 def _parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("run-simple", "run-advanced"))
-    parser.add_argument("--gpu", type=int, required=True)
-    parser.add_argument("--shard-index", type=int, required=True)
+    parser.add_argument(
+        "command",
+        choices=("run-simple", "run-advanced", "aggregate-development"),
+    )
+    parser.add_argument("--gpu", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--shard-count", type=int, default=2)
     return parser.parse_args()
 
 
 def main() -> None:
     args = _parse()
+    if args.command == "aggregate-development":
+        print(json.dumps(aggregate_development(), indent=2, sort_keys=True))
+        return
     result = run_wave(
         (
             "simple_content_attention"
