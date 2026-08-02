@@ -656,3 +656,44 @@ GPT hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 remain unchanged.
 online MoE-residual/state reuse and autoregressive shadow contents under a new
 committed protocol. New rows or expanded sample scope require explicit human
 authorization. No actual accuracy is permitted from this failed gate.
+
+## D-20260802-038 — Stop the previous-window MoE-residual pseudo experiment at development
+
+**Context:** The user clarified that one step means an `H=8` output window. Full-
+expert prefill can capture the exact MoE mixture output for the last eight prompt
+tokens; after commitment, each hard policy can capture the mixture outputs it
+actually executes and use them to plan the following window. A new protocol
+froze residual/content ablations, seven analytic pseudo/history combinations,
+four development IDs, new disjoint held-out IDs, and gates before results.
+
+**Decision:** Keep the result at **STOP/PIVOT**. Position-aligned residuals and
+sampled-repeat independent anchors were selected without accuracy. The best
+development formula, first-four-anchor core plus history fill, reached
+0.639706 route hit and 0.649761 selected mass versus previous-route
+0.623634/0.634308. Its +0.016072/+0.015453 gains missed both required +0.05
+checks, despite passing static, 25% residency, 0.399547 simulated-transfer, and
+all cache/RNG/information/parity checks. Do not run the new held-out route set or
+the actual closed-loop accuracy partition.
+
+**Alternatives considered:** Promote positive paired intervals, select the
+slightly higher-hit inverse-decay method instead of the frozen mass-first rule,
+tune layer-specific or anchor-specific coefficients after observing results,
+use exact future tokens, read default-vector values, or expand samples.
+
+**Consequences:** Previous-window executed residuals materially outperform zero
+residuals in mechanism smoke, but the development gain is only about 4.9%/4.6%
+of the oracle-minus-previous gap. Gains concentrate in early layers and early
+anchors; layers 46–47 regress. These 64 teacher-forced hard-policy-state rows
+are route evidence with measured probe/replay cost and simulated transfer, not
+task accuracy, exact-token identity, free generation, or speedup.
+
+**Experiments affected:** Only
+`pseudo_embedding_qwen_gsm8k_residual_window_v1`. The original focused pilot,
+calibration-free prompt-route held-out result, GPT hard-only `NARROW`, trained-
+model `STOP/PIVOT`, and M11 are unchanged.
+
+**Migration required:** Preserve the 171-artifact root and manifest SHA-256
+`720e3e0ae68efeddd770226f7d953969c8313997455ac8520a39788b4dd71771`.
+A future calibration-free attempt must predeclare how it addresses late-anchor
+and late-layer decay; it may not reuse these development results as held-out
+validation. New rows or any accuracy execution require new authorization.

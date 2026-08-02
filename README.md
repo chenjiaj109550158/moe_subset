@@ -52,6 +52,20 @@ actual closed-loop rows were run. See the
 [calibration-free synthesis](docs/pseudo_embedding_calibration_free_synthesis_v1.md)
 and [held-out report](artifacts/pseudo_embedding_calibration_free_prompt_route_held_out_v1/report.md).
 
+The next separately frozen calibration-free experiment tested the user's
+window-level residual hypothesis: full-expert prefill supplies the last eight
+prompt MoE mixture outputs, then each policy reuses the eight mixture outputs it
+actually executed under its preceding hard subset. Position-aligned residuals
+were clearly better than zero, last-repeated, or mean-repeated residuals. Seven
+analytic pseudo/history constructions were then evaluated on each policy's own
+hard-subset state. The best reached route hit/selected mass
+0.639706/0.649761 versus 0.623634/0.634308 for previous-route, gains of only
++0.016072/+0.015453 and about 4.9%/4.6% oracle-gap recovery. Both frozen +0.05
+requirements failed, so the result is **STOP/PIVOT** and the new held-out and
+actual accuracy stages were not run. See the
+[residual-window protocol](docs/pseudo_embedding_qwen_gsm8k_residual_window_v1.md)
+and [report](artifacts/pseudo_embedding_qwen_gsm8k_residual_window_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

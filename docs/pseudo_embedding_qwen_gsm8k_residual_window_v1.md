@@ -120,3 +120,35 @@ Teacher-forced route metrics and simulated transfer/stall are not task accuracy
 or runtime speedup. Measured task accuracy, exact-token agreement, NLL, and
 generation runtime exist only if true closed-loop generation is reached. Even a
 positive result is at most `NARROW` for this Qwen/GSM8K `H=8,B=32` pilot.
+
+## Completed result
+
+All seven pseudo constructions, the previous-window-only invariant/control, and
+oracle/previous/static references completed on the four frozen development
+rows. Position-aligned residuals won the residual smoke at 0.668783 route hit
+and 0.674895 selected mass; sampled-next-token repetition with independent
+anchors won the deployable content smoke. The exact-future-token diagnostic was
+only 0.0186 hit and 0.0225 mass above that deployable content variant.
+
+The selected analytic construction was the first-four-anchor top-8 core union
+filled from previous-window route utility. It scored 0.639706 route hit,
+0.649761 selected mass, and 0.399547 simulated transfer reduction. The
+policy-matched previous-route reference scored 0.623634/0.634308; the oracle
+scored 0.949966/0.970436. Improvements were +0.016072/+0.015453 and recovered
+only 0.049250/0.045973 of the oracle-minus-previous gap. Both frozen +0.05
+requirements failed.
+
+The signal was strongest in early layers (layers 0–2 gained roughly
++0.084/+0.081, +0.076/+0.077, and +0.057/+0.067 in hit/mass) and decayed across
+pseudo anchors. Layers 46–47 regressed, with layer 47 at
+-0.031805/-0.036831. This shows that reusing an executed MoE residual is useful
+but not a sufficiently faithful next-window state approximation across all 48
+layers and eight anchors.
+
+The focused decision is **STOP/PIVOT**. The newly frozen held-out route IDs and
+the original 16-row accuracy partition were not executed. All 64 atomic rows,
+171 artifacts, previous-route parity, cache/RNG/shadow/native-semantics audits,
+row counts, checksums, and resume behavior validate. The full report is
+`artifacts/pseudo_embedding_qwen_gsm8k_residual_window_v1/report.md`; its
+artifact-manifest SHA-256 is
+`720e3e0ae68efeddd770226f7d953969c8313997455ac8520a39788b4dd71771`.

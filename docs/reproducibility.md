@@ -182,3 +182,36 @@ scoring is teacher-forced open-loop on saved v17 trajectories, transfer is
 simulated, and probe/replay cost is measured. Task accuracy, actual hard
 closed-loop generation, exact-token identity, NLL/perplexity, and speedup are not
 measured. Do not run an accuracy stage after the failed gate.
+
+## Previous-window residual pseudo analysis
+
+The immutable protocol and sample manifest are
+`configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1.yaml` and
+`configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1_samples.json`,
+with SHA-256 values
+`361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b` and
+`cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255`.
+They were committed before model output. The result is finalized and validated
+offline with:
+
+```bash
+python -m pseudoroute.benchmark.pseudo_embedding_residual_window_report finalize
+python -m pseudoroute.benchmark.pseudo_embedding_residual_window_report validate
+```
+
+`finalize` is idempotent over completed per-sample rows: it verifies all 64
+JSON+safetensors pairs, rebuilds only missing stage aggregates, writes
+development strata/worst cases/paired bootstrap, records held-out and closed-loop
+as not run after the failed gate, and creates a 171-entry checksum manifest. The
+authoritative artifact-manifest SHA-256 is
+`720e3e0ae68efeddd770226f7d953969c8313997455ac8520a39788b4dd71771`.
+
+The route runner itself is resumable at one sample/policy pair and uses each
+policy's own teacher-forced hard-subset hidden/cache state. It captures native
+pre-mask routes and the exact MoE mixture output actually executed during the
+preceding window. This is not vanilla open-loop route replay, but saved v17
+tokens are still teacher-forced, so it is also not actual closed-loop generation
+or task accuracy. Probe/replay latency and CUDA temporary memory are measured;
+transfer and stall are simulated. No model/dataset download, default-vector
+value, offline calibration statistic, learned parameter, or accuracy-based
+selection was used.

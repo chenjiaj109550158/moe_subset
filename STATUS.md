@@ -80,6 +80,42 @@ Held-out artifacts:
 Artifact-manifest SHA-256:
 `3f1b509d7d012e8266ee6a28e1863efb44f00a946b29646a484c859a5ecd08db`.
 
+## Previous-window MoE-residual pseudo analysis
+
+`pseudo_embedding_qwen_gsm8k_residual_window_v1` froze config SHA-256
+`361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b`,
+sample-manifest SHA-256
+`cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255`,
+all formulas, IDs, gates, and caps before model execution.
+
+- Full-expert prefill supplied the final eight prompt-token MoE mixture outputs;
+  later windows reused each hard policy's own eight actually executed mixture
+  outputs. No default-vector values, learned/fitted parameters, future true
+  tokens, answers, correctness, or accuracy entered selectable candidates.
+- Two-row smoke selected position-aligned residuals at 0.668783 route hit and
+  0.674895 selected mass, versus zero contribution at 0.568848/0.570145.
+  Sampled-next-token repeated content with independent anchors then won the
+  deployable content rule. Exact-future content was diagnostic-only.
+- Seven analytic pseudo/history constructions ran on the four frozen
+  development rows. The best, a first-four-anchor top-8 union filled by previous
+  route history, scored 0.639706/0.649761 versus previous-route
+  0.623634/0.634308 and oracle 0.949966/0.970436.
+- The gains were only +0.016072/+0.015453, with paired four-sample 95% intervals
+  [0.011566, 0.020695] and [0.011292, 0.020388]. Oracle-gap recovery was only
+  4.9%/4.6%. Both predeclared +0.05 progress checks failed; the decision is
+  **STOP/PIVOT**.
+- All 64 atomic sample-policy rows, 171 manifest artifacts, cache/RNG/shadow/
+  native-semantics audits, hard-mask execution, previous-route control parity,
+  row counts, checksums, and resume audit validate. There are no failed markers.
+- The new held-out route set and the 16-row actual closed-loop accuracy pilot
+  are explicitly not run. Task accuracy, exact-token identity, free-generation
+  NLL/perplexity/runtime, and runtime speedup were not measured. Transfer is
+  simulated; probe/replay latency and temporary memory are measured.
+
+Artifacts: `artifacts/pseudo_embedding_qwen_gsm8k_residual_window_v1/`.
+Artifact-manifest SHA-256:
+`720e3e0ae68efeddd770226f7d953969c8313997455ac8520a39788b4dd71771`.
+
 ## Completed GPT-OSS/GSM8K hard scope
 
 `benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
@@ -165,17 +201,20 @@ closed-loop evaluation, and must not relabel this negative result.
 
 ## Exact check results
 
-Focused-pilot final checks recorded 2026-08-01 UTC on Python 3.14.6, PyTorch
+Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 183 files already formatted.
+- `ruff format --check .`: PASS; 189 files already formatted.
 - `ruff check .`: PASS.
-- `mypy src/pseudoroute`: PASS; no issues in 101 source files.
-- Focused held-out/prompt/development/content/Qwen/subset tests: PASS; 26 passed.
-- `python -m pytest -ra`: PASS; 171 passed, 3 expected skips in 15.82s.
+- `mypy src/pseudoroute`: PASS; no issues in 103 source files.
+- Focused residual-window/Qwen/shadow tests: PASS; 28 passed.
+- `python -m pytest -ra`: PASS; 185 passed, 3 expected skips in 15.47s.
 - Five calibration-free artifact validators: PASS; manifest counts
   11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
   terminal `complete/report_v1` `STOP/PIVOT`.
+- Residual-window validator: PASS; 64/64 atomic sample-policy rows, 171 manifest
+  artifacts, zero failed markers, and terminal `complete/report_v1`
+  `STOP/PIVOT`.
 
 Retained 2026-07-27 acceptance records below were not rerun in this focused
 session:
@@ -210,13 +249,13 @@ None.
 
 ## Next exact tasks
 
-The focused pseudo-embedding v1 stage and calibration-free held-out follow-up
-are terminal at **STOP/PIVOT**. Preserve their negative artifacts and do not run
-actual accuracy. No predictor training, expanded dataset scope, default-vector
-recalibration, or production runtime work is authorized. The next defensible
-hypothesis is online current-request MoE-residual/state reuse plus autoregressive
-shadow content and predeclared horizon damping. Any execution needs a new,
-scoped protocol; new sample rows require explicit human authorization.
+The focused pseudo-embedding v1 stage, calibration-free held-out follow-up, and
+policy-state previous-window residual experiment are terminal at
+**STOP/PIVOT**. Preserve their negative artifacts and do not run actual accuracy.
+No predictor training, expanded dataset scope, default-vector recalibration, or
+production runtime work is authorized. A future attempt needs a separately
+frozen hypothesis that addresses the observed late-anchor and late-layer decay;
+new sample rows require explicit human authorization.
 
 ## Decisions needing human review
 
