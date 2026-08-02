@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from pseudoroute.benchmark.pseudo_one_forward_token_aligned_retrieval import SPECS
+
 CONFIG = Path("configs/analysis/pseudo_one_forward_token_aligned_retrieval_v1.yaml")
 SAMPLES = Path("configs/analysis/pseudo_one_forward_token_aligned_retrieval_v1_samples.json")
 
@@ -74,3 +76,10 @@ def test_token_aligned_retrieval_variants_match_frozen_design() -> None:
     ]
     assert config["audits"]["require_one_causal_forward_per_boundary"] is True
     assert config["audits"]["require_retrieved_indices_precede_boundary"] is True
+    assert [spec.key for spec in SPECS] == [variant["key"] for variant in variants]
+    assert [spec.retrieval_mode for spec in SPECS] == [variant["retrieval"] for variant in variants]
+    assert [spec.target for spec in SPECS] == [variant["target"] for variant in variants]
+    assert [spec.mixing for spec in SPECS] == [variant["mixing"] for variant in variants]
+    assert all(
+        spec.policy().selection == "first_four_anchor_core_plus_history_fill" for spec in SPECS
+    )

@@ -42,6 +42,8 @@ ExpertContribution = Literal[
     "zero",
 ]
 StateCorrection = Literal["none", "recent_linear_norm"]
+StateRetrievalTarget = Literal["none", "router_input", "moe_residual"]
+StateRetrievalMix = Literal["none", "additive_norm", "replace_norm"]
 
 
 @dataclass(frozen=True)
@@ -56,6 +58,8 @@ class QwenPseudoVariant:
     residual_correction: StateCorrection = "none"
     correction_anchor_coefficients: tuple[float, ...] | None = None
     correction_max_relative_delta_norm: float | None = None
+    state_retrieval_target: StateRetrievalTarget = "none"
+    state_retrieval_mix: StateRetrievalMix = "none"
 
 
 @dataclass(frozen=True)
@@ -71,6 +75,7 @@ class QwenProbeCost:
     cpu_gpu_synchronizations: int
     expert_calls: int = 0
     history_state_input_bytes: int = 0
+    retrieval_state_input_bytes: int = 0
 
 
 @dataclass(frozen=True)
@@ -149,6 +154,48 @@ def _linear_velocity_norm_match(
     return cast(Tensor, corrected.to(reference.dtype))
 
 
+def _retrieval_mix_norm_match(
+    reference: Tensor,
+    retrieved: Tensor,
+    similarities: Tensor,
+    *,
+    mixing: StateRetrievalMix,
+) -> Tensor:
+    """Mix anchor-aligned policy-local state while preserving each fresh norm."""
+    if (
+        reference.ndim != 3
+        or retrieved.ndim != 2
+        or reference.shape[1:] != retrieved.shape
+        or similarities.ndim != 1
+        or similarities.shape[0] != reference.shape[1]
+    ):
+        raise ValueError(
+            "state retrieval requires [batch, anchors, hidden], [anchors, hidden], and [anchors]"
+        )
+    if mixing not in {"additive_norm", "replace_norm"}:
+        raise ValueError("state retrieval mixing must be additive_norm or replace_norm")
+    similarity = similarities.to(reference.device, dtype=torch.float32).reshape(1, -1, 1)
+    if not bool(torch.isfinite(similarity).all()) or bool(
+        ((similarity < 0) | (similarity > 1)).any()
+    ):
+        raise ValueError("state retrieval similarities must be finite in [0,1]")
+    fresh = reference.float()
+    recalled = retrieved.to(reference.device).float().unsqueeze(0)
+    if not bool(torch.isfinite(recalled).all()):
+        raise ValueError("retrieved state is non-finite")
+    candidate = (
+        fresh + similarity * recalled
+        if mixing == "additive_norm"
+        else (1 - similarity) * fresh + similarity * recalled
+    )
+    fresh_norm = fresh.norm(dim=-1, keepdim=True)
+    candidate_norm = candidate.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+    mixed = candidate * (fresh_norm / candidate_norm)
+    if not bool(torch.isfinite(mixed).all()):
+        raise RuntimeError("state retrieval produced a non-finite tensor")
+    return cast(Tensor, mixed.to(reference.dtype))
+
+
 def _rng_snapshot(device: torch.device) -> tuple[Tensor, Tensor | None]:
     cpu = torch.random.get_rng_state().clone()
     cuda = torch.cuda.get_rng_state(device).clone() if device.type == "cuda" else None
@@ -225,6 +272,19 @@ class QwenPseudoEmbeddingProbe:
             raise ValueError(
                 "state corrections require causal provided content and native expert execution"
             )
+        retrieval_enabled = variant.state_retrieval_target != "none"
+        if retrieval_enabled != (variant.state_retrieval_mix != "none"):
+            raise ValueError("state retrieval target and mixing must be enabled together")
+        if retrieval_enabled and (
+            variant.content != "provided_sequence"
+            or variant.attention != "causal"
+            or variant.expert_contribution != "native_expert_execution"
+        ):
+            raise ValueError(
+                "state retrieval requires causal provided content and native expert execution"
+            )
+        if retrieval_enabled and correction_enabled:
+            raise ValueError("state retrieval and velocity correction cannot be combined")
         self.model = model
         self.ops = ops
         self.variant = variant
@@ -349,6 +409,9 @@ class QwenPseudoEmbeddingProbe:
         execution_subset: tuple[int, ...] | None,
         router_input_delta: Tensor | None = None,
         moe_residual_delta: Tensor | None = None,
+        retrieved_router_input: Tensor | None = None,
+        retrieved_moe_residual: Tensor | None = None,
+        retrieval_similarities: Tensor | None = None,
     ) -> tuple[Tensor, NativeRoute, Tensor, NativeRoute | None, Tensor]:
         layer = cast(Any, self.ops.layers[layer_idx])
         residual = hidden
@@ -367,6 +430,15 @@ class QwenPseudoEmbeddingProbe:
                 router_input_delta,
                 coefficients=self.variant.correction_anchor_coefficients,
                 max_relative_delta_norm=self.variant.correction_max_relative_delta_norm,
+            )
+        if retrieved_router_input is not None:
+            if retrieval_similarities is None:
+                raise AssertionError("retrieval similarities are missing")
+            router_input = _retrieval_mix_norm_match(
+                router_input,
+                retrieved_router_input,
+                retrieval_similarities,
+                mixing=self.variant.state_retrieval_mix,
             )
         route = self.ops.route(layer_idx, router_input.reshape(-1, self.ops.hidden_size))
         probabilities = route.logits.float().softmax(dim=-1)
@@ -407,6 +479,15 @@ class QwenPseudoEmbeddingProbe:
                 moe_residual_delta,
                 coefficients=self.variant.correction_anchor_coefficients,
                 max_relative_delta_norm=self.variant.correction_max_relative_delta_norm,
+            )
+        if retrieved_moe_residual is not None:
+            if retrieval_similarities is None:
+                raise AssertionError("retrieval similarities are missing")
+            contribution = _retrieval_mix_norm_match(
+                contribution,
+                retrieved_moe_residual,
+                retrieval_similarities,
+                mixing=self.variant.state_retrieval_mix,
             )
         return (
             post_attention + contribution,
@@ -506,6 +587,9 @@ class QwenPseudoEmbeddingProbe:
         execution_subsets: dict[int, tuple[int, ...]] | None,
         router_input_deltas: Tensor | None,
         moe_residual_deltas: Tensor | None,
+        retrieved_router_inputs: Tensor | None,
+        retrieved_moe_residuals: Tensor | None,
+        retrieval_similarities: Tensor | None,
     ) -> tuple[
         dict[int, Tensor],
         dict[int, Tensor],
@@ -555,6 +639,17 @@ class QwenPseudoEmbeddingProbe:
                 (execution_subsets[layer_idx] if execution_subsets is not None else None),
                 (router_input_deltas[layer_idx] if router_input_deltas is not None else None),
                 (moe_residual_deltas[layer_idx] if moe_residual_deltas is not None else None),
+                (
+                    retrieved_router_inputs[:, layer_idx]
+                    if retrieved_router_inputs is not None
+                    else None
+                ),
+                (
+                    retrieved_moe_residuals[:, layer_idx]
+                    if retrieved_moe_residuals is not None
+                    else None
+                ),
+                retrieval_similarities,
             )
             logits[layer_idx] = route.logits.detach().float().cpu()
             probabilities[layer_idx] = full_probs.detach().cpu()
@@ -814,6 +909,10 @@ class QwenPseudoEmbeddingProbe:
         recent_router_inputs: Tensor | None = None,
         recent_moe_outputs: Tensor | None = None,
         correction_history_source: str | None = None,
+        retrieved_router_inputs: Tensor | None = None,
+        retrieved_moe_residuals: Tensor | None = None,
+        retrieval_similarities: Tensor | None = None,
+        retrieval_state_source: str | None = None,
     ) -> QwenPseudoProbeResult:
         """Predict one H-window subset without mutating production state or RNG."""
         device = next(self.model.parameters()).device
@@ -897,6 +996,55 @@ class QwenPseudoEmbeddingProbe:
                 raise ValueError("state correction requires one causal pseudo sequence")
         elif correction_history_source is not None:
             raise ValueError("correction history source requires an enabled correction")
+        retrieval_enabled = self.variant.state_retrieval_target != "none"
+        expected_retrieval_shape = (
+            len(self.anchors),
+            self.ops.num_layers,
+            self.ops.hidden_size,
+        )
+        target_tensor = (
+            retrieved_router_inputs
+            if self.variant.state_retrieval_target == "router_input"
+            else retrieved_moe_residuals
+            if self.variant.state_retrieval_target == "moe_residual"
+            else None
+        )
+        other_tensor = (
+            retrieved_moe_residuals
+            if self.variant.state_retrieval_target == "router_input"
+            else retrieved_router_inputs
+            if self.variant.state_retrieval_target == "moe_residual"
+            else None
+        )
+        if retrieval_enabled:
+            if target_tensor is None or tuple(target_tensor.shape) != expected_retrieval_shape:
+                raise ValueError(
+                    "state retrieval requires one [anchors, layers, hidden] target bank"
+                )
+            if other_tensor is not None:
+                raise ValueError("state retrieval received a tensor for the wrong target")
+            if retrieval_similarities is None or tuple(retrieval_similarities.shape) != (
+                len(self.anchors),
+            ):
+                raise ValueError("state retrieval requires one similarity per anchor")
+            if not retrieval_state_source:
+                raise ValueError("state retrieval requires a policy-local source label")
+            if not bool(torch.isfinite(target_tensor).all()):
+                raise ValueError("retrieved state bank is non-finite")
+            if not bool(torch.isfinite(retrieval_similarities).all()) or bool(
+                ((retrieval_similarities < 0) | (retrieval_similarities > 1)).any()
+            ):
+                raise ValueError("state retrieval similarities must be finite in [0,1]")
+        elif any(
+            value is not None
+            for value in (
+                retrieved_router_inputs,
+                retrieved_moe_residuals,
+                retrieval_similarities,
+                retrieval_state_source,
+            )
+        ):
+            raise ValueError("retrieval inputs require an enabled state-retrieval variant")
         correction_coefficients = (
             self.variant.correction_anchor_coefficients
             if self.variant.correction_anchor_coefficients is not None
@@ -1014,6 +1162,9 @@ class QwenPseudoEmbeddingProbe:
                         execution_subsets,
                         router_input_deltas,
                         moe_residual_deltas,
+                        retrieved_router_inputs,
+                        retrieved_moe_residuals,
+                        retrieval_similarities,
                     )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -1121,6 +1272,15 @@ class QwenPseudoEmbeddingProbe:
                     for value in (recent_router_inputs, recent_moe_outputs)
                     if value is not None
                 ),
+                retrieval_state_input_bytes=sum(
+                    value.numel() * value.element_size()
+                    for value in (
+                        retrieved_router_inputs,
+                        retrieved_moe_residuals,
+                        retrieval_similarities,
+                    )
+                    if value is not None
+                ),
             ),
             audit={
                 "information_regime": "online_post_sample",
@@ -1181,6 +1341,27 @@ class QwenPseudoEmbeddingProbe:
                     self.variant.correction_max_relative_delta_norm
                     if hidden_correction or residual_correction
                     else None
+                ),
+                "state_retrieval_target": self.variant.state_retrieval_target,
+                "state_retrieval_mix": self.variant.state_retrieval_mix,
+                "retrieval_state_source": retrieval_state_source,
+                "retrieved_router_inputs_shape": (
+                    list(retrieved_router_inputs.shape)
+                    if retrieved_router_inputs is not None
+                    else None
+                ),
+                "retrieved_moe_residuals_shape": (
+                    list(retrieved_moe_residuals.shape)
+                    if retrieved_moe_residuals is not None
+                    else None
+                ),
+                "retrieval_similarities": (
+                    retrieval_similarities.detach().float().cpu().tolist()
+                    if retrieval_similarities is not None
+                    else None
+                ),
+                "retrieval_state_finite": (
+                    bool(torch.isfinite(target_tensor).all()) if target_tensor is not None else None
                 ),
                 "one_causal_forward_per_boundary": (
                     self.variant.attention == "causal"

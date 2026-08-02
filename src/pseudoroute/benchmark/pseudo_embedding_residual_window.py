@@ -46,6 +46,8 @@ from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoProbeResult,
     QwenPseudoVariant,
     StateCorrection,
+    StateRetrievalMix,
+    StateRetrievalTarget,
     _restore_rng,
     _rng_equal,
     _rng_snapshot,
@@ -109,6 +111,11 @@ ContentVariant = Literal[
     "self_top2_particle_probability_weighted",
     "self_top4_particle_probability_weighted",
 ]
+StateRetrievalMode = Literal[
+    "none",
+    "exact_token_most_recent",
+    "exact_token_then_embedding_nearest",
+]
 
 
 @dataclass(frozen=True)
@@ -122,6 +129,19 @@ class PolicySpec:
 
     def fingerprint(self) -> str:
         return sha256_json(asdict(self))
+
+
+@dataclass(frozen=True)
+class TokenAlignedStateRetrieval:
+    router_inputs: Tensor
+    moe_outputs: Tensor
+    history_indices: tuple[int, ...]
+    similarities: Tensor
+    match_kinds: tuple[str, ...]
+    latency_seconds_measured: float
+    temporary_cuda_bytes_measured: int
+    history_tokens: int
+    history_state_bank_bytes: int
 
 
 def _read_protocol() -> tuple[dict[str, Any], dict[str, Any]]:
@@ -160,6 +180,112 @@ def residual_bank_variant(bank: Tensor, variant: ResidualVariant) -> Tensor:
     if variant == "previous_window_mean_repeated":
         return bank.mean(dim=0, keepdim=True).expand_as(bank)
     raise ValueError(f"unknown residual variant: {variant}")
+
+
+def token_aligned_state_retrieval(
+    anchor_token_ids: tuple[int, ...],
+    history_token_ids: tuple[int, ...],
+    history_router_inputs: Tensor,
+    history_moe_outputs: Tensor,
+    embedding_weight: Tensor,
+    mode: StateRetrievalMode,
+) -> TokenAlignedStateRetrieval:
+    """Retrieve only current-policy, pre-boundary states for each pseudo anchor."""
+    if mode == "none":
+        raise ValueError("token-aligned retrieval requires an enabled mode")
+    if not anchor_token_ids or not history_token_ids:
+        raise ValueError("token-aligned retrieval requires non-empty anchors and history")
+    if (
+        history_router_inputs.ndim != 3
+        or history_moe_outputs.shape != history_router_inputs.shape
+        or history_router_inputs.shape[0] != len(history_token_ids)
+    ):
+        raise ValueError("history states must be aligned [tokens, layers, hidden] banks")
+    if history_router_inputs.shape[-1] != embedding_weight.shape[-1]:
+        raise ValueError("history state and input embedding hidden sizes differ")
+    if not bool(torch.isfinite(history_router_inputs).all()) or not bool(
+        torch.isfinite(history_moe_outputs).all()
+    ):
+        raise ValueError("history state bank is non-finite")
+
+    device = history_router_inputs.device
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        allocated_before = torch.cuda.memory_allocated(device)
+        torch.cuda.reset_peak_memory_stats(device)
+    else:
+        allocated_before = 0
+    started = time.perf_counter()
+    candidate_embeddings: Tensor | None = None
+    if mode == "exact_token_then_embedding_nearest":
+        history_ids = torch.tensor(history_token_ids, device=embedding_weight.device)
+        candidate_embeddings = embedding_weight[history_ids].float()
+
+    indices: list[int] = []
+    similarity_values: list[float] = []
+    kinds: list[str] = []
+    router_values: list[Tensor] = []
+    residual_values: list[Tensor] = []
+    for anchor_id in anchor_token_ids:
+        matches = [
+            index for index, token_id in enumerate(history_token_ids) if token_id == anchor_id
+        ]
+        if matches:
+            index = matches[-1]
+            similarity = 1.0
+            kind = "exact_token_most_recent"
+        elif mode == "exact_token_then_embedding_nearest":
+            if candidate_embeddings is None:
+                raise AssertionError("embedding-nearest candidates are missing")
+            query = embedding_weight[int(anchor_id)].float()[None]
+            scores = torch.nn.functional.cosine_similarity(
+                candidate_embeddings,
+                query.expand_as(candidate_embeddings),
+                dim=-1,
+            )
+            maximum = scores.max()
+            tied = torch.nonzero(scores == maximum, as_tuple=False).reshape(-1)
+            index = int(tied[-1])
+            similarity = float(maximum.clamp(0, 1))
+            kind = "embedding_nearest_most_recent_tie"
+        else:
+            index = -1
+            similarity = 0.0
+            kind = "missing_exact_zero_weight"
+        indices.append(index)
+        similarity_values.append(similarity)
+        kinds.append(kind)
+        if index >= 0:
+            router_values.append(history_router_inputs[index])
+            residual_values.append(history_moe_outputs[index])
+        else:
+            router_values.append(torch.zeros_like(history_router_inputs[0]))
+            residual_values.append(torch.zeros_like(history_moe_outputs[0]))
+    similarities = torch.tensor(similarity_values, device=device, dtype=torch.float32)
+    router_inputs = torch.stack(router_values)
+    moe_outputs = torch.stack(residual_values)
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+    elapsed = time.perf_counter() - started
+    temporary_cuda = (
+        max(0, torch.cuda.max_memory_allocated(device) - allocated_before)
+        if device.type == "cuda"
+        else 0
+    )
+    return TokenAlignedStateRetrieval(
+        router_inputs=router_inputs,
+        moe_outputs=moe_outputs,
+        history_indices=tuple(indices),
+        similarities=similarities,
+        match_kinds=tuple(kinds),
+        latency_seconds_measured=elapsed,
+        temporary_cuda_bytes_measured=temporary_cuda,
+        history_tokens=len(history_token_ids),
+        history_state_bank_bytes=(
+            history_router_inputs.numel() * history_router_inputs.element_size()
+            + history_moe_outputs.numel() * history_moe_outputs.element_size()
+        ),
+    )
 
 
 def route_scores(
@@ -366,6 +492,8 @@ def _probe_for_spec(
     residual_correction: StateCorrection = "none",
     correction_anchor_coefficients: tuple[float, ...] | None = None,
     correction_max_relative_delta_norm: float | None = None,
+    state_retrieval_target: StateRetrievalTarget = "none",
+    state_retrieval_mix: StateRetrievalMix = "none",
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -420,6 +548,8 @@ def _probe_for_spec(
             residual_correction,
             correction_anchor_coefficients,
             correction_max_relative_delta_norm,
+            state_retrieval_target,
+            state_retrieval_mix,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -617,6 +747,9 @@ def run_policy_sample(
     residual_correction: StateCorrection = "none",
     correction_anchor_coefficients: tuple[float, ...] | None = None,
     correction_max_relative_delta_norm: float | None = None,
+    state_retrieval_mode: StateRetrievalMode = "none",
+    state_retrieval_target: StateRetrievalTarget = "none",
+    state_retrieval_mix: StateRetrievalMix = "none",
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -625,11 +758,28 @@ def run_policy_sample(
     route_tokens = min(route_token_cap, len(source_tokens))
     if route_tokens < HORIZON or inputs["input_ids"].shape[1] < HORIZON:
         raise ValueError("residual-window replay requires at least eight prompt and output tokens")
+    retrieval_enabled = state_retrieval_mode != "none"
+    if retrieval_enabled != (state_retrieval_target != "none") or retrieval_enabled != (
+        state_retrieval_mix != "none"
+    ):
+        raise ValueError("state retrieval mode, target, and mixing must be enabled together")
+    if retrieval_enabled and (
+        not shadow_expert_execution
+        or spec.content != "recent_sequence_causal"
+        or hidden_state_correction != "none"
+        or residual_correction != "none"
+    ):
+        raise ValueError(
+            "token-aligned retrieval requires recent causal native execution without velocity"
+        )
     device = inputs["input_ids"].device
     prompt_rng = _rng_snapshot(device)
     with (
         NativeRouteCaptureContext(ops) as prompt_routes,
-        MoeOutputCaptureContext(ops, tail_tokens=HORIZON) as prompt_residuals,
+        MoeOutputCaptureContext(
+            ops,
+            tail_tokens=None if retrieval_enabled else HORIZON,
+        ) as prompt_residuals,
         torch.inference_mode(),
     ):
         prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
@@ -641,12 +791,21 @@ def run_policy_sample(
     cache = prefill.past_key_values
     if cache is None:
         raise RuntimeError("policy-state replay prefill returned no cache")
-    residual_bank = moe_output_bank(prompt_residual_records, expected_layers=ops.num_layers)
-    router_input_bank = moe_router_input_bank(
+    captured_prompt_residuals = moe_output_bank(
         prompt_residual_records, expected_layers=ops.num_layers
     )
+    captured_prompt_router_inputs = moe_router_input_bank(
+        prompt_residual_records, expected_layers=ops.num_layers
+    )
+    residual_bank = captured_prompt_residuals[-HORIZON:]
+    router_input_bank = captured_prompt_router_inputs[-HORIZON:]
     history = route_scores(prompt_route_records, tail_tokens=HORIZON, experts=ops.num_experts)
     prompt_tokens = tuple(int(value) for value in inputs["input_ids"][0].tolist())
+    state_history_token_ids = prompt_tokens if retrieval_enabled else prompt_tokens[-HORIZON:]
+    state_history_residuals = captured_prompt_residuals
+    state_history_router_inputs = captured_prompt_router_inputs
+    if len(state_history_token_ids) != state_history_residuals.shape[0]:
+        raise RuntimeError("prompt token and captured state history lengths differ")
     planning_logits = cast(Tensor, prefill.logits[:, -1]).detach()
     probe = _probe_for_spec(
         model,
@@ -657,10 +816,13 @@ def run_policy_sample(
         residual_correction=residual_correction,
         correction_anchor_coefficients=correction_anchor_coefficients,
         correction_max_relative_delta_norm=correction_max_relative_delta_norm,
+        state_retrieval_target=state_retrieval_target,
+        state_retrieval_mix=state_retrieval_mix,
     )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
     probe_costs: list[dict[str, object]] = []
+    retrieval_costs: list[dict[str, object]] = []
     audits: list[dict[str, object]] = []
     boundaries: list[int] = []
     subsets: list[Tensor] = []
@@ -717,6 +879,38 @@ def run_policy_sample(
             ):
                 raise AssertionError("pseudo policy construction failed")
             anchor_ids = _anchor_ids(spec, boundary, prompt_tokens, source_tokens)
+            retrieval: TokenAlignedStateRetrieval | None = None
+            if retrieval_enabled:
+                if anchor_ids is None:
+                    raise AssertionError("token-aligned retrieval requires explicit anchors")
+                if len(state_history_token_ids) != len(prompt_tokens) + boundary:
+                    raise RuntimeError("policy state history length is not boundary-aligned")
+                retrieval = token_aligned_state_retrieval(
+                    anchor_ids,
+                    state_history_token_ids,
+                    state_history_router_inputs,
+                    state_history_residuals,
+                    cast(Any, model).model.embed_tokens.weight,
+                    state_retrieval_mode,
+                )
+                retrieval_costs.append(
+                    {
+                        "boundary": boundary,
+                        "latency_seconds_measured": retrieval.latency_seconds_measured,
+                        "temporary_cuda_bytes_measured": (retrieval.temporary_cuda_bytes_measured),
+                        "history_tokens": retrieval.history_tokens,
+                        "history_state_bank_bytes": retrieval.history_state_bank_bytes,
+                        "anchor_token_ids": list(anchor_ids),
+                        "history_indices": list(retrieval.history_indices),
+                        "similarities": retrieval.similarities.detach().cpu().tolist(),
+                        "match_kinds": list(retrieval.match_kinds),
+                        "retrieved_indices_precede_boundary": all(
+                            index < retrieval.history_tokens
+                            for index in retrieval.history_indices
+                            if index >= 0
+                        ),
+                    }
+                )
             result = probe.predict(
                 cache,
                 sampled_next_token_id=source_tokens[boundary],
@@ -765,6 +959,22 @@ def run_policy_sample(
                     if hidden_state_correction != "none" or residual_correction != "none"
                     else None
                 ),
+                retrieved_router_inputs=(
+                    retrieval.router_inputs
+                    if retrieval is not None and state_retrieval_target == "router_input"
+                    else None
+                ),
+                retrieved_moe_residuals=(
+                    retrieval.moe_outputs
+                    if retrieval is not None and state_retrieval_target == "moe_residual"
+                    else None
+                ),
+                retrieval_similarities=(retrieval.similarities if retrieval is not None else None),
+                retrieval_state_source=(
+                    "current_policy_prompt_and_already_realized_token_aligned_states"
+                    if retrieval is not None
+                    else None
+                ),
             )
             active = candidate_subsets(result, history, spec.selection)
             if shadow_expert_execution:
@@ -779,7 +989,30 @@ def run_policy_sample(
                     )
                 )
             probe_costs.append({"boundary": boundary, **asdict(result.cost)})
-            audits.append({"boundary": boundary, **result.audit})
+            audits.append(
+                {
+                    "boundary": boundary,
+                    **result.audit,
+                    "retrieval_history_length_matches_realized_context": (
+                        retrieval is not None
+                        and retrieval.history_tokens == len(prompt_tokens) + boundary
+                        if retrieval_enabled
+                        else None
+                    ),
+                    "retrieved_indices_precede_boundary": (
+                        all(
+                            index < retrieval.history_tokens
+                            for index in retrieval.history_indices
+                            if index >= 0
+                        )
+                        if retrieval is not None
+                        else None
+                    ),
+                    "retrieval_state_bank_policy_local": retrieval is not None
+                    if retrieval_enabled
+                    else None,
+                }
+            )
             pseudo_logits.append(
                 torch.stack([result.raw_router_logits[layer] for layer in range(ops.num_layers)])
             )
@@ -843,6 +1076,25 @@ def run_policy_sample(
             )
             resident[layer] = active[layer]
         history = route_scores(window_routes, experts=ops.num_experts)
+        if retrieval_enabled:
+            realized_residuals = torch.cat(window_residuals, dim=0)
+            realized_router_inputs = torch.cat(window_router_inputs, dim=0)
+            state_history_token_ids = (
+                *state_history_token_ids,
+                *source_tokens[boundary:end],
+            )
+            state_history_residuals = torch.cat(
+                (state_history_residuals, realized_residuals), dim=0
+            )
+            state_history_router_inputs = torch.cat(
+                (state_history_router_inputs, realized_router_inputs), dim=0
+            )
+            if not (
+                len(state_history_token_ids)
+                == state_history_residuals.shape[0]
+                == state_history_router_inputs.shape[0]
+            ):
+                raise RuntimeError("realized token and policy state history lengths differ")
         if end < route_tokens:
             if len(window_residuals) != HORIZON:
                 raise RuntimeError("non-final policy window did not realize eight tokens")
@@ -898,12 +1150,15 @@ def run_policy_sample(
         "boundaries": boundaries,
         "metrics": metrics,
         "probe_costs": probe_costs,
+        "retrieval_costs": retrieval_costs,
         "cache_rng_audits": audits,
         "prompt_capture_audit": {
-            "last_eight_prompt_tokens": True,
+            "last_eight_prompt_tokens": not retrieval_enabled,
+            "full_prompt_tokens": retrieval_enabled,
             "native_full_expert_prefill": True,
             "production_rng_unchanged": prompt_rng_unchanged,
             "residual_bank_shape": list(residual_bank.shape),
+            "captured_prompt_state_bank_shape": list(captured_prompt_residuals.shape),
         },
         "residual_bank_sha256_by_boundary": residual_digests,
         "argmax_matches": argmax_matches,
@@ -911,6 +1166,10 @@ def run_policy_sample(
         "argmax_agreement": argmax_matches / argmax_compared if argmax_compared else 1.0,
         "first_argmax_divergence": first_argmax_divergence,
         "first_route_divergence": first_route_divergence,
+        "state_retrieval_mode": state_retrieval_mode,
+        "state_retrieval_target": state_retrieval_target,
+        "state_retrieval_mix": state_retrieval_mix,
+        "final_state_history_tokens": len(state_history_token_ids),
         "source_v17_row_sha256": sha256_json(source),
         "source_token_ids_sha256": sha256_json(source_tokens),
         "elapsed_seconds_measured": time.time() - started,
