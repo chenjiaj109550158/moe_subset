@@ -106,8 +106,8 @@ audits:
   require_one_causal_forward_per_boundary: true
   expected_attention_calls_per_boundary: 48
   expected_attention_queries_per_boundary: 384
-  expected_router_calls_per_boundary: 384
-  expected_expert_calls_per_boundary: 384
+  expected_router_calls_per_boundary: 48
+  expected_expert_calls_per_boundary: 48
   require_correction_finite: true
   require_history_policy_local: true
 
