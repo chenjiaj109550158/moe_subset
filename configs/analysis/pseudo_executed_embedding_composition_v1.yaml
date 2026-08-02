@@ -1,0 +1,117 @@
+schema_version: 1
+analysis_id: pseudo_executed_embedding_composition_v1
+status: protocol_frozen_before_model_execution
+artifact_root: artifacts/pseudo_executed_embedding_composition_v1
+protocol_document: docs/pseudo_executed_embedding_composition_v1.md
+sample_manifest: configs/analysis/pseudo_executed_embedding_composition_v1_samples.json
+source_suite:
+  config: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml
+  artifact_root: artifacts/pseudo_embedding_qwen_gsm8k_v1
+  artifact_manifest_sha256: b5c71fbe49eee2aad35d2f66da136f3e814818c312057598cc5301334444a337
+source_mechanism_smoke:
+  artifact_root: artifacts/pseudo_executed_previous_subset_smoke_v1
+  artifact_manifest_sha256: c2d9b729dc3517b0a5ea07e783b251638896d942b3eba57d3e3025d2a59b7b1e
+source_sample_manifest:
+  path: configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1_samples.json
+  sha256: cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+dataset:
+  id: openai/gsm8k
+  config: main
+  split: test
+  revision: 740312add88f781978c0658806c59bc2815b9866
+  trajectory_source: exact_v17_saved_tokens
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  resident_fraction: 0.25
+  development_route_token_cap: 64
+  held_out_route_token_cap: 128
+  boundary_rule: non_overlapping_start_zero_h8
+fixed_residual_mechanism:
+  boundary_zero: full_native_top8_on_pseudo_hidden
+  later_boundaries: previous_realized_window_layer_local_subset
+  contribution: native_weighted_selected_expert_mixture_on_pseudo_router_input
+  full_pre_mask_scores_saved: true
+  production_state: read_only_copy_on_write
+fixed_subset_selection:
+  formula: first_four_anchor_core_plus_history_fill
+  deterministic_tie_break: ascending_layer_scoped_expert_id
+development_variants:
+  deployable:
+    - sampled_repeat_independent
+    - current_repeat_independent
+    - recent_sequence_independent
+    - sampled_repeat_causal
+    - recent_sequence_causal
+    - expected_top4_repeat_independent
+    - expected_top8_repeat_independent
+    - expected_top16_repeat_independent
+    - expected_top8_norm_matched_independent
+    - sampled_then_expected_top8_causal
+    - self_greedy_causal
+    - self_expected_top8_causal
+  diagnostics:
+    - exact_future_independent
+    - exact_future_causal
+  references:
+    - previous_route_commitment
+    - provided_previous_residual_control
+particle_follow_up:
+  variants:
+    - self_top2_particle_probability_weighted
+    - self_top4_particle_probability_weighted
+  rule: run_after_single_trajectory_development_and_report_separately
+ranking:
+  accuracy_or_correctness_used: false
+  eligible: deployable_only
+  order:
+    - descending_mean_selected_mass
+    - descending_mean_route_hit
+    - descending_estimated_transfer_reduction
+    - ascending_probe_latency
+    - ascending_variant_key
+  held_out_candidates: 1
+held_out_gate:
+  route_evaluation: always_run_selected_deployable_if_all_audits_pass
+  strong_route_hit_minimum: 0.6967
+  strong_selected_mass_minimum: 0.7162
+  route_hit_improvement_over_previous_minimum: 0.05
+  selected_mass_improvement_over_previous_minimum: 0.05
+  oracle_gap_recovery_minimum: 0.25
+  estimated_transfer_reduction_minimum: 0.30
+information_boundary:
+  allowed:
+    - sampled_next_token
+    - current_token_and_realized_recent_tokens
+    - current_sampling_step_logits
+    - current_policy_read_only_production_cache
+    - current_policy_previous_realized_subset_and_routes
+    - deterministic_shadow_lm_predictions
+  forbidden:
+    - benchmark_answer
+    - correctness
+    - vanilla_future_trajectory
+    - learned_or_fitted_parameters
+    - default_vector_values
+    - offline_expert_priors
+  diagnostic_only:
+    - future_true_tokens
+reporting:
+  route_metrics: teacher_forced_saved_v17_tokens_on_policy_own_hard_subset_state
+  transfer: simulated
+  probe_and_replay_runtime: measured
+  task_accuracy: not_in_this_analysis
+  runtime_speedup_claim: forbidden
