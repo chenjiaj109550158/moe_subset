@@ -45,6 +45,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
     QwenPseudoProbeResult,
     QwenPseudoVariant,
+    StateCorrection,
     _restore_rng,
     _rng_equal,
     _rng_snapshot,
@@ -356,6 +357,8 @@ def _probe_for_spec(
     spec: PolicySpec,
     *,
     shadow_expert_execution: bool = False,
+    hidden_state_correction: StateCorrection = "none",
+    residual_correction: StateCorrection = "none",
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -406,6 +409,8 @@ def _probe_for_spec(
                 if spec.content == "self_top4_particle_probability_weighted"
                 else 1
             ),
+            hidden_state_correction,
+            residual_correction,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -599,6 +604,8 @@ def run_policy_sample(
     analysis_id: str = ANALYSIS_ID,
     analysis_config_sha256: str = CONFIG_SHA256,
     sample_manifest_sha256: str = SAMPLES_SHA256,
+    hidden_state_correction: StateCorrection = "none",
+    residual_correction: StateCorrection = "none",
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -635,6 +642,8 @@ def run_policy_sample(
         ops,
         spec,
         shadow_expert_execution=shadow_expert_execution,
+        hidden_state_correction=hidden_state_correction,
+        residual_correction=residual_correction,
     )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
@@ -733,6 +742,15 @@ def run_policy_sample(
                         if shadow_expert_execution
                         else None
                     )
+                ),
+                recent_router_inputs=(
+                    router_input_bank[-2:] if hidden_state_correction != "none" else None
+                ),
+                recent_moe_outputs=(residual_bank[-2:] if residual_correction != "none" else None),
+                correction_history_source=(
+                    "current_policy_last_two_prompt_or_realized_mlp_states"
+                    if hidden_state_correction != "none" or residual_correction != "none"
+                    else None
                 ),
             )
             active = candidate_subsets(result, history, spec.selection)
@@ -855,6 +873,8 @@ def run_policy_sample(
         "identity_materialized": False,
         "hard_mask_executed": True,
         "shadow_expert_execution": shadow_expert_execution,
+        "hidden_state_correction": hidden_state_correction,
+        "residual_correction": residual_correction,
         "route_tokens": route_tokens,
         "boundaries": boundaries,
         "metrics": metrics,

@@ -41,6 +41,7 @@ ExpertContribution = Literal[
     "provided_residual",
     "zero",
 ]
+StateCorrection = Literal["none", "recent_linear_norm"]
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,8 @@ class QwenPseudoVariant:
     expert_contribution: ExpertContribution
     expected_embedding_norm: ExpectedEmbeddingNorm = "raw"
     particle_count: int = 1
+    hidden_state_correction: StateCorrection = "none"
+    residual_correction: StateCorrection = "none"
 
 
 @dataclass(frozen=True)
@@ -65,6 +68,7 @@ class QwenProbeCost:
     router_calls: int
     cpu_gpu_synchronizations: int
     expert_calls: int = 0
+    history_state_input_bytes: int = 0
 
 
 @dataclass(frozen=True)
@@ -94,6 +98,24 @@ def _top_b(scores: Tensor, budget: int) -> tuple[int, ...]:
 
 def _tensor_bytes(tensors: dict[int, Tensor]) -> int:
     return sum(value.numel() * value.element_size() for value in tensors.values())
+
+
+def _linear_velocity_norm_match(reference: Tensor, delta: Tensor) -> Tensor:
+    if reference.ndim != 3 or delta.ndim != 1 or reference.shape[-1] != delta.shape[0]:
+        raise ValueError("state correction requires [batch, anchors, hidden] plus [hidden]")
+    coefficients = torch.arange(
+        1,
+        reference.shape[1] + 1,
+        device=reference.device,
+        dtype=torch.float32,
+    ).reshape(1, -1, 1)
+    candidate = reference.float() + coefficients * delta.to(reference.device).float()[None, None]
+    reference_norm = reference.float().norm(dim=-1, keepdim=True)
+    candidate_norm = candidate.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+    corrected = candidate * (reference_norm / candidate_norm)
+    if not bool(torch.isfinite(corrected).all()):
+        raise RuntimeError("state correction produced a non-finite tensor")
+    return cast(Tensor, corrected.to(reference.dtype))
 
 
 def _rng_snapshot(device: torch.device) -> tuple[Tensor, Tensor | None]:
@@ -161,6 +183,17 @@ class QwenPseudoEmbeddingProbe:
             "sampled_then_expected_top_m",
         }:
             raise ValueError("expected-embedding norm mode is invalid for this content")
+        correction_enabled = (
+            variant.hidden_state_correction != "none" or variant.residual_correction != "none"
+        )
+        if correction_enabled and (
+            variant.content != "provided_sequence"
+            or variant.attention != "causal"
+            or variant.expert_contribution != "native_expert_execution"
+        ):
+            raise ValueError(
+                "state corrections require causal provided content and native expert execution"
+            )
         self.model = model
         self.ops = ops
         self.variant = variant
@@ -283,6 +316,8 @@ class QwenPseudoEmbeddingProbe:
         position_embeddings: tuple[Tensor, Tensor],
         provided_residual: Tensor | None,
         execution_subset: tuple[int, ...] | None,
+        router_input_delta: Tensor | None = None,
+        moe_residual_delta: Tensor | None = None,
     ) -> tuple[Tensor, NativeRoute, Tensor, NativeRoute | None, Tensor]:
         layer = cast(Any, self.ops.layers[layer_idx])
         residual = hidden
@@ -295,6 +330,8 @@ class QwenPseudoEmbeddingProbe:
         )
         post_attention = residual + attention
         router_input = layer.post_attention_layernorm(post_attention)
+        if router_input_delta is not None:
+            router_input = _linear_velocity_norm_match(router_input, router_input_delta)
         route = self.ops.route(layer_idx, router_input.reshape(-1, self.ops.hidden_size))
         probabilities = route.logits.float().softmax(dim=-1)
         if self.variant.expert_contribution == "zero":
@@ -328,6 +365,8 @@ class QwenPseudoEmbeddingProbe:
                 dtype=router_input.dtype,
             )
             executed_route = None
+        if moe_residual_delta is not None:
+            contribution = _linear_velocity_norm_match(contribution, moe_residual_delta)
         return (
             post_attention + contribution,
             route,
@@ -424,6 +463,8 @@ class QwenPseudoEmbeddingProbe:
         anchor_token_ids: tuple[int, ...] | None,
         provided_residuals: Tensor | None,
         execution_subsets: dict[int, tuple[int, ...]] | None,
+        router_input_deltas: Tensor | None,
+        moe_residual_deltas: Tensor | None,
     ) -> tuple[
         dict[int, Tensor],
         dict[int, Tensor],
@@ -471,6 +512,8 @@ class QwenPseudoEmbeddingProbe:
                     else None
                 ),
                 (execution_subsets[layer_idx] if execution_subsets is not None else None),
+                (router_input_deltas[layer_idx] if router_input_deltas is not None else None),
+                (moe_residual_deltas[layer_idx] if moe_residual_deltas is not None else None),
             )
             logits[layer_idx] = route.logits.detach().float().cpu()
             probabilities[layer_idx] = full_probs.detach().cpu()
@@ -727,6 +770,9 @@ class QwenPseudoEmbeddingProbe:
         provided_residual_source: str | None = None,
         execution_subsets: dict[int, tuple[int, ...]] | None = None,
         execution_subset_source: str | None = None,
+        recent_router_inputs: Tensor | None = None,
+        recent_moe_outputs: Tensor | None = None,
+        correction_history_source: str | None = None,
     ) -> QwenPseudoProbeResult:
         """Predict one H-window subset without mutating production state or RNG."""
         device = next(self.model.parameters()).device
@@ -786,6 +832,42 @@ class QwenPseudoEmbeddingProbe:
                         raise ValueError("invalid layer-local execution subset")
         elif execution_subsets is not None or execution_subset_source is not None:
             raise ValueError("execution subsets are only valid for native expert execution")
+        expected_history_shape = (2, self.ops.num_layers, self.ops.hidden_size)
+        hidden_correction = self.variant.hidden_state_correction != "none"
+        residual_correction = self.variant.residual_correction != "none"
+        if hidden_correction:
+            if recent_router_inputs is None or tuple(recent_router_inputs.shape) != (
+                expected_history_shape
+            ):
+                raise ValueError("hidden correction requires two policy-local router-input rows")
+        elif recent_router_inputs is not None:
+            raise ValueError("router-input history is only valid for hidden correction")
+        if residual_correction:
+            if recent_moe_outputs is None or tuple(recent_moe_outputs.shape) != (
+                expected_history_shape
+            ):
+                raise ValueError("residual correction requires two policy-local MoE-output rows")
+        elif recent_moe_outputs is not None:
+            raise ValueError("MoE-output history is only valid for residual correction")
+        if hidden_correction or residual_correction:
+            if not correction_history_source:
+                raise ValueError("state correction requires a policy-local history source")
+        elif correction_history_source is not None:
+            raise ValueError("correction history source requires an enabled correction")
+        router_input_deltas = (
+            recent_router_inputs[1] - recent_router_inputs[0]
+            if recent_router_inputs is not None
+            else None
+        )
+        moe_residual_deltas = (
+            recent_moe_outputs[1] - recent_moe_outputs[0]
+            if recent_moe_outputs is not None
+            else None
+        )
+        if router_input_deltas is not None and not bool(torch.isfinite(router_input_deltas).all()):
+            raise ValueError("router-input correction history is non-finite")
+        if moe_residual_deltas is not None and not bool(torch.isfinite(moe_residual_deltas).all()):
+            raise ValueError("MoE-output correction history is non-finite")
         sync_count = 0
         allocated_before = 0
         if device.type == "cuda":
@@ -868,6 +950,8 @@ class QwenPseudoEmbeddingProbe:
                         anchor_token_ids,
                         provided_residuals,
                         execution_subsets,
+                        router_input_deltas,
+                        moe_residual_deltas,
                     )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -970,6 +1054,11 @@ class QwenPseudoEmbeddingProbe:
                 router_calls=attention_calls,
                 expert_calls=attention_calls if native_execution else 0,
                 cpu_gpu_synchronizations=sync_count,
+                history_state_input_bytes=sum(
+                    value.numel() * value.element_size()
+                    for value in (recent_router_inputs, recent_moe_outputs)
+                    if value is not None
+                ),
             ),
             audit={
                 "information_regime": "online_post_sample",
@@ -1005,6 +1094,25 @@ class QwenPseudoEmbeddingProbe:
                 "provided_residual_source": provided_residual_source,
                 "provided_residual_shape": (
                     list(provided_residuals.shape) if provided_residuals is not None else None
+                ),
+                "hidden_state_correction": self.variant.hidden_state_correction,
+                "residual_correction": self.variant.residual_correction,
+                "correction_history_source": correction_history_source,
+                "recent_router_inputs_shape": (
+                    list(recent_router_inputs.shape) if recent_router_inputs is not None else None
+                ),
+                "recent_moe_outputs_shape": (
+                    list(recent_moe_outputs.shape) if recent_moe_outputs is not None else None
+                ),
+                "correction_history_finite": True,
+                "anchor_correction_coefficients": (
+                    list(range(1, len(self.anchors) + 1))
+                    if hidden_correction or residual_correction
+                    else None
+                ),
+                "one_causal_forward_per_boundary": (
+                    self.variant.attention == "causal"
+                    and not self.variant.content.startswith("self_")
                 ),
                 "shadow_expert_execution": native_execution,
                 "execution_subset_source": execution_subset_source,

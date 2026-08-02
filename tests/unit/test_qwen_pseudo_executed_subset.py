@@ -6,7 +6,9 @@ from transformers import Qwen3MoeConfig, Qwen3MoeForCausalLM
 from pseudoroute.benchmark.prefetch import NativeRoute, Qwen3MoePrefetchOps
 from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
+    QwenPseudoProbeResult,
     QwenPseudoVariant,
+    StateCorrection,
 )
 from pseudoroute.benchmark.subset_closed_loop import _cache_mutation_signature
 
@@ -193,3 +195,66 @@ def test_top2_particle_rollout_aggregates_routes_without_mutating_production() -
     assert result.audit["particle_utility_aggregation"] == "normalized_path_probability_weighted"
     assert result.audit["executed_ids_within_supplied_subset"] is True
     assert _cache_mutation_signature(cache) == signature
+
+
+def test_one_forward_state_corrections_use_policy_history_without_mutation() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    subsets = {layer: (0, 1, 2) for layer in range(ops.num_layers)}
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    rng = torch.random.get_rng_state().clone()
+
+    def run(
+        hidden_correction: StateCorrection = "none",
+        residual_correction: StateCorrection = "none",
+    ) -> QwenPseudoProbeResult:
+        history = torch.zeros(2, ops.num_layers, ops.hidden_size)
+        history[1] = torch.linspace(-0.2, 0.2, ops.hidden_size)[None]
+        return QwenPseudoEmbeddingProbe(
+            model,
+            ops,
+            None,
+            QwenPseudoVariant(
+                "one_forward_correction",
+                "provided_sequence",
+                "causal",
+                "native_expert_execution",
+                hidden_state_correction=hidden_correction,
+                residual_correction=residual_correction,
+            ),
+            anchors=(1, 2),
+            budget=3,
+        ).predict(
+            cache,
+            sampled_next_token_id=4,
+            current_token_id=3,
+            anchor_token_ids=(4, 5),
+            execution_subsets=subsets,
+            execution_subset_source="previous_realized_window_subset",
+            recent_router_inputs=(history if hidden_correction != "none" else None),
+            recent_moe_outputs=(history if residual_correction != "none" else None),
+            correction_history_source=(
+                "current_policy_last_two_realized_mlp_states"
+                if hidden_correction != "none" or residual_correction != "none"
+                else None
+            ),
+        )
+
+    baseline = run()
+    hidden = run(hidden_correction="recent_linear_norm")
+    residual = run(residual_correction="recent_linear_norm")
+    assert not torch.allclose(hidden.raw_router_logits[0], baseline.raw_router_logits[0])
+    assert not torch.allclose(residual.raw_router_logits[1], baseline.raw_router_logits[1])
+    for result in (hidden, residual):
+        assert result.cost.attention_calls == ops.num_layers
+        assert result.cost.attention_queries == ops.num_layers * 2
+        assert result.cost.router_calls == ops.num_layers
+        assert result.cost.expert_calls == ops.num_layers
+        assert result.cost.history_state_input_bytes == 2 * ops.num_layers * ops.hidden_size * 4
+        assert result.audit["correction_history_finite"] is True
+        assert result.audit["one_causal_forward_per_boundary"] is True
+        assert result.audit["anchor_correction_coefficients"] == [1, 2]
+        assert result.audit["executed_ids_within_supplied_subset"] is True
+    assert _cache_mutation_signature(cache) == signature
+    assert torch.equal(torch.random.get_rng_state(), rng)
