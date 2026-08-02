@@ -661,9 +661,10 @@ def _report() -> str:
             "",
             "The best protected+damped residual candidate is positive on all four "
             "samples, but recovers only 0.003123 route hit and 0.002240 selected "
-            "mass—far below the frozen +0.02 signal. Boundary-zero anchor-one logits "
-            "remain exact under the shared production context; later anchor-one logits "
-            "may differ because each hard policy realizes a different context.",
+            "mass—far below the frozen +0.02 signal. A same-cache native unit test "
+            "confirms that coefficient zero leaves anchor-one router logits exact. The "
+            "separately executed BF16 source and candidate artifacts are not expected "
+            "to be bitwise identical, and later hard policies realize different contexts.",
             "",
             f"Development-only decision: **{decision['decision']}**. Selected route "
             f"signal: `{decision['selected_route_signal_variant']}`.",
