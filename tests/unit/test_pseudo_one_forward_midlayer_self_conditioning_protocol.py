@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from pseudoroute.benchmark.pseudo_one_forward_midlayer_self_conditioning import SPECS
+
 CONFIG = Path("configs/analysis/pseudo_one_forward_midlayer_self_conditioning_v1.yaml")
 SAMPLES = Path("configs/analysis/pseudo_one_forward_midlayer_self_conditioning_v1_samples.json")
 
@@ -58,3 +60,22 @@ def test_midlayer_protocol_is_frozen_calibration_free_and_one_forward() -> None:
 def test_midlayer_protocol_hashes_are_deterministic() -> None:
     assert _sha256(CONFIG) == ("75f4c028871632139a3f68f290726cb4834931a3a89cd2cc16883e050ebbb67b")
     assert _sha256(SAMPLES) == ("8314356459cbf1bf36bfafffecc0a0a2bb7fd750c22b85ef50cb921ff4b8f535")
+
+
+def test_midlayer_runner_matches_frozen_variants() -> None:
+    config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
+    variants = config["variants"]
+
+    assert [spec.key for spec in SPECS] == [row["key"] for row in variants]
+    assert [spec.prediction for spec in SPECS] == [row["content_prediction"] for row in variants]
+    assert [spec.max_relative_embedding_delta_norm for spec in SPECS] == [
+        row["maximum_embedding_delta_norm_relative_to_mid_hidden"] for row in variants
+    ]
+    assert [spec.mode for spec in SPECS] == [
+        "greedy_shift",
+        "expected_top8_shift",
+        "greedy_shift",
+    ]
+    assert all(
+        spec.policy().selection == "first_four_anchor_core_plus_history_fill" for spec in SPECS
+    )

@@ -44,6 +44,7 @@ ExpertContribution = Literal[
 StateCorrection = Literal["none", "recent_linear_norm"]
 StateRetrievalTarget = Literal["none", "router_input", "moe_residual"]
 StateRetrievalMix = Literal["none", "additive_norm", "replace_norm"]
+MidlayerSelfConditioning = Literal["none", "greedy_shift", "expected_top8_shift"]
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,9 @@ class QwenPseudoVariant:
     correction_max_relative_delta_norm: float | None = None
     state_retrieval_target: StateRetrievalTarget = "none"
     state_retrieval_mix: StateRetrievalMix = "none"
+    midlayer_self_conditioning: MidlayerSelfConditioning = "none"
+    midlayer_refresh_after_layer: int | None = None
+    midlayer_max_relative_embedding_delta_norm: float | None = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +80,9 @@ class QwenProbeCost:
     expert_calls: int = 0
     history_state_input_bytes: int = 0
     retrieval_state_input_bytes: int = 0
+    lm_head_calls: int = 0
+    lm_head_queries: int = 0
+    midlayer_refreshes: int = 0
 
 
 @dataclass(frozen=True)
@@ -285,6 +292,34 @@ class QwenPseudoEmbeddingProbe:
             )
         if retrieval_enabled and correction_enabled:
             raise ValueError("state retrieval and velocity correction cannot be combined")
+        midlayer_enabled = variant.midlayer_self_conditioning != "none"
+        if midlayer_enabled and (
+            variant.content != "provided_sequence"
+            or variant.attention != "causal"
+            or variant.expert_contribution != "native_expert_execution"
+        ):
+            raise ValueError(
+                "midlayer self-conditioning requires causal provided content and native "
+                "expert execution"
+            )
+        if midlayer_enabled and (correction_enabled or retrieval_enabled):
+            raise ValueError(
+                "midlayer self-conditioning cannot be combined with correction or retrieval"
+            )
+        if midlayer_enabled:
+            refresh_layer = variant.midlayer_refresh_after_layer
+            if refresh_layer is None or not 0 <= refresh_layer < ops.num_layers - 1:
+                raise ValueError("midlayer refresh must precede the final routed layer")
+            if len(anchors) < 2:
+                raise ValueError("shifted midlayer refresh requires at least two anchors")
+            cap = variant.midlayer_max_relative_embedding_delta_norm
+            if cap is not None and (cap <= 0 or not bool(torch.isfinite(torch.tensor(cap)))):
+                raise ValueError("midlayer embedding-delta cap must be finite and positive")
+        elif (
+            variant.midlayer_refresh_after_layer is not None
+            or variant.midlayer_max_relative_embedding_delta_norm is not None
+        ):
+            raise ValueError("midlayer refresh settings require self-conditioning")
         self.model = model
         self.ops = ops
         self.variant = variant
@@ -397,6 +432,102 @@ class QwenPseudoEmbeddingProbe:
             self._base.rotary_emb(hidden, position_ids=position_ids),
         )
         return attention_mask, position_embeddings
+
+    def _shifted_midlayer_refresh(
+        self,
+        hidden: Tensor,
+        anchor_token_ids: tuple[int, ...] | None,
+    ) -> tuple[Tensor, dict[str, object]]:
+        if anchor_token_ids is None or len(anchor_token_ids) != hidden.shape[1]:
+            raise ValueError("midlayer refresh requires one initial token ID per anchor")
+        if hidden.shape[0] != 1 or hidden.shape[1] < 2:
+            raise ValueError("midlayer refresh requires batch one and at least two anchors")
+        anchor_one = hidden[:, :1].clone()
+        source_hidden = hidden[:, :-1]
+        normalized = self._base.norm(source_hidden)
+        vocabulary_logits = cast(Any, self.model).lm_head(normalized).float()
+        predicted_top1 = vocabulary_logits.argmax(dim=-1)
+        expected_top8_ids: Tensor | None = None
+        expected_top8_weights: Tensor | None = None
+        if self.variant.midlayer_self_conditioning == "greedy_shift":
+            predicted_embedding = self._base.embed_tokens(predicted_top1)
+        elif self.variant.midlayer_self_conditioning == "expected_top8_shift":
+            selected_logits, expected_top8_ids = vocabulary_logits.topk(8, dim=-1)
+            expected_top8_weights = selected_logits.softmax(dim=-1)
+            selected_embeddings = self._base.embed_tokens(expected_top8_ids)
+            predicted_embedding = (
+                expected_top8_weights.to(selected_embeddings.dtype).unsqueeze(-1)
+                * selected_embeddings
+            ).sum(dim=-2)
+        else:
+            raise AssertionError("midlayer refresh mode is disabled")
+        target_ids = torch.tensor(
+            [anchor_token_ids[1:]],
+            dtype=torch.long,
+            device=hidden.device,
+        )
+        initial_embedding = self._base.embed_tokens(target_ids)
+        raw_delta = predicted_embedding - initial_embedding
+        target = hidden[:, 1:]
+        target_f = target.float()
+        target_norm = target_f.norm(dim=-1, keepdim=True)
+        applied_delta = raw_delta.float()
+        cap = self.variant.midlayer_max_relative_embedding_delta_norm
+        if cap is not None:
+            delta_norm = applied_delta.norm(dim=-1, keepdim=True)
+            scale = torch.where(
+                delta_norm > 0,
+                (cap * target_norm / delta_norm).clamp(max=1),
+                torch.ones_like(delta_norm),
+            )
+            applied_delta = applied_delta * scale
+        candidate = target_f + applied_delta
+        candidate_norm = candidate.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        refreshed_target = (candidate * (target_norm / candidate_norm)).to(target.dtype)
+        refreshed = torch.cat((anchor_one, refreshed_target), dim=1)
+        if not bool(torch.isfinite(refreshed).all()):
+            raise RuntimeError("midlayer self-conditioning produced non-finite hidden state")
+        raw_ratio = raw_delta.float().norm(dim=-1) / target_norm.squeeze(-1).clamp_min(1e-12)
+        applied_ratio = applied_delta.norm(dim=-1) / target_norm.squeeze(-1).clamp_min(1e-12)
+        return refreshed, {
+            "midlayer_self_conditioning": self.variant.midlayer_self_conditioning,
+            "midlayer_refresh_after_layer": self.variant.midlayer_refresh_after_layer,
+            "midlayer_anchor_one_hidden_bitwise_unchanged": torch.equal(
+                refreshed[:, :1], anchor_one
+            ),
+            "midlayer_refresh_finite": True,
+            "midlayer_source_anchor_indices_one_based": list(range(1, hidden.shape[1])),
+            "midlayer_target_anchor_indices_one_based": list(range(2, hidden.shape[1] + 1)),
+            "midlayer_predicted_top1_token_ids": predicted_top1[0].detach().cpu().tolist(),
+            "midlayer_initial_target_token_ids": list(anchor_token_ids[1:]),
+            "midlayer_predicted_top1_change_fraction": float(
+                (predicted_top1 != target_ids).float().mean()
+            ),
+            "midlayer_expected_top8_token_ids": (
+                expected_top8_ids[0].detach().cpu().tolist()
+                if expected_top8_ids is not None
+                else None
+            ),
+            "midlayer_expected_top8_weights": (
+                expected_top8_weights[0].detach().cpu().tolist()
+                if expected_top8_weights is not None
+                else None
+            ),
+            "midlayer_raw_embedding_delta_norm_ratio": raw_ratio[0].detach().cpu().tolist(),
+            "midlayer_applied_embedding_delta_norm_ratio": (
+                applied_ratio[0].detach().cpu().tolist()
+            ),
+            "midlayer_max_relative_embedding_delta_norm": cap,
+            "midlayer_hidden_norm_preserved": bool(
+                torch.allclose(
+                    refreshed_target.float().norm(dim=-1),
+                    target_norm.squeeze(-1),
+                    rtol=1e-3,
+                    atol=1e-3,
+                )
+            ),
+            "midlayer_lm_head_logits_shape": list(vocabulary_logits.shape),
+        }
 
     def _layer_step(
         self,
@@ -597,6 +728,7 @@ class QwenPseudoEmbeddingProbe:
         dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
+        dict[str, object],
     ]:
         cache = _fork_cache_copy_on_write(production_cache)
         hidden = self._initial_hidden(
@@ -618,6 +750,7 @@ class QwenPseudoEmbeddingProbe:
         topk_weights: dict[int, Tensor] = {}
         executed_ids: dict[int, Tensor] = {}
         moe_residuals: dict[int, Tensor] = {}
+        midlayer_audit: dict[str, object] = {}
         for layer_idx in range(self.ops.num_layers):
             (
                 hidden,
@@ -658,6 +791,14 @@ class QwenPseudoEmbeddingProbe:
             if executed_route is not None:
                 executed_ids[layer_idx] = executed_route.ids.detach().cpu()
                 moe_residuals[layer_idx] = moe_residual[0].detach().cpu()
+            if (
+                self.variant.midlayer_self_conditioning != "none"
+                and layer_idx == self.variant.midlayer_refresh_after_layer
+            ):
+                hidden, midlayer_audit = self._shifted_midlayer_refresh(
+                    hidden,
+                    anchor_token_ids,
+                )
         return (
             logits,
             probabilities,
@@ -665,6 +806,7 @@ class QwenPseudoEmbeddingProbe:
             topk_weights,
             executed_ids,
             moe_residuals,
+            midlayer_audit,
         )
 
     def _autoregressive_rollout(
@@ -1090,6 +1232,7 @@ class QwenPseudoEmbeddingProbe:
         cache_unchanged = False
         try:
             with torch.inference_mode():
+                midlayer_audit: dict[str, object] = {}
                 if next_token_logits is not None:
                     expected_embedding = self._expected_embedding(
                         next_token_logits.to(device),
@@ -1151,6 +1294,7 @@ class QwenPseudoEmbeddingProbe:
                         topk_weights,
                         shadow_executed_topk_ids,
                         shadow_moe_residuals,
+                        midlayer_audit,
                     ) = self._causal_rollout(
                         production_cache,
                         positions,
@@ -1281,6 +1425,13 @@ class QwenPseudoEmbeddingProbe:
                     )
                     if value is not None
                 ),
+                lm_head_calls=(1 if self.variant.midlayer_self_conditioning != "none" else 0),
+                lm_head_queries=(
+                    len(self.anchors) - 1
+                    if self.variant.midlayer_self_conditioning != "none"
+                    else 0
+                ),
+                midlayer_refreshes=(1 if self.variant.midlayer_self_conditioning != "none" else 0),
             ),
             audit={
                 "information_regime": "online_post_sample",
@@ -1363,6 +1514,7 @@ class QwenPseudoEmbeddingProbe:
                 "retrieval_state_finite": (
                     bool(torch.isfinite(target_tensor).all()) if target_tensor is not None else None
                 ),
+                **midlayer_audit,
                 "one_causal_forward_per_boundary": (
                     self.variant.attention == "causal"
                     and not self.variant.content.startswith("self_")

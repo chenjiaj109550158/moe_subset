@@ -40,6 +40,7 @@ from pseudoroute.benchmark.pseudo_embedding_content_smoke import (
 from pseudoroute.benchmark.pseudo_embedding_route import _source_model, _source_rows
 from pseudoroute.benchmark.qwen_pseudo import (
     ExpertContribution,
+    MidlayerSelfConditioning,
     PseudoAttention,
     PseudoContent,
     QwenPseudoEmbeddingProbe,
@@ -494,6 +495,9 @@ def _probe_for_spec(
     correction_max_relative_delta_norm: float | None = None,
     state_retrieval_target: StateRetrievalTarget = "none",
     state_retrieval_mix: StateRetrievalMix = "none",
+    midlayer_self_conditioning: MidlayerSelfConditioning = "none",
+    midlayer_refresh_after_layer: int | None = None,
+    midlayer_max_relative_embedding_delta_norm: float | None = None,
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -550,6 +554,9 @@ def _probe_for_spec(
             correction_max_relative_delta_norm,
             state_retrieval_target,
             state_retrieval_mix,
+            midlayer_self_conditioning,
+            midlayer_refresh_after_layer,
+            midlayer_max_relative_embedding_delta_norm,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -750,6 +757,9 @@ def run_policy_sample(
     state_retrieval_mode: StateRetrievalMode = "none",
     state_retrieval_target: StateRetrievalTarget = "none",
     state_retrieval_mix: StateRetrievalMix = "none",
+    midlayer_self_conditioning: MidlayerSelfConditioning = "none",
+    midlayer_refresh_after_layer: int | None = None,
+    midlayer_max_relative_embedding_delta_norm: float | None = None,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -771,6 +781,18 @@ def run_policy_sample(
     ):
         raise ValueError(
             "token-aligned retrieval requires recent causal native execution without velocity"
+        )
+    midlayer_enabled = midlayer_self_conditioning != "none"
+    if midlayer_enabled and (
+        not shadow_expert_execution
+        or spec.content != "recent_sequence_causal"
+        or hidden_state_correction != "none"
+        or residual_correction != "none"
+        or retrieval_enabled
+    ):
+        raise ValueError(
+            "midlayer self-conditioning requires recent causal native execution without "
+            "correction or retrieval"
         )
     device = inputs["input_ids"].device
     prompt_rng = _rng_snapshot(device)
@@ -818,6 +840,9 @@ def run_policy_sample(
         correction_max_relative_delta_norm=correction_max_relative_delta_norm,
         state_retrieval_target=state_retrieval_target,
         state_retrieval_mix=state_retrieval_mix,
+        midlayer_self_conditioning=midlayer_self_conditioning,
+        midlayer_refresh_after_layer=midlayer_refresh_after_layer,
+        midlayer_max_relative_embedding_delta_norm=(midlayer_max_relative_embedding_delta_norm),
     )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
@@ -1169,6 +1194,9 @@ def run_policy_sample(
         "state_retrieval_mode": state_retrieval_mode,
         "state_retrieval_target": state_retrieval_target,
         "state_retrieval_mix": state_retrieval_mix,
+        "midlayer_self_conditioning": midlayer_self_conditioning,
+        "midlayer_refresh_after_layer": midlayer_refresh_after_layer,
+        "midlayer_max_relative_embedding_delta_norm": (midlayer_max_relative_embedding_delta_norm),
         "final_state_history_tokens": len(state_history_token_ids),
         "source_v17_row_sha256": sha256_json(source),
         "source_token_ids_sha256": sha256_json(source_tokens),
