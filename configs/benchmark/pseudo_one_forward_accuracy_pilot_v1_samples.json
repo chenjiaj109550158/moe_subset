@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "source_manifest": {
+    "path": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json",
+    "sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93",
+    "partition": "closed_loop_wave_1"
+  },
+  "selection": {
+    "rule": "exact_reuse_of_predeclared_closed_loop_wave_1_in_original_order",
+    "accuracy_correctness_or_ground_truth_used_to_select_ids": false,
+    "replacement_after_execution": false
+  },
+  "mechanism_smoke": {
+    "row_index": 44,
+    "sample_id": "test-44",
+    "max_new_tokens": 16,
+    "result_selects_policy_or_ids": false
+  },
+  "accuracy": [
+    {
+      "row_index": 44,
+      "sample_id": "test-44",
+      "sha256_rank": "0319517d5d3ce043565fa8868fc08f0a1db763d3232bf8819439c46a5966cd18",
+      "rendered_prompt_sha256": "62fa2b96bcd73c704a41f5c2e5ea40d6b845f706c4c152f1b18486d84066ec9a",
+      "target_sha256": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "source_v17_generated_tokens": 314,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 632,
+      "sample_id": "test-632",
+      "sha256_rank": "03257319b8083115c0a7817996362f3531656cca8f53cd2cae4a6cc0bacf9e35",
+      "rendered_prompt_sha256": "43d841ee9d0d6dc2e1135acd1955268d121aea06be20c8549849d2f6db6e1cd2",
+      "target_sha256": "811786ad1ae74adfdd20dd0372abaaebc6246e343aebd01da0bfc4c02bf0106c",
+      "source_v17_generated_tokens": 176,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 444,
+      "sample_id": "test-444",
+      "sha256_rank": "03c62c763655370dc07612e5c20903df6eda816eddbfc6c1708b461232980a34",
+      "rendered_prompt_sha256": "091472d23f6f5af8155fcb1da9105349d11824a9d70bc499ace082233a87d987",
+      "target_sha256": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "source_v17_generated_tokens": 219,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 519,
+      "sample_id": "test-519",
+      "sha256_rank": "03f9b9b5f48073db1b2857302d35a683c010c8ffeb8e4708a7b2120c1d7b0971",
+      "rendered_prompt_sha256": "3bf3b4bccbcec4e3414f2666c0b962c513b152fe422064e6ca04d3e9197b823c",
+      "target_sha256": "7f0a22117f8fe0172cf9209ff622b64a51aaeda21d58b5b62685a93dbe2dad25",
+      "source_v17_generated_tokens": 173,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 1311,
+      "sample_id": "test-1311",
+      "sha256_rank": "03fd62942057799269c2ddd6b199c22223b63dccecd2434febea857d88fb52aa",
+      "rendered_prompt_sha256": "6498b6928d7b2cd1863e68409f094acc04a62e2d1439ef03b5dff28f974d0108",
+      "target_sha256": "e2fa8f5b4364b8ef4dd1f26ab47105d908d06ec84d835e3d1aac404a63f1464a",
+      "source_v17_generated_tokens": 205,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 1264,
+      "sample_id": "test-1264",
+      "sha256_rank": "04132224888deb0fbe82e9e6d840d959480e922068492455b661c35ce1cc1414",
+      "rendered_prompt_sha256": "d1f279c744e81cef15de5f4683190637a12adc64c1b37a6fab3dd03b75b06336",
+      "target_sha256": "d29d53701d3c859e29e1b90028eec1ca8e2f29439198b6e036c60951fb458aa1",
+      "source_v17_generated_tokens": 378,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 825,
+      "sample_id": "test-825",
+      "sha256_rank": "04467f247a2eb27e93d948293e78c4d7e31286c974529f1d5060ee415589a383",
+      "rendered_prompt_sha256": "57dcb4bd53fa5b94b13cb20f11574139efb47096891a434eabe26fb5ea73926e",
+      "target_sha256": "620c9c332101a5bae955c66ae72268fbcd3972766179522c8deede6a249addb7",
+      "source_v17_generated_tokens": 347,
+      "source_v17_correct": true
+    },
+    {
+      "row_index": 252,
+      "sample_id": "test-252",
+      "sha256_rank": "044c12b17d5c702aa97b53799243c5b9b83be27b4293ab59a5f9f68efbdf042d",
+      "rendered_prompt_sha256": "7d80b701d04fe13cf4f398b08b55a6da7997d34e78bd151a1e61398a6f36c2c2",
+      "target_sha256": "96061e92f58e4bdcdee73df36183fe3ac64747c81c26f6c83aada8d2aabb1864",
+      "source_v17_generated_tokens": 289,
+      "source_v17_correct": true
+    }
+  ],
+  "work_assignment": {
+    "policy_order": [
+      "recent_sequence_causal",
+      "sampled_unigram_full_continuation",
+      "future_exact_content_oracle"
+    ],
+    "order": "accuracy_row_order_then_policy_order",
+    "shard_rule": "zero_based_work_index_modulo_2",
+    "shard_count": 2
+  }
+}
