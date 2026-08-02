@@ -83,6 +83,19 @@ free generation, exact-token, or runtime-speedup claim. See the
 [composition protocol](docs/pseudo_executed_embedding_composition_v1.md) and
 [route report](artifacts/pseudo_executed_embedding_composition_v1/report.md).
 
+A final calibration-free development experiment kept that same one-forward
+mechanism but tested two state extrapolations. Each boundary still performs one
+native causal eight-token pseudo traversal and obtains a fresh MoE residual by
+executing the previous realized B=32 subset; the only additions were either a
+last-two-token router-input velocity or a last-two-token MoE-output velocity.
+Both fixed linear corrections regressed the uncorrected recent-sequence baseline:
+hidden velocity scored 0.648031/0.661326 and residual velocity scored
+0.676310/0.691583 route hit/selected mass, versus 0.700267/0.714061. Both paired
+95% intervals were wholly negative. The result is **STOP/PIVOT** at four-row
+development scope, with no held-out route or accuracy execution. See the
+[state-correction protocol](docs/pseudo_one_forward_state_correction_v1.md) and
+[report](artifacts/pseudo_one_forward_state_correction_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

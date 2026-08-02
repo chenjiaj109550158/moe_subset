@@ -264,3 +264,45 @@ route analysis. Held-out oracle-gap recovery, task accuracy, free generation,
 exact-token agreement, NLL/perplexity, closed-loop runtime, and runtime speedup
 were not measured, so this artifact cannot by itself authorize or support those
 claims.
+
+## One-forward state-correction analysis
+
+The immutable config and sample manifest are
+`configs/analysis/pseudo_one_forward_state_correction_v1.yaml` and
+`configs/analysis/pseudo_one_forward_state_correction_v1_samples.json`, with
+SHA-256 values
+`7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44` and
+`350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c`.
+They freeze four existing development IDs and authorize neither new traces nor
+held-out/accuracy execution. Run the two complementary offline shards and then
+aggregate, finalize, or validate with:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_state_correction run --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_state_correction run --gpu 1 --shard-index 1 --shard-count 2
+python -m pseudoroute.benchmark.pseudo_one_forward_state_correction aggregate
+python -m pseudoroute.benchmark.pseudo_one_forward_state_correction finalize
+python -m pseudoroute.benchmark.pseudo_one_forward_state_correction validate
+```
+
+Each row is an atomic JSON+safetensors pair and a valid pair resumes without
+loading Qwen. The final root validates 12 pairs and 41 manifest artifacts, with
+zero failure markers. The authoritative artifact-manifest SHA-256 is
+`b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21`.
+
+All three variants use recent-sequence causal content and exactly one native
+eight-token pseudo traversal per boundary. They execute fresh native MoE
+residuals under full top-8 access at boundary zero and the previous realized
+B=32 subset thereafter. The two calibration-free corrections use only the last
+two current-policy router inputs or MoE outputs and fixed coefficients 1–8; no
+future true token after the sampled boundary token, answer, accuracy, fitted
+coefficient, route table, expert prior, or default-vector value is accessed.
+
+The terminal development decision is `STOP/PIVOT`: both corrections regress the
+uncorrected baseline with wholly negative paired intervals. Route metrics are
+teacher-forced on the current policy's hard-subset state, probe/replay latency
+and memory are measured, and transfer is simulated. Held-out route, task
+accuracy, free generation, exact-token identity, NLL/perplexity, closed-loop
+runtime, and speedup are not measured.

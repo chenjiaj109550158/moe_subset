@@ -3,9 +3,9 @@
 ## Current milestone
 
 Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 and its separately
-versioned calibration-free mechanism analysis — complete with scoped
-**STOP/PIVOT** decisions. Earlier M11, trained-model, and subset-oracle artifacts
-remain complete and unchanged.
+versioned calibration-free mechanism and one-forward state-correction analyses
+— complete with scoped **STOP/PIVOT** decisions. Earlier M11, trained-model, and
+subset-oracle artifacts remain complete and unchanged.
 
 ## Qwen/GSM8K pseudo-embedding focused pilot
 
@@ -116,6 +116,38 @@ Artifacts: `artifacts/pseudo_embedding_qwen_gsm8k_residual_window_v1/`.
 Artifact-manifest SHA-256:
 `720e3e0ae68efeddd770226f7d953969c8313997455ac8520a39788b4dd71771`.
 
+## One-forward state-correction analysis
+
+`pseudo_one_forward_state_correction_v1` froze config SHA-256
+`7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44`,
+the four development IDs, formulas, costs, and stop rule before new model
+results. Every variant performs one native causal eight-token pseudo traversal
+per boundary. Boundary zero uses full native top-8 access; later boundaries
+execute the current policy's previous realized B=32 subset to produce a fresh
+pseudo MoE residual.
+
+- The uncorrected recent-sequence baseline reproduced 0.700267 route hit and
+  0.714061 selected mass at 0.3082 seconds per boundary probe.
+- Layer-wise router-input velocity scored 0.648031/0.661326, deltas
+  -0.052236/-0.052736. Fresh residual plus historical residual velocity scored
+  0.676310/0.691583, deltas -0.023956/-0.022478.
+- Both four-sample paired 95% intervals were wholly negative. Hidden velocity
+  changed the centered router logits by 1.291 normalized RMS and retained only
+  0.195 pseudo top-8 overlap with the uncorrected probe; residual velocity was
+  milder at 0.957 RMS and 0.388 overlap.
+- The known-token first anchor explains much of the failure: the uncorrected
+  0.924479/0.949430 fell to 0.734782/0.762451 and 0.825602/0.861247. Neither
+  correction recovered the loss over later anchors.
+- All cache/RNG/shadow/information and one-forward call-count audits pass. All
+  12 atomic JSON+safetensors pairs checksum-resume, with zero failed markers.
+  Held-out route and task accuracy were not run under the frozen stop rule.
+
+The development-only decision is **STOP/PIVOT**. Route metrics are measured on
+teacher-forced current-policy hard-subset state; probe/replay cost is measured,
+transfer reduction is simulated, and no speedup is claimed. Artifacts:
+`artifacts/pseudo_one_forward_state_correction_v1/`. Artifact-manifest SHA-256:
+`b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21`.
+
 ## Completed GPT-OSS/GSM8K hard scope
 
 `benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
@@ -204,12 +236,12 @@ closed-loop evaluation, and must not relabel this negative result.
 Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 196 files already formatted.
+- `ruff format --check .`: PASS; 199 files already formatted.
 - `ruff check .`: PASS.
-- `mypy src/pseudoroute`: PASS; no issues in 105 source files.
+- `mypy src/pseudoroute`: PASS; no issues in 106 source files.
 - Focused residual-window/Qwen/shadow tests: PASS; 28 passed.
 - Particle-dispatch focused tests: PASS; 12 passed.
-- `python -m pytest -ra`: PASS; 194 passed, 3 expected skips in 16.31s.
+- `python -m pytest -ra`: PASS; 198 passed, 3 expected skips in 15.98s.
 - Five calibration-free artifact validators: PASS; manifest counts
   11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
   terminal `complete/report_v1` `STOP/PIVOT`.
@@ -219,6 +251,9 @@ Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 - Executed-pseudo composition validator: PASS; 104/104 atomic sample-policy
   rows, 242 manifest artifacts, four preserved failure markers, and terminal
   `complete/report_v1` route-analysis `NARROW`.
+- One-forward state-correction validator: PASS; 12/12 atomic sample-policy
+  rows, 41 manifest artifacts, zero failed markers, checksum resume, and
+  terminal `complete/report_v1` `STOP/PIVOT`.
 
 Retained 2026-07-27 acceptance records below were not rerun in this focused
 session:
@@ -254,15 +289,16 @@ None.
 ## Next exact tasks
 
 The original focused pseudo-embedding v1 stage, calibration-free prompt-route
-follow-up, and previous-window residual-bank experiment remain terminal at
-**STOP/PIVOT**. The newer executed-pseudo composition analysis is terminal at a
-route-only **NARROW**: preserve its positive held-out route evidence, but do not
-run actual accuracy from this analysis protocol because held-out oracle-gap
-recovery and a paired allowed-drop rule were not frozen here. A generation stage
-requires a new committed execution amendment using fixed existing IDs and gates
-before any accuracy is observed. No predictor training, expanded dataset scope,
-default-vector recalibration, or production runtime work is authorized; new
-sample rows require explicit human authorization.
+follow-up, previous-window residual-bank experiment, and one-forward linear
+state-correction experiment remain terminal at **STOP/PIVOT**. The executed-
+pseudo composition analysis is terminal at a route-only **NARROW**: preserve its
+positive held-out route evidence, but do not run actual accuracy from that
+analysis protocol because held-out oracle-gap recovery and a paired allowed-drop
+rule were not frozen there. A generation stage requires a new committed
+execution amendment using fixed existing IDs and gates before any accuracy is
+observed. No predictor training, expanded dataset scope, default-vector
+recalibration, or production runtime work is authorized; new sample rows require
+explicit human authorization.
 
 ## Decisions needing human review
 

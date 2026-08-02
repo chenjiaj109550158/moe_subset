@@ -757,3 +757,63 @@ execution amendment that freezes the same policy/IDs/token caps, adds an
 oracle-gap computation and paired accuracy allowed-drop before generation, and
 keeps sample scope within prior authorization. Expanded rows, learned predictors,
 or default-vector recalibration still require explicit human authorization.
+
+## D-20260802-040 — Stop one-forward linear state corrections at development
+
+**Status:** accepted
+
+**Context:** The user requested two calibration-free ways to enrich the cheap
+one-forward recent-sequence mechanism without paying for eight autoregressive
+shadow forwards. A separately committed protocol froze four existing
+development rows, fixed coefficients 1 through 8, and three otherwise identical
+policies. Every boundary performs one native causal eight-token pseudo traversal.
+It executes fresh Qwen MoE residuals under full native top-8 access at boundary
+zero and the current policy's previous realized B=32 subset thereafter. Method
+one adds the last-two-token router-input velocity before each native gate;
+method two adds the last-two-token realized MoE-output velocity to the freshly
+executed pseudo MoE contribution. Per-anchor L2 norm is restored after either
+addition.
+
+The uncorrected policy reached 0.700267 route hit, 0.714061 selected mass, and
+0.465892 simulated transfer reduction. Router-input velocity reached
+0.648031/0.661326/0.391418, with deltas -0.052236/-0.052736 and paired 95%
+intervals [-0.054891, -0.047923]/[-0.060275, -0.045458]. Residual velocity
+reached 0.676310/0.691583/0.434408, with deltas -0.023956/-0.022478 and intervals
+[-0.028493, -0.019735]/[-0.029072, -0.015884]. Both miss the frozen +0.02 route
+signal in the wrong direction.
+
+**Decision:** Record **STOP/PIVOT** for both linear corrections and do not run a
+held-out route set or task accuracy. Keep the uncorrected one-forward
+recent-sequence mechanism as the stronger cheap reference; retain the earlier
+autoregressive self-greedy composition as the best route-only method, with its
+higher measured probe cost.
+
+**Alternatives considered:** Tune the coefficient scale after seeing these
+rows, change the frozen 1–8 schedule to 0–7, gate corrections by layer/router
+margin, promote the less-negative residual variant, add held-out rows, or inspect
+task accuracy despite the failed route signal.
+
+**Consequences:** The router is highly sensitive to naïve last-token velocity.
+Hidden correction changed centered router logits by 1.291 normalized RMS and
+retained only 0.195 pseudo top-8 overlap with the uncorrected route; residual
+correction was milder at 0.957 RMS and 0.388 overlap but still harmful. Most
+importantly, the known-token first anchor fell from 0.924479/0.949430 route
+hit/mass to 0.734782/0.762451 and 0.825602/0.861247. Thus a fixed extrapolation
+disturbs the most trustworthy state before it can help later anchors.
+
+All cache/RNG/shadow/information and one-forward call-count audits pass. The
+root validates 12 atomic pairs, 41 checksummed artifacts, checksum resume, and
+zero failure markers; manifest SHA-256 is
+`b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21`.
+These are teacher-forced current-policy hard-subset route measurements with
+measured probe/replay cost and simulated transfer, not task accuracy, free
+generation, exact-token identity, or runtime speedup.
+
+**Experiments affected:** Only `pseudo_one_forward_state_correction_v1`.
+Earlier route-analysis `NARROW`, focused pseudo `STOP/PIVOT`, GPT hard-only
+`NARROW`, trained-model `STOP/PIVOT`, and M11 conclusions are unchanged.
+
+**Migration required:** Preserve this terminal development result. Any new
+coefficient schedule, adaptive gate, held-out evaluation, or accuracy stage must
+be separately frozen before results. New rows or expanded scope still require
+explicit human authorization.
