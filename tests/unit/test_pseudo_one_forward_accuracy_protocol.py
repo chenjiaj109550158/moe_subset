@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot import _work
+
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "configs/benchmark/pseudo_one_forward_accuracy_pilot_v1.yaml"
 SAMPLES = ROOT / "configs/benchmark/pseudo_one_forward_accuracy_pilot_v1_samples.json"
@@ -70,3 +72,17 @@ def test_accuracy_protocol_fingerprints_and_scope_are_frozen() -> None:
         ]
         is True
     )
+
+
+def test_frozen_work_assignment_is_complete_disjoint_and_balanced() -> None:
+    samples = json.loads(SAMPLES.read_text(encoding="utf-8"))
+    shard_zero = _work(samples, stage="actual", shard_index=0, shard_count=2)
+    shard_one = _work(samples, stage="actual", shard_index=1, shard_count=2)
+    keys_zero = {(row["sample_id"], policy) for row, policy in shard_zero}
+    keys_one = {(row["sample_id"], policy) for row, policy in shard_one}
+    expected = {(sample_id, policy) for sample_id in IDS for policy in POLICIES}
+    assert len(keys_zero) == len(keys_one) == 12
+    assert keys_zero.isdisjoint(keys_one)
+    assert keys_zero | keys_one == expected
+    assert len(_work(samples, stage="smoke", shard_index=0, shard_count=2)) == 3
+    assert _work(samples, stage="smoke", shard_index=1, shard_count=2) == []

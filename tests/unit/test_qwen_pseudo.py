@@ -20,6 +20,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
 from pseudoroute.benchmark.subset_closed_loop import (
     _cache_mutation_signature,
     _fork_cache_copy_on_write,
+    natural_token_lookahead_copy_on_write,
 )
 
 
@@ -62,6 +63,26 @@ def _prefill(model: Qwen3MoeForCausalLM) -> object:
         )
     assert output.past_key_values is not None
     return output.past_key_values
+
+
+def test_natural_token_lookahead_is_copy_on_write_and_rng_read_only() -> None:
+    model = _model()
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    rng = torch.random.get_rng_state().clone()
+    result = natural_token_lookahead_copy_on_write(
+        model,
+        torch.tensor([[4]]),
+        cache,
+        horizon=4,
+    )
+    assert result.anchor_token_ids[0] == 4
+    assert len(result.anchor_token_ids) == 4
+    assert result.natural_forward_calls == 3
+    assert result.production_cache_signature_unchanged
+    assert result.production_rng_unchanged
+    assert _cache_mutation_signature(cache) == signature
+    assert torch.equal(torch.random.get_rng_state(), rng)
 
 
 def test_native_qwen_probe_preserves_cache_rng_and_information_boundary() -> None:

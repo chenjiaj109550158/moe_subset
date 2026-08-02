@@ -64,6 +64,18 @@ class RouteAccounting:
     natural_reference_bytes: int = 0
 
 
+@dataclass(frozen=True)
+class NaturalTokenLookaheadResult:
+    anchor_token_ids: tuple[int, ...]
+    successor_tokens_generated: int
+    natural_forward_calls: int
+    terminal_padding_tokens: int
+    production_cache_signature_unchanged: bool
+    production_rng_unchanged: bool
+    shadow_cache_discarded: bool
+    latency_seconds_measured: float
+
+
 def _source_model(accuracy: AccuracySuiteConfig, model: SubsetModelConfig) -> AccuracyModelConfig:
     matches = [candidate for candidate in accuracy.models if candidate.key == model.key]
     if len(matches) != 1:
@@ -330,6 +342,83 @@ def natural_lookahead_and_rewind(
     if not steps:
         raise RuntimeError("oracle natural lookahead produced no route step")
     return steps
+
+
+def natural_token_lookahead_copy_on_write(
+    model: nn.Module,
+    current: Tensor,
+    cache: object,
+    *,
+    horizon: int,
+) -> NaturalTokenLookaheadResult:
+    """Build current-plus-natural-successor anchors without mutating production state."""
+    if horizon < 1:
+        raise ValueError("natural token lookahead horizon must be positive")
+    if tuple(current.shape) != (1, 1):
+        raise ValueError("natural token lookahead requires one current token")
+    device = current.device
+    boundary_length = _cache_length(cache)
+    boundary_signature = _cache_mutation_signature(cache)
+    state = _rng_state(device)
+    rollout_cache = _fork_cache_copy_on_write(cache)
+    rollout_current = current
+    anchors = [int(current.item())]
+    calls = 0
+    synchronized = device.type == "cuda"
+    if synchronized:
+        torch.cuda.synchronize(device)
+    started = time.perf_counter()
+    try:
+        with torch.inference_mode():
+            for _ in range(horizon - 1):
+                output = cast(
+                    Any,
+                    model(
+                        input_ids=rollout_current,
+                        past_key_values=rollout_cache,
+                        use_cache=True,
+                        return_dict=True,
+                    ),
+                )
+                if output.past_key_values is not rollout_cache:
+                    raise RuntimeError("natural token lookahead changed forked cache identity")
+                calls += 1
+                scores = cast(Tensor, output.logits[:, -1])
+                token = _sample_token(scores, model, do_sample=False)
+                anchors.append(int(token.item()))
+                rollout_current = token[:, None].to(device)
+                if anchors[-1] in _eos_ids(model):
+                    break
+        if synchronized:
+            torch.cuda.synchronize(device)
+        elapsed = time.perf_counter() - started
+        cache_unchanged = (
+            _cache_length(cache) == boundary_length
+            and _cache_mutation_signature(cache) == boundary_signature
+        )
+        rng_unchanged = all(
+            torch.equal(before, after)
+            for before, after in zip(state, _rng_state(device), strict=True)
+        )
+    finally:
+        _restore_rng(device, state)
+    if not cache_unchanged:
+        raise RuntimeError("natural token lookahead mutated the production cache")
+    if not rng_unchanged:
+        raise RuntimeError("natural token lookahead changed generation RNG")
+    generated = len(anchors) - 1
+    padding = horizon - len(anchors)
+    anchors.extend([anchors[-1]] * padding)
+    return NaturalTokenLookaheadResult(
+        anchor_token_ids=tuple(anchors),
+        successor_tokens_generated=generated,
+        natural_forward_calls=calls,
+        terminal_padding_tokens=padding,
+        production_cache_signature_unchanged=True,
+        production_rng_unchanged=True,
+        shadow_cache_discarded=True,
+        latency_seconds_measured=elapsed,
+    )
 
 
 def _account_records(
