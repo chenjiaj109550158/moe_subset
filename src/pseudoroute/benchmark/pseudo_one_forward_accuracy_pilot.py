@@ -198,8 +198,12 @@ def _failure_path(stage: Stage, row_index: int, policy: PilotPolicy) -> Path:
 
 
 def _write_checksummed(path: Path, row: dict[str, object]) -> None:
-    payload = dict(row)
-    payload["row_payload_sha256"] = sha256_json(row)
+    payload = cast(
+        dict[str, object],
+        json.loads(json.dumps(row, sort_keys=True, separators=(",", ":"), ensure_ascii=False)),
+    )
+    payload["artifact_checksum_serialization"] = "json_round_trip_v1"
+    payload["row_payload_sha256"] = sha256_json(payload)
     write_json_atomic(path, payload)
 
 
@@ -218,6 +222,7 @@ def _load_checksummed(
     expected = payload.pop("row_payload_sha256", None)
     if (
         payload.get("state") != "complete"
+        or payload.get("artifact_checksum_serialization") != "json_round_trip_v1"
         or payload.get("pilot_id") != PILOT_ID
         or payload.get("config_sha256") != CONFIG_SHA256
         or payload.get("sample_manifest_sha256") != SAMPLES_SHA256

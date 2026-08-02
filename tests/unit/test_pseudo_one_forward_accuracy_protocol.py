@@ -6,7 +6,11 @@ from pathlib import Path
 
 import yaml
 
-from pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot import _work
+from pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot import (
+    _work,
+    _write_checksummed,
+)
+from pseudoroute.benchmark.subset_trace import sha256_json
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "configs/benchmark/pseudo_one_forward_accuracy_pilot_v1.yaml"
@@ -86,3 +90,14 @@ def test_frozen_work_assignment_is_complete_disjoint_and_balanced() -> None:
     assert keys_zero | keys_one == expected
     assert len(_work(samples, stage="smoke", shard_index=0, shard_count=2)) == 3
     assert _work(samples, stage="smoke", shard_index=1, shard_count=2) == []
+
+
+def test_row_checksum_is_stable_after_integer_layer_keys_round_trip(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "row.json"
+    _write_checksummed(path, {"layers": {2: "two", 10: "ten"}})
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    expected = payload.pop("row_payload_sha256")
+    assert payload["artifact_checksum_serialization"] == "json_round_trip_v1"
+    assert expected == sha256_json(payload)
