@@ -873,3 +873,66 @@ trained-model `STOP/PIVOT`, and M11 conclusions are unchanged.
 four rows. A materially different information source—not another post-hoc
 coefficient—needs a separately frozen protocol. New rows, held-out evaluation,
 or accuracy still require explicit authorization.
+
+## D-20260802-042 — Stop token-aligned state retrieval at development
+
+**Status:** accepted
+
+**Context:** After protected temporal corrections remained too small, the user
+authorized a materially different calibration-free information source. Before
+implementation and model output, a new protocol froze the same four Qwen/GSM8K
+development rows and five one-forward candidates. Full-expert prefill records
+every prompt token's native router input and exact executed MoE output. Each
+later hard window appends only the current policy's already-realized states.
+Pseudo anchors retrieve the most recent same-token state; optional fallback uses
+native input-embedding cosine. Retrieved state is norm-matched into either the
+fresh router input or the fresh pseudo MoE residual. No future true token after
+the sampled token, vanilla state, answer, accuracy, fitted value, offline prior,
+route table, or default vector is accessible.
+
+The checksum-pinned uncorrected reference scored 0.700267 route hit and 0.714061
+selected mass. Exact residual addition scored 0.699565/0.712088, deltas
+-0.000702/-0.001973; its paired 95% intervals were
+[-0.002767, 0.000814]/[-0.003723, -0.000403]. Embedding-nearest residual
+addition ranked first by selected mass at 0.699025/0.712238, deltas
+-0.001241/-0.001824, with intervals
+[-0.002828, 0.000692]/[-0.002754, -0.000351]. Residual replacement and both
+router-input variants regressed more. Exact-token retrieval covered 0.953125 of
+anchors; fallback covered the remaining 0.046875. Thus retrieval availability
+was not the limiting factor.
+
+**Decision:** Record **STOP/PIVOT**. Do not run held-out route evaluation or task
+accuracy. Token identity is too coarse to supply the missing future hidden-state
+direction, and direct addition can perturb even the trustworthy anchor-one
+state. Preserve the uncorrected one-forward recent-sequence mechanism as the
+cheap reference and the earlier autoregressive self-greedy route result as the
+stronger but more expensive composition evidence.
+
+**Alternatives considered:** Tune similarity weights or layer gates on the four
+rows, use a broader offline token-state dictionary, fit a projection between
+retrieved and fresh state, promote the tiny route-hit regression because cost is
+low, or inspect accuracy despite the failed frozen route gate.
+
+**Consequences:** All candidates retained 45.05%–46.24% simulated transfer
+reduction and 0.3354–0.3527 second measured total planning latency, so cost was
+not the failure. Even exact residual addition regressed anchor-one hit/mass by
+-0.005697/-0.006014. All cache/RNG/shadow/information/call-count audits pass.
+Twenty atomic candidate pairs, four source references, 59 artifacts, checksum
+resume, and zero failure markers validate. Manifest SHA-256 is
+`512c0670002ceee7b201c7f13b948e63766225887a5b778bceae4924e19ed893`.
+These are teacher-forced current-policy route measurements with measured probe/
+retrieval cost and simulated transfer—not held-out validation, task accuracy,
+free generation, exact-token identity, runtime, or speedup.
+
+**Experiments affected:** Only
+`pseudo_one_forward_token_aligned_retrieval_v1`. Earlier protected/linear
+`STOP/PIVOT`, executed-pseudo route `NARROW`, focused pseudo `STOP/PIVOT`, GPT
+hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 conclusions remain
+unchanged.
+
+**Migration required:** Preserve these four rows as development evidence and do
+not tune retrieval weights on them. A future calibration-free attempt needs a
+new information source beyond raw token identity—such as a separately frozen
+analytic attention/context transform—before any new rows. Held-out, accuracy,
+expanded samples, learned parameters, or offline calibration still require
+explicit authorization.

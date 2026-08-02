@@ -348,3 +348,48 @@ The best residual-damped candidate improved route hit/selected mass by only
 `STOP/PIVOT`. Route metrics and probe cost are teacher-forced current-policy
 measurements; transfer is simulated. Held-out route, accuracy, free generation,
 exact-token identity, NLL/perplexity, runtime, and speedup were not measured.
+
+## Token-aligned one-forward state retrieval v1
+
+The immutable config and sample manifest are
+`configs/analysis/pseudo_one_forward_token_aligned_retrieval_v1.yaml` and
+`configs/analysis/pseudo_one_forward_token_aligned_retrieval_v1_samples.json`,
+with SHA-256 values
+`19a368fe6a5e819cc0e5b3a6c3528ccf9baf94a66ba4733a278e9c0d1e5cadff` and
+`dc18107f178100f41df1ffccdf23f07ddd3f611044f4b7f7ac5da1edbad36c69`.
+They were committed before implementation and model output. Run the two offline
+shards and then aggregate/finalize/validate with:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_token_aligned_retrieval run --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_token_aligned_retrieval run --gpu 1 --shard-index 1 --shard-count 2
+python -m pseudoroute.benchmark.pseudo_one_forward_token_aligned_retrieval aggregate
+python -m pseudoroute.benchmark.pseudo_one_forward_token_aligned_retrieval finalize
+python -m pseudoroute.benchmark.pseudo_one_forward_token_aligned_retrieval validate
+```
+
+Each JSON+safetensors pair is written atomically and checksum-resumed. The final
+root validates 20 candidate pairs, four checksum-pinned uncorrected references,
+59 manifest artifacts, and zero failure markers. The authoritative manifest
+SHA-256 is
+`512c0670002ceee7b201c7f13b948e63766225887a5b778bceae4924e19ed893`.
+
+Retrieval banks contain full-prefill native router inputs and exact native MoE
+outputs, followed only by states actually executed on the same hard policy's
+saved-token replay. Exact-token ties choose the most recent history position;
+the optional fallback uses float32 cosine under the pinned model's native input
+embedding and also chooses the most recent tie. Similarity is fixed at one for
+exact matches, zero for missing exact-only matches, and clamped to `[0,1]` for
+fallback. No value is fitted or calibrated.
+
+Every candidate still uses exactly one native causal H=8 pseudo traversal per
+boundary, correct RoPE positions, full top-8 access at boundary zero, and the
+previous realized B=32 subset later. Production cache/RNG is unchanged and the
+shadow cache is discarded. The result is `STOP/PIVOT`: all five variants
+regressed the uncorrected route signal. Route metrics are teacher-forced current-
+policy measurements, probe/retrieval latency and memory are measured, and
+transfer is simulated. Held-out route, task accuracy, free generation, exact-
+token identity, NLL/perplexity, closed-loop runtime, and speedup were not
+measured.

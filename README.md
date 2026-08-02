@@ -108,6 +108,20 @@ therefore **STOP/PIVOT**, with no held-out or accuracy run. See the
 [protected-anchor protocol](docs/pseudo_one_forward_protected_anchor_v2.md) and
 [report](artifacts/pseudo_one_forward_protected_anchor_v2/report.md).
 
+The next frozen one-forward test replaced temporal extrapolation with current-
+request token-aligned state retrieval. It captured native router inputs and
+exact executed MoE outputs for prompt and already-realized policy tokens,
+retrieved the most recent matching token state for each pseudo anchor, and
+optionally used native input-embedding cosine for a missing match. Anchors 2–8
+were always exact, but all five residual/router-input mixtures regressed the
+uncorrected 0.700267/0.714061 reference. The best selected-mass candidate reached
+0.699025/0.712238; exact residual addition reached 0.699565/0.712088. Measured
+retrieval cost was tiny and simulated transfer stayed above 45%, but the frozen
++0.02 route signal failed. This is a four-row development **STOP/PIVOT** with no
+held-out route or accuracy execution. See the
+[token-aligned protocol](docs/pseudo_one_forward_token_aligned_retrieval_v1.md)
+and [report](artifacts/pseudo_one_forward_token_aligned_retrieval_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is
