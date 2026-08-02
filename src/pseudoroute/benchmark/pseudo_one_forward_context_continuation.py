@@ -703,6 +703,8 @@ def _report() -> str:
     policies = _json(OUTPUT / "development" / "aggregates.json")["policies"]
     comparisons = _json(OUTPUT / "development" / "comparisons.json")
     anchors = _json(OUTPUT / "development" / "anchor_strata.json")
+    suffixes = _json(OUTPUT / "development" / "suffix_length_strata.json")
+    worst = _json(OUTPUT / "development" / "worst_cases.json")
     decision = _json(OUTPUT / "development" / "decision.json")
     baseline_key = SOURCE_SPECS[0].key
     lines = [
@@ -711,15 +713,16 @@ def _report() -> str:
         "Each candidate copies only known current-request token context, then runs one "
         "native causal H=8 traversal with fresh native MoE residuals.",
         "",
-        "| Variant | Route hit | Selected mass | Coverage | Copied anchors | "
-        "Changed anchors | Probe s |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| Variant | Route hit | Selected mass | Coverage | Changed anchors | "
+        "Transfer reduction | Probe s | Plan ms |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     baseline = policies[baseline_key]
     lines.append(
         f"| {baseline_key} | {float(baseline['mean_route_hit']):.6f} | "
-        f"{float(baseline['mean_selected_mass']):.6f} | - | - | - | "
-        f"{float(baseline['mean_probe_latency_seconds']):.4f} |"
+        f"{float(baseline['mean_selected_mass']):.6f} | - | - | "
+        f"{float(baseline['estimated_transfer_reduction']):.4f} | "
+        f"{float(baseline['mean_probe_latency_seconds']):.4f} | - |"
     )
     for spec in SPECS:
         values = policies[spec.key]
@@ -727,23 +730,45 @@ def _report() -> str:
             f"| {spec.key} | {float(values['mean_route_hit']):.6f} | "
             f"{float(values['mean_selected_mass']):.6f} | "
             f"{float(values['continuation_coverage']):.4f} | "
-            f"{float(values['mean_copied_anchor_fraction']):.4f} | "
             f"{float(values['mean_changed_anchor_fraction']):.4f} | "
-            f"{float(values['mean_probe_latency_seconds']):.4f} |"
+            f"{float(values['estimated_transfer_reduction']):.4f} | "
+            f"{float(values['mean_probe_latency_seconds']):.4f} | "
+            f"{1000 * float(values['mean_content_planning_latency_seconds']):.3f} |"
         )
     lines.extend(["", "## Comparisons to checksum-pinned uncorrected v1", ""])
     for spec in SPECS:
         values = comparisons[spec.key]
         policy = policies[spec.key]
         anchor = anchors[spec.key]["1"]
+        bootstrap = values["paired_bootstrap"]
         lines.append(
             f"- {spec.key}: hit/mass delta "
             f"{float(values['mean_route_hit_delta']):+.6f}/"
             f"{float(values['mean_selected_mass_delta']):+.6f}; anchor-1 "
             f"{float(anchor['mean_route_hit']):.6f}/"
             f"{float(anchor['mean_selected_mass']):.6f}; mean matched suffix "
-            f"{float(policy['mean_matched_suffix_length_when_matched']):.3f}; signal "
+            f"{float(policy['mean_matched_suffix_length_when_matched']):.3f}; paired "
+            f"hit CI [{float(bootstrap['route_hit_delta_percentile_95'][0]):+.6f}, "
+            f"{float(bootstrap['route_hit_delta_percentile_95'][1]):+.6f}], mass CI "
+            f"[{float(bootstrap['selected_mass_delta_percentile_95'][0]):+.6f}, "
+            f"{float(bootstrap['selected_mass_delta_percentile_95'][1]):+.6f}]; signal "
             f"{values['route_signal']}."
+        )
+    lines.extend(["", "## Suffix-length strata and worst samples", ""])
+    for spec in SPECS:
+        strata = suffixes[spec.key]
+        rendered = ", ".join(
+            f"{bucket}: {int(values['boundaries'])} boundaries at "
+            f"{float(values['mean_route_hit']):.6f}/"
+            f"{float(values['mean_selected_mass']):.6f}"
+            for bucket, values in sorted(strata.items())
+        )
+        lowest = worst[spec.key][0]
+        lines.append(
+            f"- {spec.key}: {rendered}. Lowest paired sample "
+            f"{lowest['sample_id']} at "
+            f"{float(lowest['route_hit_delta']):+.6f}/"
+            f"{float(lowest['selected_mass_delta']):+.6f}."
         )
     lines.extend(
         [
