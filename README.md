@@ -135,6 +135,21 @@ four-row development experiment is **STOP/PIVOT** with no held-out route or
 accuracy run. See the [mid-layer protocol](docs/pseudo_one_forward_midlayer_self_conditioning_v1.md)
 and [report](artifacts/pseudo_one_forward_midlayer_self_conditioning_v1/report.md).
 
+The first frozen current-context continuation test instead changed the eight
+pseudo token IDs before that same single native traversal. When the already-
+known sampled token had appeared earlier in the current request, the best
+variant copied the seven known tokens following its most recent eligible
+occurrence; otherwise it used the unchanged recent-sequence fallback. It scored
+0.730357 route hit and 0.747085 selected mass versus the checksum-pinned
+0.700267/0.714061 baseline, gains of +0.030090/+0.033024. All four development
+rows improved and both paired 95% intervals cleared the frozen +0.02 route
+signal. Coverage was 20/32 boundaries, lookup cost was 0.079 ms, native probe
+cost was 0.3055 seconds/boundary, and simulated transfer reduction was 0.5022.
+This is **development route signal only**: the frozen protocol authorized no
+held-out route or accuracy execution regardless of outcome. See the
+[context-continuation protocol](docs/pseudo_one_forward_context_continuation_v1.md)
+and [report](artifacts/pseudo_one_forward_context_continuation_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

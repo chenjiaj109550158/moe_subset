@@ -441,3 +441,44 @@ frozen +0.02 signal. Metrics are teacher-forced current-policy route evidence;
 probe and LM-head costs are measured and transfer is simulated. Held-out route,
 task accuracy, free generation, exact-token identity, NLL/perplexity, closed-
 loop runtime, and speedup were not measured.
+
+## One-forward current-context continuation v1
+
+The immutable config and sample manifest are
+`configs/analysis/pseudo_one_forward_context_continuation_v1.yaml` and
+`configs/analysis/pseudo_one_forward_context_continuation_v1_samples.json`,
+with SHA-256 values
+`519502aa463af860f4f639ff1233bf14d77bfca6ee6cb5aeff28f80817316897` and
+`20a38b86b2b04ded8ded9faaf1c9eb0a90cb73668e9c23980188367a3369b4d4`.
+They were committed before implementation and model output. Reproduce the two
+offline shards and aggregate/finalize/validate with:
+
+~~~bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src python -m pseudoroute.benchmark.pseudo_one_forward_context_continuation run --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src python -m pseudoroute.benchmark.pseudo_one_forward_context_continuation run --gpu 1 --shard-index 1 --shard-count 2
+python -m pseudoroute.benchmark.pseudo_one_forward_context_continuation aggregate
+python -m pseudoroute.benchmark.pseudo_one_forward_context_continuation finalize
+python -m pseudoroute.benchmark.pseudo_one_forward_context_continuation validate
+~~~
+
+Each candidate pair is atomic and checksum-resumable. The final root validates
+12 candidate pairs, four checksum-pinned uncorrected references, 45 manifest
+artifacts, and zero failure markers. The authoritative manifest SHA-256 is
+`1ce50ae324605f7a9ac60e87242c37b9856c9e2db5a5e98879990864c4f854d9`.
+
+At boundary t, matching sees only prompt tokens, the current hard policy's
+already-realized tokens, and the known sampled-next token. Copied continuation
+indices must precede the known-context length. No future true token, vanilla
+trajectory, answer, accuracy, offline table, learned/fitted value, default
+vector, route prior, or retrieved hidden state enters a candidate. Every
+candidate then performs one causal H=8 native traversal with fresh native MoE
+residuals: full top-8 access at boundary zero and the policy's preceding
+realized B=32 subset thereafter.
+
+All cache/RNG/shadow/information and exact call-count audits pass. The selected
+unigram-continuation variant improved hit/mass by +0.030090/+0.033024 and emitted
+`DEVELOPMENT_ROUTE_SIGNAL`. This protocol authorizes no held-out route or task
+accuracy even after a positive result. Route evidence is teacher-forced on each
+current policy's own state; lookup/probe cost is measured, transfer is
+simulated, and free generation, exact-token identity, NLL/perplexity, closed-
+loop runtime, and speedup were not measured.

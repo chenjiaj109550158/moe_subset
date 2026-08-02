@@ -5,7 +5,9 @@
 Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 and its separately
 versioned calibration-free mechanism and one-forward state-correction analyses
 — including protected-anchor v2, token-aligned state retrieval v1, and mid-layer
-shifted self-conditioning v1 — complete with scoped **STOP/PIVOT** decisions.
+shifted self-conditioning v1 — remain complete with scoped **STOP/PIVOT**
+decisions. The subsequent current-context continuation v1 produced a positive
+four-row **DEVELOPMENT_ROUTE_SIGNAL**, without authorizing held-out or accuracy.
 Earlier M11, trained-model, and subset-oracle artifacts remain complete and
 unchanged.
 
@@ -266,6 +268,46 @@ measured, transfer is simulated, and held-out route, task accuracy, free
 generation, exact-token identity, NLL/perplexity, closed-loop runtime, and
 speedup were not measured. Artifact-manifest SHA-256:
 `f5098b420819830c12ca8cd7613baf6a784314b70477b3ea02a720d4a966aa5c`.
+
+## One-forward current-context continuation v1
+
+`pseudo_one_forward_context_continuation_v1` froze config SHA-256
+`519502aa463af860f4f639ff1233bf14d77bfca6ee6cb5aeff28f80817316897`,
+sample SHA-256
+`20a38b86b2b04ded8ded9faaf1c9eb0a90cb73668e9c23980188367a3369b4d4`,
+the same four development IDs, three variants, call counts, and gates before
+implementation or model output.
+
+- Every candidate changes only the H=8 pseudo content and then performs one
+  native causal traversal. It uses fresh native MoE residuals under full top-8
+  access at boundary zero and the current policy's previous realized B=32
+  subset later.
+- `sampled_unigram_full_continuation` copies the seven already-known tokens
+  following the most recent eligible earlier occurrence of the sampled-next
+  token. It covered 20/32 boundaries and otherwise used the unchanged recent-
+  sequence fallback.
+- The selected variant scored 0.730357 route hit and 0.747085 selected mass
+  versus 0.700267/0.714061, gains of +0.030090/+0.033024. Paired 95% intervals
+  were [0.025065, 0.034587]/[0.026498, 0.038776], and all four samples improved.
+- Longest-suffix full and partial variants both scored 0.726573/0.742827. Their
+  outputs were identical because these rows contained no partial-only match.
+  The cheaper unigram rule ranked first; it does not depend on a fitted suffix
+  length, probability threshold, or offline continuation table.
+- Mean content lookup was 0.079 ms, native probe time was 0.3055 seconds per
+  boundary, and simulated transfer reduction was 0.5022. Production cache,
+  RNG, shadow discard, native semantics, information boundary, and exact call-
+  count audits all passed.
+- Twelve atomic candidate JSON+safetensors pairs, four checksum-pinned source
+  references, 45 manifest artifacts, checksum resume, row counts, and
+  provenance validate with zero failure markers.
+
+The decision is **DEVELOPMENT_ROUTE_SIGNAL**, not held-out validation or a full
+pilot GO. The frozen protocol authorized no held-out route or task accuracy
+regardless of result. Metrics are teacher-forced on each current hard policy's
+own state; lookup and probe costs are measured, transfer is simulated, and no
+free generation, exact-token identity, NLL/perplexity, closed-loop runtime, or
+speedup was measured. Artifact-manifest SHA-256:
+`1ce50ae324605f7a9ac60e87242c37b9856c9e2db5a5e98879990864c4f854d9`.
 
 ## Completed GPT-OSS/GSM8K hard scope
 

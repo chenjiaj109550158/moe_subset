@@ -1001,3 +1001,64 @@ midpoint or shift scale on them. A materially different calibration-free
 information transform must be frozen before new output. Held-out, accuracy,
 expanded rows, learned parameters, or offline calibration still require
 explicit authorization.
+
+## D-20260802-044 — Retain current-context continuation as development route signal
+
+**Status:** accepted
+
+**Context:** After midpoint shifted self-conditioning missed the +0.02 gate, the
+user authorized the first proposed calibration-free alternative: replace the
+recent-sequence pseudo content with a continuation copied from tokens already
+known in the current request. Before implementation or model output, the project
+committed a four-row Qwen/GSM8K protocol. At each boundary the visible context
+ends at the sampled-next token. Earlier exact-token matches cannot overlap that
+query, copied successors must already be known, and equal matches choose the
+most recent occurrence. Three fixed variants compared longest-suffix full copy,
+sampled-token unigram full copy, and longest-suffix partial copy with recent-
+sequence fill. The selector and one native causal H=8 traversal were unchanged;
+fresh native MoE residuals came from full top-8 access initially and the current
+policy's previous realized B=32 subset later.
+
+The checksum-pinned uncorrected reference scored 0.700267 route hit and
+0.714061 selected mass. `sampled_unigram_full_continuation` ranked first at
+0.730357/0.747085, gains of +0.030090/+0.033024. Paired 95% intervals were
+[0.025065, 0.034587]/[0.026498, 0.038776], and every development row improved.
+It found a full seven-token known continuation at 20/32 boundaries, averaged
+0.079 ms of lookup and 0.3055 seconds of native probe time per boundary, and
+retained 0.5022 simulated transfer reduction. Longest-suffix full and partial
+variants both scored 0.726573/0.742827; no partial-only match occurred, so those
+two route tensors were identical.
+
+**Decision:** Record **DEVELOPMENT_ROUTE_SIGNAL** and retain
+`sampled_unigram_full_continuation` as the leading cheap one-forward hypothesis.
+Do not reinterpret this as held-out validation, task accuracy, a full pilot GO,
+or evidence of speedup. The frozen protocol authorized no held-out route or
+accuracy execution regardless of the development outcome.
+
+**Alternatives considered:** Prefer the more specific longest suffix despite a
+lower measured route signal, fit a minimum suffix length or probability
+threshold on these four rows, use an offline n-gram table, expand the row set
+after seeing the result, or run task accuracy immediately.
+
+**Consequences:** All cache/RNG/shadow/information audits pass, including one
+causal traversal, 48 native attention/router/expert calls, 384 attention
+queries, zero LM-head calls per boundary, known-context-only copied indices, and
+deterministic tie-breaking. Twelve atomic candidate pairs, four checksum-pinned
+source references, 45 manifest artifacts, checksum resume, row counts,
+provenance, and zero failure markers validate. Manifest SHA-256 is
+`1ce50ae324605f7a9ac60e87242c37b9856c9e2db5a5e98879990864c4f854d9`.
+The route evidence is teacher-forced on each current hard policy's own state;
+lookup and probe costs are measured, transfer is simulated, and free generation,
+exact-token identity, NLL/perplexity, closed-loop runtime, and speedup were not
+measured.
+
+**Experiments affected:** Only `pseudo_one_forward_context_continuation_v1`.
+Earlier one-forward `STOP/PIVOT`, executed-pseudo route `NARROW`, focused
+pseudo `STOP/PIVOT`, GPT hard-only `NARROW`, trained-model `STOP/PIVOT`,
+and M11 conclusions remain unchanged.
+
+**Migration required:** Preserve these four rows as development evidence and do
+not tune matching rules or thresholds on them. Any held-out evaluation needs a
+new frozen disjoint manifest and gate; task accuracy, expanded samples, learned
+parameters, offline calibration, or downloads still require explicit
+authorization.
