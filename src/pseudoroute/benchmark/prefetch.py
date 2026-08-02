@@ -318,13 +318,14 @@ def build_prefetch_ops(model: nn.Module, architecture: str) -> PrefetchModelOps:
     raise ValueError(f"unsupported prefetch architecture: {architecture}")
 
 
-def masked_route(
-    ops: PrefetchModelOps, layer: int, hidden: Tensor, allowed: tuple[int, ...]
+def masked_route_from_natural(
+    ops: PrefetchModelOps,
+    natural: NativeRoute,
+    allowed: tuple[int, ...],
 ) -> NativeRoute:
-    """Apply an explicit outside-subset logit mask before native route selection."""
+    """Mask a captured natural route without evaluating the router a second time."""
     if len(allowed) < ops.top_k:
         raise ValueError("hard subset must contain at least native top-k experts")
-    natural = ops.route(layer, hidden)
     allowed_tensor = torch.tensor(allowed, dtype=torch.long, device=natural.logits.device)
     if allowed_tensor.unique().numel() != len(allowed):  # type: ignore[no-untyped-call]
         raise ValueError("hard subset contains duplicate experts")
@@ -345,6 +346,13 @@ def masked_route(
     else:
         raise TypeError(f"masked subset routing is unsupported for {type(ops).__name__}")
     return NativeRoute(logits, weights, ids)
+
+
+def masked_route(
+    ops: PrefetchModelOps, layer: int, hidden: Tensor, allowed: tuple[int, ...]
+) -> NativeRoute:
+    """Apply an explicit outside-subset logit mask before native route selection."""
+    return masked_route_from_natural(ops, ops.route(layer, hidden), allowed)
 
 
 def physical_expert_bytes(ops: PrefetchModelOps, layer: int) -> int:

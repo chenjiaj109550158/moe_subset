@@ -15,6 +15,7 @@ from pseudoroute.benchmark.prefetch import (
     DefaultVectorArtifact,
     NativeRoute,
     Qwen3MoePrefetchOps,
+    masked_route_from_natural,
 )
 from pseudoroute.benchmark.subset_closed_loop import (
     _cache_length,
@@ -31,6 +32,7 @@ PseudoContent = Literal[
 PseudoAttention = Literal["independent", "causal"]
 ExpertContribution = Literal[
     "default_vector_selected_topk_mixture",
+    "native_expert_execution",
     "provided_residual",
     "zero",
 ]
@@ -54,6 +56,7 @@ class QwenProbeCost:
     attention_queries: int
     attention_calls: int
     router_calls: int
+    expert_calls: int
     cpu_gpu_synchronizations: int
 
 
@@ -66,6 +69,8 @@ class QwenPseudoProbeResult:
     pre_topk_probabilities: dict[int, Tensor]
     pseudo_topk_ids: dict[int, Tensor]
     pseudo_topk_weights: dict[int, Tensor]
+    shadow_executed_topk_ids: dict[int, Tensor]
+    shadow_moe_residuals: dict[int, Tensor]
     aggregate_utility: dict[int, Tensor]
     subsets: dict[int, tuple[int, ...]]
     cost: QwenProbeCost
@@ -222,7 +227,8 @@ class QwenPseudoEmbeddingProbe:
         attention_mask: Any,
         position_embeddings: tuple[Tensor, Tensor],
         provided_residual: Tensor | None,
-    ) -> tuple[Tensor, NativeRoute, Tensor]:
+        execution_subset: tuple[int, ...] | None,
+    ) -> tuple[Tensor, NativeRoute, Tensor, NativeRoute | None, Tensor]:
         layer = cast(Any, self.ops.layers[layer_idx])
         residual = hidden
         normalized = layer.input_layernorm(hidden)
@@ -238,6 +244,7 @@ class QwenPseudoEmbeddingProbe:
         probabilities = route.logits.float().softmax(dim=-1)
         if self.variant.expert_contribution == "zero":
             contribution = torch.zeros_like(router_input)
+            executed_route = None
         elif self.variant.expert_contribution == "default_vector_selected_topk_mixture":
             if self.defaults is None:
                 raise AssertionError("default-vector tensor missing")
@@ -247,6 +254,17 @@ class QwenPseudoEmbeddingProbe:
                 .sum(dim=1)
                 .reshape_as(router_input)
             )
+            executed_route = None
+        elif self.variant.expert_contribution == "native_expert_execution":
+            flat = router_input.reshape(-1, self.ops.hidden_size)
+            executed_route = (
+                route
+                if execution_subset is None
+                else masked_route_from_natural(self.ops, route, execution_subset)
+            )
+            contribution = self.ops.experts(layer_idx, flat, executed_route).reshape_as(
+                router_input
+            )
         else:
             if provided_residual is None or provided_residual.shape != router_input.shape:
                 raise RuntimeError("provided MoE residual does not match pseudo router input")
@@ -254,7 +272,14 @@ class QwenPseudoEmbeddingProbe:
                 device=router_input.device,
                 dtype=router_input.dtype,
             )
-        return post_attention + contribution, route, probabilities
+            executed_route = None
+        return (
+            post_attention + contribution,
+            route,
+            probabilities,
+            executed_route,
+            contribution,
+        )
 
     def _independent_rollout(
         self,
@@ -265,7 +290,10 @@ class QwenPseudoEmbeddingProbe:
         expected_embedding: Tensor | None,
         anchor_token_ids: tuple[int, ...] | None,
         provided_residuals: Tensor | None,
+        execution_subsets: dict[int, tuple[int, ...]] | None,
     ) -> tuple[
+        dict[int, Tensor],
+        dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
@@ -290,10 +318,18 @@ class QwenPseudoEmbeddingProbe:
         probabilities: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
         topk_ids: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
         topk_weights: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        executed_ids: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
+        moe_residuals: dict[int, list[Tensor]] = {layer: [] for layer in range(self.ops.num_layers)}
         for layer_idx in range(self.ops.num_layers):
             for anchor_idx in range(len(self.anchors)):
                 mask, position_embeddings = masks_and_positions[anchor_idx]
-                hidden[anchor_idx], route, full_probs = self._layer_step(
+                (
+                    hidden[anchor_idx],
+                    route,
+                    full_probs,
+                    executed_route,
+                    moe_residual,
+                ) = self._layer_step(
                     layer_idx,
                     hidden[anchor_idx],
                     cast(Cache, caches[anchor_idx]),
@@ -304,16 +340,22 @@ class QwenPseudoEmbeddingProbe:
                         if provided_residuals is not None
                         else None
                     ),
+                    (execution_subsets[layer_idx] if execution_subsets is not None else None),
                 )
                 logits[layer_idx].append(route.logits[0].detach().float().cpu())
                 probabilities[layer_idx].append(full_probs[0].detach().cpu())
                 topk_ids[layer_idx].append(route.ids[0].detach().cpu())
                 topk_weights[layer_idx].append(route.weights[0].detach().float().cpu())
+                if executed_route is not None:
+                    executed_ids[layer_idx].append(executed_route.ids[0].detach().cpu())
+                    moe_residuals[layer_idx].append(moe_residual[0, 0].detach().cpu())
         return (
             {layer: torch.stack(values) for layer, values in logits.items()},
             {layer: torch.stack(values) for layer, values in probabilities.items()},
             {layer: torch.stack(values) for layer, values in topk_ids.items()},
             {layer: torch.stack(values) for layer, values in topk_weights.items()},
+            {layer: torch.stack(values) for layer, values in executed_ids.items() if values},
+            {layer: torch.stack(values) for layer, values in moe_residuals.items() if values},
         )
 
     def _causal_rollout(
@@ -325,7 +367,10 @@ class QwenPseudoEmbeddingProbe:
         expected_embedding: Tensor | None,
         anchor_token_ids: tuple[int, ...] | None,
         provided_residuals: Tensor | None,
+        execution_subsets: dict[int, tuple[int, ...]] | None,
     ) -> tuple[
+        dict[int, Tensor],
+        dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
@@ -348,8 +393,16 @@ class QwenPseudoEmbeddingProbe:
         probabilities: dict[int, Tensor] = {}
         topk_ids: dict[int, Tensor] = {}
         topk_weights: dict[int, Tensor] = {}
+        executed_ids: dict[int, Tensor] = {}
+        moe_residuals: dict[int, Tensor] = {}
         for layer_idx in range(self.ops.num_layers):
-            hidden, route, full_probs = self._layer_step(
+            (
+                hidden,
+                route,
+                full_probs,
+                executed_route,
+                moe_residual,
+            ) = self._layer_step(
                 layer_idx,
                 hidden,
                 cast(Cache, cache),
@@ -360,12 +413,23 @@ class QwenPseudoEmbeddingProbe:
                     if provided_residuals is not None
                     else None
                 ),
+                (execution_subsets[layer_idx] if execution_subsets is not None else None),
             )
             logits[layer_idx] = route.logits.detach().float().cpu()
             probabilities[layer_idx] = full_probs.detach().cpu()
             topk_ids[layer_idx] = route.ids.detach().cpu()
             topk_weights[layer_idx] = route.weights.detach().float().cpu()
-        return logits, probabilities, topk_ids, topk_weights
+            if executed_route is not None:
+                executed_ids[layer_idx] = executed_route.ids.detach().cpu()
+                moe_residuals[layer_idx] = moe_residual[0].detach().cpu()
+        return (
+            logits,
+            probabilities,
+            topk_ids,
+            topk_weights,
+            executed_ids,
+            moe_residuals,
+        )
 
     def predict(
         self,
@@ -378,6 +442,8 @@ class QwenPseudoEmbeddingProbe:
         anchor_token_ids: tuple[int, ...] | None = None,
         provided_residuals: Tensor | None = None,
         provided_residual_source: str | None = None,
+        execution_subsets: dict[int, tuple[int, ...]] | None = None,
+        execution_subset_source: str | None = None,
     ) -> QwenPseudoProbeResult:
         """Predict one H-window subset without mutating production state or RNG."""
         device = next(self.model.parameters()).device
@@ -412,6 +478,23 @@ class QwenPseudoEmbeddingProbe:
                 raise ValueError("provided_residual requires an information-source label")
         elif provided_residuals is not None or provided_residual_source is not None:
             raise ValueError("provided residuals are only valid for provided_residual")
+        if self.variant.expert_contribution == "native_expert_execution":
+            if not execution_subset_source:
+                raise ValueError("native expert execution requires a subset-source label")
+            if execution_subsets is not None:
+                if set(execution_subsets) != set(range(self.ops.num_layers)):
+                    raise ValueError("execution subsets must cover every routed layer")
+                for subset in execution_subsets.values():
+                    if (
+                        len(subset) < self.ops.top_k
+                        or len(subset) > self.ops.num_experts
+                        or len(set(subset)) != len(subset)
+                        or min(subset) < 0
+                        or max(subset) >= self.ops.num_experts
+                    ):
+                        raise ValueError("invalid layer-local execution subset")
+        elif execution_subsets is not None or execution_subset_source is not None:
+            raise ValueError("execution subsets are only valid for native expert execution")
         sync_count = 0
         allocated_before = 0
         if device.type == "cuda":
@@ -435,7 +518,14 @@ class QwenPseudoEmbeddingProbe:
                     embeddings = self._base.embed_tokens(selected_ids.to(device))
                     expected_embedding = (weights.to(device).unsqueeze(-1) * embeddings).sum(dim=1)
                 if self.variant.attention == "independent":
-                    logits, probabilities, topk_ids, topk_weights = self._independent_rollout(
+                    (
+                        logits,
+                        probabilities,
+                        topk_ids,
+                        topk_weights,
+                        shadow_executed_topk_ids,
+                        shadow_moe_residuals,
+                    ) = self._independent_rollout(
                         production_cache,
                         positions,
                         sampled_next_token_id,
@@ -443,9 +533,17 @@ class QwenPseudoEmbeddingProbe:
                         expected_embedding,
                         anchor_token_ids,
                         provided_residuals,
+                        execution_subsets,
                     )
                 else:
-                    logits, probabilities, topk_ids, topk_weights = self._causal_rollout(
+                    (
+                        logits,
+                        probabilities,
+                        topk_ids,
+                        topk_weights,
+                        shadow_executed_topk_ids,
+                        shadow_moe_residuals,
+                    ) = self._causal_rollout(
                         production_cache,
                         positions,
                         sampled_next_token_id,
@@ -453,6 +551,7 @@ class QwenPseudoEmbeddingProbe:
                         expected_embedding,
                         anchor_token_ids,
                         provided_residuals,
+                        execution_subsets,
                     )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -471,8 +570,45 @@ class QwenPseudoEmbeddingProbe:
             raise RuntimeError("Qwen pseudo probe changed generation RNG")
         utility = {layer: values.double().sum(dim=0) for layer, values in probabilities.items()}
         subsets = {layer: _top_b(values, self.budget) for layer, values in utility.items()}
+        native_execution = self.variant.expert_contribution == "native_expert_execution"
+        shadow_values = tuple(shadow_moe_residuals.values())
+        shadow_residual_finite = (
+            all(bool(torch.isfinite(value).all()) for value in shadow_values)
+            if native_execution
+            else None
+        )
+        shadow_residual_nonzero = (
+            any(bool(torch.count_nonzero(value)) for value in shadow_values)
+            if native_execution
+            else None
+        )
+        escape_counts = (
+            {
+                layer: len(set(subsets[layer]) - set(execution_subsets[layer]))
+                for layer in range(self.ops.num_layers)
+            }
+            if execution_subsets is not None
+            else None
+        )
+        executed_ids_within_subset = (
+            all(
+                set(shadow_executed_topk_ids[layer].reshape(-1).tolist())
+                <= set(execution_subsets[layer])
+                for layer in range(self.ops.num_layers)
+            )
+            if execution_subsets is not None
+            else None
+        )
         output_bytes = sum(
-            _tensor_bytes(values) for values in (logits, probabilities, topk_ids, topk_weights)
+            _tensor_bytes(values)
+            for values in (
+                logits,
+                probabilities,
+                topk_ids,
+                topk_weights,
+                shadow_executed_topk_ids,
+                shadow_moe_residuals,
+            )
         )
         temporary_cuda = (
             max(0, torch.cuda.max_memory_allocated(device) - allocated_before)
@@ -492,6 +628,8 @@ class QwenPseudoEmbeddingProbe:
             probabilities,
             topk_ids,
             topk_weights,
+            shadow_executed_topk_ids,
+            shadow_moe_residuals,
             utility,
             subsets,
             QwenProbeCost(
@@ -511,6 +649,7 @@ class QwenPseudoEmbeddingProbe:
                 attention_queries=self.ops.num_layers * len(self.anchors),
                 attention_calls=attention_calls,
                 router_calls=attention_calls,
+                expert_calls=attention_calls if native_execution else 0,
                 cpu_gpu_synchronizations=sync_count,
             ),
             {
@@ -523,9 +662,22 @@ class QwenPseudoEmbeddingProbe:
                         if self.variant.content == "provided_sequence"
                         else (
                             "sampled_next_token_current_policy_production_cache_and_"
-                            "current_policy_previous_window_residuals"
-                            if provided_residuals is not None
-                            else "sampled_next_token_and_current_policy_production_cache_only"
+                            "current_policy_previous_realized_subset"
+                            if native_execution and execution_subsets is not None
+                            else (
+                                "sampled_next_token_current_policy_production_cache_and_"
+                                "full_native_expert_access"
+                                if native_execution
+                                else (
+                                    "sampled_next_token_current_policy_production_cache_and_"
+                                    "current_policy_previous_window_residuals"
+                                    if provided_residuals is not None
+                                    else (
+                                        "sampled_next_token_and_current_policy_"
+                                        "production_cache_only"
+                                    )
+                                )
+                            )
                         )
                     )
                 ),
@@ -534,6 +686,26 @@ class QwenPseudoEmbeddingProbe:
                 "provided_residual_source": provided_residual_source,
                 "provided_residual_shape": (
                     list(provided_residuals.shape) if provided_residuals is not None else None
+                ),
+                "shadow_expert_execution": native_execution,
+                "execution_subset_source": execution_subset_source,
+                "execution_subsets_supplied": execution_subsets is not None,
+                "execution_scope": (
+                    "previous_realized_window_subset"
+                    if execution_subsets is not None
+                    else "full_native_topk"
+                    if native_execution
+                    else None
+                ),
+                "full_pre_mask_scores_all_experts": all(
+                    value.shape[-1] == self.ops.num_experts for value in logits.values()
+                ),
+                "shadow_residual_finite": shadow_residual_finite,
+                "shadow_residual_nonzero": shadow_residual_nonzero,
+                "executed_ids_within_supplied_subset": executed_ids_within_subset,
+                "next_subset_escape_by_layer": escape_counts,
+                "next_subset_escape_expert_slots": (
+                    sum(escape_counts.values()) if escape_counts is not None else None
                 ),
                 "expected_top_m": (
                     expected_top_m if self.variant.content == "expected_top_m" else None

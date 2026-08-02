@@ -77,7 +77,13 @@ LAYERS = 48
 EXPERTS = 128
 TOP_K = 8
 
-Stage = Literal["residual_smoke", "content_smoke", "development", "held_out"]
+Stage = Literal[
+    "residual_smoke",
+    "content_smoke",
+    "development",
+    "held_out",
+    "executed_subset_smoke",
+]
 ResidualVariant = Literal[
     "zero",
     "previous_window_position_aligned",
@@ -327,6 +333,8 @@ def _probe_for_spec(
     model: nn.Module,
     ops: Qwen3MoePrefetchOps,
     spec: PolicySpec,
+    *,
+    shadow_expert_execution: bool = False,
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -338,7 +346,13 @@ def _probe_for_spec(
         else "sampled_next_token"
     )
     attention: PseudoAttention = "causal" if spec.content.endswith("causal") else "independent"
-    contribution: ExpertContribution = "zero" if spec.residual == "zero" else "provided_residual"
+    contribution: ExpertContribution = (
+        "native_expert_execution"
+        if shadow_expert_execution
+        else "zero"
+        if spec.residual == "zero"
+        else "provided_residual"
+    )
     return QwenPseudoEmbeddingProbe(
         model,
         ops,
@@ -530,6 +544,10 @@ def run_policy_sample(
     stage: Stage,
     route_token_cap: int,
     physical_gpu: int,
+    shadow_expert_execution: bool = False,
+    analysis_id: str = ANALYSIS_ID,
+    analysis_config_sha256: str = CONFIG_SHA256,
+    sample_manifest_sha256: str = SAMPLES_SHA256,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -560,7 +578,12 @@ def run_policy_sample(
     )
     history = route_scores(prompt_route_records, tail_tokens=HORIZON, experts=ops.num_experts)
     prompt_tokens = tuple(int(value) for value in inputs["input_ids"][0].tolist())
-    probe = _probe_for_spec(model, ops, spec)
+    probe = _probe_for_spec(
+        model,
+        ops,
+        spec,
+        shadow_expert_execution=shadow_expert_execution,
+    )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
     probe_costs: list[dict[str, object]] = []
@@ -572,6 +595,8 @@ def run_policy_sample(
     residual_norms: list[Tensor] = []
     residual_cosines: list[Tensor] = []
     residual_digests: list[str] = []
+    planning_residuals: list[Tensor] = []
+    shadow_executed_ids: list[Tensor] = []
     natural_logits: list[Tensor] = []
     natural_ids: list[Tensor] = []
     natural_weights: list[Tensor] = []
@@ -586,10 +611,7 @@ def run_policy_sample(
         end = min(boundary + HORIZON, route_tokens)
         boundaries.append(boundary)
         transformed = residual_bank_variant(residual_bank, spec.residual or "zero")
-        norms, cosine = _residual_statistics(transformed, router_input_bank)
-        residual_norms.append(norms)
-        residual_cosines.append(cosine)
-        residual_digests.append(_tensor_sha256(transformed))
+        planning_residual = transformed
         result: QwenPseudoProbeResult | None = None
         if spec.role == "oracle":
             future, audit = _natural_lookahead(
@@ -623,14 +645,39 @@ def run_policy_sample(
                     prompt_tokens[-1] if boundary == 0 else source_tokens[boundary - 1]
                 ),
                 anchor_token_ids=anchor_ids,
-                provided_residuals=(transformed if spec.residual != "zero" else None),
+                provided_residuals=(
+                    transformed if spec.residual != "zero" and not shadow_expert_execution else None
+                ),
                 provided_residual_source=(
                     "current_policy_previous_window_" + spec.residual
-                    if spec.residual != "zero"
+                    if spec.residual != "zero" and not shadow_expert_execution
                     else None
+                ),
+                execution_subsets=(
+                    None if not shadow_expert_execution or boundary == 0 else resident
+                ),
+                execution_subset_source=(
+                    "full_native_topk_prefill_access"
+                    if shadow_expert_execution and boundary == 0
+                    else (
+                        "current_policy_previous_realized_window_subset"
+                        if shadow_expert_execution
+                        else None
+                    )
                 ),
             )
             active = candidate_subsets(result, history, spec.selection)
+            if shadow_expert_execution:
+                planning_residual = torch.stack(
+                    [result.shadow_moe_residuals[layer] for layer in range(ops.num_layers)],
+                    dim=1,
+                )
+                shadow_executed_ids.append(
+                    torch.stack(
+                        [result.shadow_executed_topk_ids[layer] for layer in range(ops.num_layers)],
+                        dim=1,
+                    )
+                )
             probe_costs.append({"boundary": boundary, **asdict(result.cost)})
             audits.append({"boundary": boundary, **result.audit})
             pseudo_logits.append(
@@ -641,6 +688,11 @@ def run_policy_sample(
                     [result.pre_topk_probabilities[layer] for layer in range(ops.num_layers)]
                 )
             )
+        planning_residuals.append(planning_residual.detach().cpu())
+        norms, cosine = _residual_statistics(planning_residual, router_input_bank)
+        residual_norms.append(norms)
+        residual_cosines.append(cosine)
+        residual_digests.append(_tensor_sha256(planning_residual))
         subsets.append(
             torch.tensor([active[layer] for layer in range(ops.num_layers)], dtype=torch.int64)
         )
@@ -706,16 +758,19 @@ def run_policy_sample(
         "executed_router_topk_weights": torch.stack(executed_weights),
         "planning_residual_norms": torch.stack(residual_norms),
         "planning_residual_router_input_cosine": torch.stack(residual_cosines),
+        "planning_moe_residuals": torch.stack(planning_residuals),
     }
     if pseudo_logits:
         tensors["pseudo_router_logits"] = torch.stack(pseudo_logits)
         tensors["pseudo_pre_topk_probabilities"] = torch.stack(pseudo_probabilities)
+    if shadow_executed_ids:
+        tensors["shadow_executed_topk_ids"] = torch.stack(shadow_executed_ids)
     row: dict[str, object] = {
         "schema_version": 1,
         "state": "complete",
-        "analysis_id": ANALYSIS_ID,
-        "analysis_config_sha256": CONFIG_SHA256,
-        "sample_manifest_sha256": SAMPLES_SHA256,
+        "analysis_id": analysis_id,
+        "analysis_config_sha256": analysis_config_sha256,
+        "sample_manifest_sha256": sample_manifest_sha256,
         "stage": stage,
         "policy": spec.key,
         "policy_spec": asdict(spec),
@@ -729,6 +784,7 @@ def run_policy_sample(
         "task_accuracy_measured": False,
         "identity_materialized": False,
         "hard_mask_executed": True,
+        "shadow_expert_execution": shadow_expert_execution,
         "route_tokens": route_tokens,
         "boundaries": boundaries,
         "metrics": metrics,
@@ -954,7 +1010,9 @@ def _aggregate_policy(rows: list[dict[str, Any]]) -> dict[str, int | float]:
             (int(cost["temporary_cuda_bytes_measured"]) for cost in costs), default=0
         ),
         "attention_queries": sum(int(cost["attention_queries"]) for cost in costs),
+        "attention_calls": sum(int(cost["attention_calls"]) for cost in costs),
         "router_calls": sum(int(cost["router_calls"]) for cost in costs),
+        "expert_calls": sum(int(cost["expert_calls"]) for cost in costs),
         "total_sample_policy_elapsed_seconds": sum(
             float(row["elapsed_seconds_measured"]) for row in rows
         ),
