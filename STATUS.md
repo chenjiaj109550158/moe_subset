@@ -4,8 +4,9 @@
 
 Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 and its separately
 versioned calibration-free mechanism and one-forward state-correction analyses
-— complete with scoped **STOP/PIVOT** decisions. Earlier M11, trained-model, and
-subset-oracle artifacts remain complete and unchanged.
+— including the protected-anchor v2 follow-up — complete with scoped
+**STOP/PIVOT** decisions. Earlier M11, trained-model, and subset-oracle artifacts
+remain complete and unchanged.
 
 ## Qwen/GSM8K pseudo-embedding focused pilot
 
@@ -148,6 +149,43 @@ transfer reduction is simulated, and no speedup is claimed. Artifacts:
 `artifacts/pseudo_one_forward_state_correction_v1/`. Artifact-manifest SHA-256:
 `b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21`.
 
+## Protected-anchor one-forward correction v2
+
+`pseudo_one_forward_protected_anchor_v2` froze config SHA-256
+`5bac51be6be2ab90aed563eb9208ce23afa772c9b109e9fa1bf66ee319bb81ee`,
+sample SHA-256
+`d37ff792acb6cb0d2fe0158040f7e3db8d3555783492c46ad4349362ada302ea`,
+five analytic candidates, four reused development IDs, and gates before new
+model output. All candidates retain one native causal eight-token pseudo
+traversal and fresh MoE execution under the previous realized B=32 subset.
+
+- Setting anchor one's coefficient to zero plus residual horizon damping scored
+  0.703389 route hit and 0.716302 selected mass versus the checksum-pinned
+  uncorrected 0.700267/0.714061. Gains were +0.003123/+0.002240 and positive on
+  all four rows; paired intervals were [0.001261, 0.004985] and
+  [0.001702, 0.002779].
+- That is only about 16%/11% of the required +0.02 signal. Hidden damping was
+  essentially neutral at +0.000529/-0.000160; residual protection without
+  damping remained negative at -0.001607/-0.002789.
+- A 25% correction-vector norm cap reduced centered-logit RMS from 0.467 to
+  0.197 but also reduced gain to +0.000763/+0.000417. It was too restrictive at
+  this fixed structural value.
+- Reserving only anchor-one top-8 and filling the other 24 experts from corrected
+  anchors two through eight discarded useful first-four/history breadth and
+  regressed by -0.042857/-0.058856 on all four rows.
+- Same-cache native tests prove coefficient zero leaves anchor-one router logits
+  exact. Separately executed BF16 source/candidate artifacts are not required to
+  be bitwise identical, and their hard policies realize different later contexts.
+- All 20 new atomic pairs, four source references, 58 manifest artifacts,
+  checksum resume, and cache/RNG/shadow/information/call-count audits validate;
+  there are zero failure markers.
+
+The frozen +0.02 route signal failed, so the development-only decision is
+**STOP/PIVOT** and neither held-out route nor accuracy was run. Route/probe costs
+are measured on teacher-forced current-policy hard-subset state; transfer is
+simulated and no speedup is claimed. Artifact-manifest SHA-256:
+`455db962eee8379480a353353e1168e0e26e90dc8de2739fbf2ea4ec2369f84e`.
+
 ## Completed GPT-OSS/GSM8K hard scope
 
 `benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
@@ -236,12 +274,12 @@ closed-loop evaluation, and must not relabel this negative result.
 Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 199 files already formatted.
+- `ruff format --check .`: PASS; 202 files already formatted.
 - `ruff check .`: PASS.
-- `mypy src/pseudoroute`: PASS; no issues in 106 source files.
+- `mypy src/pseudoroute`: PASS; no issues in 107 source files.
 - Focused residual-window/Qwen/shadow tests: PASS; 28 passed.
 - Particle-dispatch focused tests: PASS; 12 passed.
-- `python -m pytest -ra`: PASS; 198 passed, 3 expected skips in 15.98s.
+- `python -m pytest -ra`: PASS; 203 passed, 3 expected skips in 17.03s.
 - Five calibration-free artifact validators: PASS; manifest counts
   11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
   terminal `complete/report_v1` `STOP/PIVOT`.
@@ -254,6 +292,9 @@ Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 - One-forward state-correction validator: PASS; 12/12 atomic sample-policy
   rows, 41 manifest artifacts, zero failed markers, checksum resume, and
   terminal `complete/report_v1` `STOP/PIVOT`.
+- Protected-anchor v2 validator: PASS; 20/20 new candidate pairs plus four
+  checksum-pinned source references, 58 manifest artifacts, zero failed markers,
+  checksum resume, and terminal `complete/report_v1` `STOP/PIVOT`.
 
 Retained 2026-07-27 acceptance records below were not rerun in this focused
 session:
@@ -290,15 +331,15 @@ None.
 
 The original focused pseudo-embedding v1 stage, calibration-free prompt-route
 follow-up, previous-window residual-bank experiment, and one-forward linear
-state-correction experiment remain terminal at **STOP/PIVOT**. The executed-
-pseudo composition analysis is terminal at a route-only **NARROW**: preserve its
-positive held-out route evidence, but do not run actual accuracy from that
-analysis protocol because held-out oracle-gap recovery and a paired allowed-drop
-rule were not frozen there. A generation stage requires a new committed
-execution amendment using fixed existing IDs and gates before any accuracy is
-observed. No predictor training, expanded dataset scope, default-vector
-recalibration, or production runtime work is authorized; new sample rows require
-explicit human authorization.
+state-correction experiments, including protected-anchor v2, remain terminal at
+**STOP/PIVOT**. The executed-pseudo composition analysis is terminal at a route-
+only **NARROW**: preserve its positive held-out route evidence, but do not run
+actual accuracy from that analysis protocol because held-out oracle-gap recovery
+and a paired allowed-drop rule were not frozen there. A generation stage
+requires a new committed execution amendment using fixed existing IDs and gates
+before any accuracy is observed. No predictor training, expanded dataset scope,
+default-vector recalibration, or production runtime work is authorized; new
+sample rows require explicit human authorization.
 
 ## Decisions needing human review
 

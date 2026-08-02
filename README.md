@@ -96,6 +96,18 @@ development scope, with no held-out route or accuracy execution. See the
 [state-correction protocol](docs/pseudo_one_forward_state_correction_v1.md) and
 [report](artifacts/pseudo_one_forward_state_correction_v1/report.md).
 
+The predeclared protected-anchor v2 follow-up then set the known sampled-token
+anchor correction to zero and tested horizon damping, a 25%-of-state norm cap,
+and an anchor-one top-8 subset core. Protection plus residual damping changed the
+large v1 regression into a small gain on all four rows: 0.703389/0.716302 versus
+0.700267/0.714061, or +0.003123/+0.002240 route hit/selected mass. This remained
+far below the frozen +0.02 signal. The norm cap reduced both perturbation and
+gain, while replacing the first-four/history selector with only anchor-one plus
+later-anchor utility regressed to 0.657410/0.655205. The development result is
+therefore **STOP/PIVOT**, with no held-out or accuracy run. See the
+[protected-anchor protocol](docs/pseudo_one_forward_protected_anchor_v2.md) and
+[report](artifacts/pseudo_one_forward_protected_anchor_v2/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

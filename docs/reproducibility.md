@@ -306,3 +306,45 @@ teacher-forced on the current policy's hard-subset state, probe/replay latency
 and memory are measured, and transfer is simulated. Held-out route, task
 accuracy, free generation, exact-token identity, NLL/perplexity, closed-loop
 runtime, and speedup are not measured.
+
+## Protected-anchor one-forward correction v2
+
+The immutable config and sample manifest are
+`configs/analysis/pseudo_one_forward_protected_anchor_v2.yaml` and
+`configs/analysis/pseudo_one_forward_protected_anchor_v2_samples.json`, with
+SHA-256 values
+`5bac51be6be2ab90aed563eb9208ce23afa772c9b109e9fa1bf66ee319bb81ee` and
+`d37ff792acb6cb0d2fe0158040f7e3db8d3555783492c46ad4349362ada302ea`.
+They were committed before implementation and new model output. Run the two
+offline shards and then aggregate/finalize/validate with:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_protected_anchor run --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_protected_anchor run --gpu 1 --shard-index 1 --shard-count 2
+python -m pseudoroute.benchmark.pseudo_one_forward_protected_anchor aggregate
+python -m pseudoroute.benchmark.pseudo_one_forward_protected_anchor finalize
+python -m pseudoroute.benchmark.pseudo_one_forward_protected_anchor validate
+```
+
+The runner checksum-reuses the four uncorrected source rows and never reloads
+Qwen when all ten rows in a shard validate. The final root contains 20 new
+atomic JSON+safetensors pairs, four source references, 58 checksummed manifest
+artifacts, and zero failure markers. The authoritative manifest SHA-256 is
+`455db962eee8379480a353353e1168e0e26e90dc8de2739fbf2ea4ec2369f84e`.
+
+All candidates use coefficient zero at anchor one. The fixed schedules are
+`(anchor-1)/8` or the undamped `anchor-1`; the optional correction-vector norm
+cap is the pinned 25% resident fraction, not a fitted value. One selector keeps
+the standard first-four/history coverage, while the isolated core ablation
+reserves anchor-one top-8 and fills 24 experts from later corrected utility.
+Same-cache tests verify that zero coefficient leaves anchor-one router logits
+exact. Cross-process BF16 source/candidate tensors are not treated as bitwise
+identity evidence.
+
+The best residual-damped candidate improved route hit/selected mass by only
++0.003123/+0.002240, far below the frozen +0.02 signal, so the result is
+`STOP/PIVOT`. Route metrics and probe cost are teacher-forced current-policy
+measurements; transfer is simulated. Held-out route, accuracy, free generation,
+exact-token identity, NLL/perplexity, runtime, and speedup were not measured.

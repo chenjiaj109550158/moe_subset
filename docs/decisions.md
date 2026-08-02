@@ -817,3 +817,59 @@ Earlier route-analysis `NARROW`, focused pseudo `STOP/PIVOT`, GPT hard-only
 coefficient schedule, adaptive gate, held-out evaluation, or accuracy stage must
 be separately frozen before results. New rows or expanded scope still require
 explicit human authorization.
+
+## D-20260802-041 — Stop protected-anchor correction after a small development gain
+
+**Status:** accepted
+
+**Context:** D-20260802-040 found that fixed 1–8 velocity corrections corrupted
+the strongest known-token anchor. Before new output, the user authorized and the
+project committed a new four-row protocol that sets anchor one's coefficient to
+zero. Five calibration-free candidates isolate hidden versus residual state,
+undamped versus `(anchor-1)/8` horizon damping, a correction-vector norm cap
+equal to the fixed 25% resident fraction, and a selector that reserves anchor-one
+top-8. Every candidate still uses one causal eight-token pseudo traversal and
+fresh native MoE residuals executed under the previous realized B=32 subset.
+
+The checksum-pinned uncorrected reference scored 0.700267 route hit and 0.714061
+selected mass. Protected residual horizon damping scored 0.703389/0.716302, with
++0.003123/+0.002240 gains positive on all four samples and paired 95% intervals
+[0.001261, 0.004985]/[0.001702, 0.002779]. Undamped residual correction remained
+negative at -0.001607/-0.002789. The 25% cap reduced centered-logit RMS from
+0.467 to 0.197 but shrank gain to +0.000763/+0.000417. Reserving only anchor-one
+top-8 and filling from later corrected anchors regressed -0.042857/-0.058856.
+
+**Decision:** Keep **STOP/PIVOT**. Anchor-one protection plus damping converts
+the previous large regression into a reproducible small positive effect, but
+the gains recover only about 16%/11% of the frozen +0.02 route signal. Do not
+promote any candidate to held-out route evaluation or task accuracy.
+
+**Alternatives considered:** Accept any wholly positive interval, tune damping
+or cap strength on these four rows, retain the anchor-one-only core despite its
+regression, add layer/margin gates post hoc, or inspect task accuracy after the
+predeclared route gate failed.
+
+**Consequences:** Protecting the known sampled-token anchor is necessary for a
+stable velocity experiment but is not the main missing information. Residual
+damping helps anchors 2, 3, 6, and 7 while anchors 4, 5, and 8 remain mixed or
+negative. The strong anchor-one-only subset ablation shows that the previous
+first-four/history breadth is carrying important coverage. Same-cache tests
+prove coefficient zero preserves anchor-one router logits; separately executed
+BF16 artifacts are not used for bitwise identity claims.
+
+All 20 new atomic pairs, four source rows, 58 artifacts, checksum resume, and
+cache/RNG/shadow/information/call-count audits validate with zero failure
+markers. Manifest SHA-256 is
+`455db962eee8379480a353353e1168e0e26e90dc8de2739fbf2ea4ec2369f84e`.
+The measurements are teacher-forced current-policy route/probe evidence with
+simulated transfer, not held-out validation, task accuracy, free generation,
+exact-token identity, or runtime speedup.
+
+**Experiments affected:** Only `pseudo_one_forward_protected_anchor_v2`.
+Earlier route-analysis `NARROW`, pseudo `STOP/PIVOT`, GPT hard-only `NARROW`,
+trained-model `STOP/PIVOT`, and M11 conclusions are unchanged.
+
+**Migration required:** Preserve this development result and do not tune on the
+four rows. A materially different information source—not another post-hoc
+coefficient—needs a separately frozen protocol. New rows, held-out evaluation,
+or accuracy still require explicit authorization.
