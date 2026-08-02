@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from pseudoroute.benchmark.pseudo_one_forward_state_correction import SPECS
+
 CONFIG = Path("configs/analysis/pseudo_one_forward_state_correction_v1.yaml")
 SAMPLES = Path("configs/analysis/pseudo_one_forward_state_correction_v1_samples.json")
 
@@ -32,3 +34,22 @@ def test_one_forward_state_correction_protocol_is_frozen_and_calibration_free() 
 def test_one_forward_state_correction_fingerprints_are_deterministic() -> None:
     assert _sha256(CONFIG) == "7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44"
     assert _sha256(SAMPLES) == "350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c"
+
+
+def test_one_forward_state_correction_runner_matches_frozen_variants() -> None:
+    assert [spec.key for spec in SPECS] == [
+        "recent_sequence_causal_uncorrected",
+        "recent_sequence_causal_hidden_velocity_linear_norm",
+        "recent_sequence_causal_residual_velocity_linear_norm",
+    ]
+    assert [spec.hidden_state_correction for spec in SPECS] == [
+        "none",
+        "recent_linear_norm",
+        "none",
+    ]
+    assert [spec.residual_correction for spec in SPECS] == [
+        "none",
+        "none",
+        "recent_linear_norm",
+    ]
+    assert all(spec.policy().content == "recent_sequence_causal" for spec in SPECS)
