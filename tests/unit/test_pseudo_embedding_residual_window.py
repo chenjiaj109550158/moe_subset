@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import torch
+from safetensors.torch import save_file
 
+from pseudoroute.benchmark import pseudo_embedding_residual_window as residual_window
 from pseudoroute.benchmark.prefetch import NativeRoute, SubsetRouteRecord
 from pseudoroute.benchmark.pseudo_embedding_residual_window import (
     BUDGET,
@@ -11,6 +13,7 @@ from pseudoroute.benchmark.pseudo_embedding_residual_window import (
     _paired_bootstrap,
     _ranked_selection,
     _residual_specs,
+    _stratified_outputs,
     candidate_subsets,
     residual_bank_variant,
     route_scores,
@@ -129,6 +132,7 @@ def _sample_row(policy: str, hit: int, mass: float, latency: float) -> dict[str,
             }
         ],
         "policy": policy,
+        "elapsed_seconds_measured": latency + 1,
     }
 
 
@@ -143,3 +147,53 @@ def test_aggregate_ranking_and_paired_bootstrap_are_deterministic() -> None:
     first = _paired_bootstrap(candidate, previous, draws=100, seed=17)
     second = _paired_bootstrap(candidate, previous, draws=100, seed=17)
     assert first == second
+
+
+def test_development_ranking_uses_transfer_before_latency() -> None:
+    slow_high_transfer = _aggregate_policy([_sample_row("a", 7, 7.0, 0.9)])
+    fast_low_transfer = _aggregate_policy([_sample_row("b", 7, 7.0, 0.1)])
+    slow_high_transfer["estimated_transfer_reduction"] = 0.5
+    fast_low_transfer["estimated_transfer_reduction"] = 0.4
+    values = {"a": slow_high_transfer, "b": fast_low_transfer}
+    assert _ranked_selection(values, {"a", "b"}) == "b"
+    assert _ranked_selection(values, {"a", "b"}, include_transfer=True) == "a"
+
+
+def test_strata_reconstruct_anchor_margin_and_residual_buckets(
+    tmp_path: object,
+    monkeypatch: object,
+) -> None:
+    # pytest fixtures are left untyped here to keep this tensor-schema test compact.
+    root = tmp_path  # type: ignore[assignment]
+    monkeypatch.setattr(residual_window, "OUTPUT", root)  # type: ignore[attr-defined]
+    json_path, tensor_path = residual_window._sample_paths("residual_smoke", 0, "residual__zero")
+    json_path.parent.mkdir(parents=True)
+    ids = torch.arange(8).reshape(1, 1, 8)
+    weights = torch.full((1, 1, 8), 0.125)
+    save_file(
+        {
+            "natural_router_topk_ids": ids,
+            "natural_router_topk_weights": weights,
+            "natural_router_logits": torch.arange(10, dtype=torch.float32).reshape(1, 1, 10),
+            "subsets": torch.arange(32).reshape(1, 1, 32),
+            "boundaries": torch.tensor([0]),
+            "planning_residual_norms": torch.ones(1, 8, 1),
+            "planning_residual_router_input_cosine": torch.zeros(1, 8, 1),
+        },
+        str(tensor_path),
+    )
+    row = {
+        "stage": "residual_smoke",
+        "row_index": 0,
+        "policy": "residual__zero",
+        "sample_id": "test-0",
+    }
+    strata, worst = _stratified_outputs([row])
+    assert strata["anchor"]["residual__zero"]["1"]["mean_route_hit"] == 1.0  # type: ignore[index]
+    assert (
+        strata["router_margin_tertile"]["residual__zero"]["low"][  # type: ignore[index]
+            "token_layer_observations"
+        ]
+        == 1
+    )
+    assert len(worst) == 1

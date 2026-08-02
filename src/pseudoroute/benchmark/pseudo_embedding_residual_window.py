@@ -18,7 +18,7 @@ from typing import Any, Literal, cast
 import torch
 import yaml
 from safetensors import safe_open
-from safetensors.torch import save_file
+from safetensors.torch import load_file, save_file
 from torch import Tensor, nn
 
 from pseudoroute.benchmark.config import AccuracySuiteConfig, load_accuracy_suite_config
@@ -49,7 +49,10 @@ from pseudoroute.benchmark.qwen_pseudo import (
     _rng_equal,
     _rng_snapshot,
 )
-from pseudoroute.benchmark.runner import _encode_saved_rendered_prompt, _load_model
+from pseudoroute.benchmark.runner import (
+    _encode_saved_rendered_prompt,
+    _load_model,
+)
 from pseudoroute.benchmark.subset_closed_loop import (
     _cache_length,
     _cache_mutation_signature,
@@ -952,18 +955,28 @@ def _aggregate_policy(rows: list[dict[str, Any]]) -> dict[str, int | float]:
         ),
         "attention_queries": sum(int(cost["attention_queries"]) for cost in costs),
         "router_calls": sum(int(cost["router_calls"]) for cost in costs),
+        "total_sample_policy_elapsed_seconds": sum(
+            float(row["elapsed_seconds_measured"]) for row in rows
+        ),
+        "mean_sample_policy_elapsed_seconds": sum(
+            float(row["elapsed_seconds_measured"]) for row in rows
+        )
+        / len(rows),
     }
 
 
 def _ranked_selection(
     aggregates: dict[str, dict[str, int | float]],
     eligible: set[str],
+    *,
+    include_transfer: bool = False,
 ) -> str:
     return sorted(
         eligible,
         key=lambda key: (
             -float(aggregates[key]["mean_selected_mass"]),
             -float(aggregates[key]["mean_route_hit"]),
+            (-float(aggregates[key]["estimated_transfer_reduction"]) if include_transfer else 0.0),
             float(aggregates[key]["mean_probe_latency_seconds"]),
             key,
         ),
@@ -1009,6 +1022,14 @@ def _paired_bootstrap(
         "draws": draws,
         "seed": seed,
         "unit": "sample",
+        "paired_sample_mean_route_hit_delta": sum(
+            candidate[key][0] - previous[key][0] for key in sample_ids
+        )
+        / len(sample_ids),
+        "paired_sample_mean_selected_mass_delta": sum(
+            candidate[key][1] - previous[key][1] for key in sample_ids
+        )
+        / len(sample_ids),
         "route_hit_delta_percentile_95": [route[lo], route[hi]],
         "selected_mass_delta_percentile_95": [mass[lo], mass[hi]],
     }
@@ -1020,6 +1041,191 @@ def _per_sample(row: dict[str, Any]) -> tuple[float, float]:
     mass_hit = sum(float(metric["selected_mass_hit"]) for metric in row["metrics"])
     mass_total = sum(float(metric["selected_mass_total"]) for metric in row["metrics"])
     return hits / slots, mass_hit / mass_total
+
+
+def _observation_aggregate(
+    observations: list[dict[str, int | float | str]],
+) -> dict[str, int | float]:
+    hits = sum(int(row["route_hits"]) for row in observations)
+    slots = sum(int(row["route_slots"]) for row in observations)
+    mass_hit = sum(float(row["selected_mass_hit"]) for row in observations)
+    mass_total = sum(float(row["selected_mass_total"]) for row in observations)
+    return {
+        "token_layer_observations": len(observations),
+        "route_hits": hits,
+        "route_slots": slots,
+        "mean_route_hit": hits / slots,
+        "selected_mass_hit": mass_hit,
+        "selected_mass_total": mass_total,
+        "mean_selected_mass": mass_hit / mass_total,
+    }
+
+
+def _tertile_thresholds(
+    observations: list[dict[str, int | float | str]],
+    field: str,
+) -> dict[tuple[str, int], tuple[float, float]]:
+    values: dict[tuple[str, int], list[float]] = defaultdict(list)
+    for row in observations:
+        values[(str(row["policy"]), int(row["layer"]))].append(float(row[field]))
+    result = {}
+    for key, items in values.items():
+        tensor = torch.tensor(items, dtype=torch.float64)
+        result[key] = (
+            float(torch.quantile(tensor, 1 / 3)),
+            float(torch.quantile(tensor, 2 / 3)),
+        )
+    return result
+
+
+def _bucket(value: float, thresholds: tuple[float, float]) -> str:
+    if value <= thresholds[0]:
+        return "low"
+    if value <= thresholds[1]:
+        return "middle"
+    return "high"
+
+
+def _route_observations(rows: list[dict[str, Any]]) -> list[dict[str, int | float | str]]:
+    observations: list[dict[str, int | float | str]] = []
+    for row in rows:
+        _json_path, tensor_path = _sample_paths(
+            cast(Stage, row["stage"]), int(row["row_index"]), str(row["policy"])
+        )
+        tensors = load_file(str(tensor_path))
+        token_ids = tensors["natural_router_topk_ids"]
+        token_weights = tensors["natural_router_topk_weights"].float()
+        token_logits = tensors["natural_router_logits"].float()
+        subsets = tensors["subsets"]
+        boundaries = [int(value) for value in tensors["boundaries"].tolist()]
+        norms = tensors["planning_residual_norms"].float()
+        cosines = tensors["planning_residual_router_input_cosine"].float()
+        for boundary_index, boundary in enumerate(boundaries):
+            end = (
+                boundaries[boundary_index + 1]
+                if boundary_index + 1 < len(boundaries)
+                else token_ids.shape[0]
+            )
+            for token_index in range(boundary, end):
+                anchor = token_index - boundary
+                for layer in range(token_ids.shape[1]):
+                    allowed = set(int(value) for value in subsets[boundary_index, layer])
+                    ids = token_ids[token_index, layer]
+                    weights = token_weights[token_index, layer]
+                    mask = torch.tensor([int(value) in allowed for value in ids])
+                    top = token_logits[token_index, layer].topk(TOP_K + 1).values
+                    observations.append(
+                        {
+                            "policy": str(row["policy"]),
+                            "sample_id": str(row["sample_id"]),
+                            "boundary": boundary,
+                            "anchor": anchor + 1,
+                            "layer": layer,
+                            "layer_block": layer // 8,
+                            "context_bucket": (
+                                "0-31" if boundary < 32 else "32-63" if boundary < 64 else "64-127"
+                            ),
+                            "router_margin": float(top[TOP_K - 1] - top[TOP_K]),
+                            "residual_norm": float(norms[boundary_index, anchor, layer]),
+                            "residual_router_input_cosine": float(
+                                cosines[boundary_index, anchor, layer]
+                            ),
+                            "route_hits": int(mask.sum()),
+                            "route_slots": int(ids.numel()),
+                            "selected_mass_hit": float(weights[mask].double().sum()),
+                            "selected_mass_total": float(weights.double().sum()),
+                        }
+                    )
+    return observations
+
+
+def _stratified_outputs(
+    rows: list[dict[str, Any]],
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    observations = _route_observations(rows)
+    thresholds = {
+        "router_margin": _tertile_thresholds(observations, "router_margin"),
+        "residual_norm": _tertile_thresholds(observations, "residual_norm"),
+        "residual_router_input_cosine": _tertile_thresholds(
+            observations, "residual_router_input_cosine"
+        ),
+    }
+    grouped: dict[str, dict[str, dict[str, list[dict[str, int | float | str]]]]] = {
+        axis: defaultdict(lambda: defaultdict(list))
+        for axis in (
+            "anchor",
+            "layer",
+            "layer_block",
+            "context_bucket",
+            "router_margin_tertile",
+            "residual_norm_tertile",
+            "residual_router_input_cosine_tertile",
+        )
+    }
+    for row in observations:
+        policy = str(row["policy"])
+        layer = int(row["layer"])
+        values = {
+            "anchor": str(row["anchor"]),
+            "layer": str(layer),
+            "layer_block": str(row["layer_block"]),
+            "context_bucket": str(row["context_bucket"]),
+            "router_margin_tertile": _bucket(
+                float(row["router_margin"]), thresholds["router_margin"][(policy, layer)]
+            ),
+            "residual_norm_tertile": _bucket(
+                float(row["residual_norm"]), thresholds["residual_norm"][(policy, layer)]
+            ),
+            "residual_router_input_cosine_tertile": _bucket(
+                float(row["residual_router_input_cosine"]),
+                thresholds["residual_router_input_cosine"][(policy, layer)],
+            ),
+        }
+        for axis, value in values.items():
+            grouped[axis][policy][value].append(row)
+    strata: dict[str, object] = {}
+    for axis, by_policy in grouped.items():
+        strata[axis] = {
+            policy: {
+                value: _observation_aggregate(items) for value, items in sorted(values.items())
+            }
+            for policy, values in sorted(by_policy.items())
+        }
+    strata["per_policy_layer_tertile_thresholds"] = {
+        field: {
+            f"{policy}/layer-{layer}": list(values)
+            for (policy, layer), values in sorted(by_layer.items())
+        }
+        for field, by_layer in thresholds.items()
+    }
+    worst_by_policy: dict[str, list[dict[str, int | float | str]]] = defaultdict(list)
+    for row in observations:
+        worst_by_policy[str(row["policy"])].append(row)
+    worst = []
+    for policy_rows in worst_by_policy.values():
+        worst.extend(
+            sorted(
+                policy_rows,
+                key=lambda row: (
+                    float(row["selected_mass_hit"]) / float(row["selected_mass_total"]),
+                    float(row["route_hits"]) / float(row["route_slots"]),
+                    str(row["sample_id"]),
+                    int(row["boundary"]),
+                    int(row["anchor"]),
+                    int(row["layer"]),
+                ),
+            )[:100]
+        )
+    worst_rows = [
+        {
+            **cast(dict[str, object], row),
+            "route_hit_rate": int(row["route_hits"]) / int(row["route_slots"]),
+            "selected_mass_coverage": float(row["selected_mass_hit"])
+            / float(row["selected_mass_total"]),
+        }
+        for row in worst
+    ]
+    return strata, worst_rows
 
 
 def _write_gzip_jsonl(path: Path, values: list[dict[str, object]]) -> None:
@@ -1067,6 +1273,9 @@ def aggregate_stage(stage: Stage) -> dict[str, object]:
         root / "raw_metrics.jsonl.gz",
         [cast(dict[str, object], metric) for row in rows for metric in row["metrics"]],
     )
+    strata, worst = _stratified_outputs(rows)
+    write_json_atomic(root / "stratified_metrics.json", strata)
+    write_json_atomic(root / "worst_cases.json", worst)
     write_json_atomic(
         root / "cost_report.json",
         {
@@ -1116,7 +1325,7 @@ def aggregate_stage(stage: Stage) -> dict[str, object]:
         decision.update({"result": "CONTENT_SELECTED_FOR_DEVELOPMENT", **selection})
     elif stage == "development":
         eligible = {key for key in aggregates if key.startswith("candidate__")}
-        selected = _ranked_selection(aggregates, eligible)
+        selected = _ranked_selection(aggregates, eligible, include_transfer=True)
         selection = {
             **decision,
             "selected_candidate": selected,
@@ -1126,6 +1335,27 @@ def aggregate_stage(stage: Stage) -> dict[str, object]:
         candidate = aggregates[selected]
         previous = aggregates["reference__previous_route_commitment"]
         static = aggregates["reference__static_frequency"]
+        candidate_samples = {str(row["sample_id"]): _per_sample(row) for row in by_policy[selected]}
+        previous_samples = {
+            str(row["sample_id"]): _per_sample(row)
+            for row in by_policy["reference__previous_route_commitment"]
+        }
+        bootstrap = _paired_bootstrap(candidate_samples, previous_samples)
+        write_json_atomic(root / "paired_bootstrap.json", bootstrap)
+        leave_one_out = {}
+        for omitted in sorted(candidate_samples):
+            retained = [key for key in candidate_samples if key != omitted]
+            leave_one_out[omitted] = {
+                "candidate_minus_previous_route_hit": sum(
+                    candidate_samples[key][0] - previous_samples[key][0] for key in retained
+                )
+                / len(retained),
+                "candidate_minus_previous_selected_mass": sum(
+                    candidate_samples[key][1] - previous_samples[key][1] for key in retained
+                )
+                / len(retained),
+            }
+        write_json_atomic(root / "leave_one_out.json", leave_one_out)
         route_delta = float(candidate["mean_route_hit"]) - float(previous["mean_route_hit"])
         mass_delta = float(candidate["mean_selected_mass"]) - float(previous["mean_selected_mass"])
         gate = (
