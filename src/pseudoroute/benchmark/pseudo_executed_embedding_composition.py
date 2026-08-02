@@ -20,6 +20,7 @@ from pseudoroute.benchmark.prefetch import Qwen3MoePrefetchOps
 from pseudoroute.benchmark.pseudo_embedding_config import load_pseudo_embedding_config
 from pseudoroute.benchmark.pseudo_embedding_residual_window import (
     PolicySpec,
+    Stage,
     _aggregate_policy,
     _paired_bootstrap,
     _per_sample,
@@ -174,25 +175,48 @@ def run_wave(
     shard_count: int,
 ) -> dict[str, object]:
     config, samples = _protocol()
-    specs = (
-        SIMPLE_SPECS
-        if wave == "simple_content_attention"
-        else PARTICLE_SPECS
-        if wave == "particle_follow_up"
-        else ADVANCED_SPECS
-    )
+    if wave == "held_out_selected":
+        selection_path = OUTPUT / "development" / "selection.json"
+        if not selection_path.is_file():
+            raise RuntimeError("development selection is missing before held-out")
+        selected_key = str(_json(selection_path)["selected_deployable"])
+        selected = next(spec for spec in ALL_DEVELOPMENT_SPECS if spec.key == selected_key)
+        specs = tuple(
+            dict.fromkeys(
+                (
+                    selected,
+                    SIMPLE_SPECS[0],
+                    SIMPLE_SPECS[-2],
+                    SIMPLE_SPECS[-1],
+                )
+            )
+        )
+        partition = "held_out_route"
+        stage: Stage = "held_out"
+        token_cap = int(config["operating_point"]["held_out_route_token_cap"])
+    else:
+        specs = (
+            SIMPLE_SPECS
+            if wave == "simple_content_attention"
+            else PARTICLE_SPECS
+            if wave == "particle_follow_up"
+            else ADVANCED_SPECS
+        )
+        partition = "development"
+        stage = "development"
+        token_cap = int(config["operating_point"]["development_route_token_cap"])
     if shard_count < 1 or not 0 <= shard_index < shard_count:
         raise ValueError("invalid composition shard")
     references = [
         reference
-        for index, reference in enumerate(samples["partitions"]["development"])
+        for index, reference in enumerate(samples["partitions"][partition])
         if index % shard_count == shard_index
     ]
     missing = [
         (reference, spec)
         for reference in references
         for spec in specs
-        if _valid("development", reference, spec) is None
+        if _valid(partition, reference, spec) is None
     ]
     if not missing:
         return {"state": "already_complete", "rows": len(references) * len(specs)}
@@ -212,7 +236,7 @@ def run_wave(
     for reference, spec in missing:
         row_index = int(reference["row_index"])
         source = sources[row_index]
-        json_path, tensor_path = _paths("development", row_index, spec.key)
+        json_path, tensor_path = _paths(partition, row_index, spec.key)
         try:
             seed_everything(seed)
             row, tensors = run_policy_sample(
@@ -225,8 +249,8 @@ def run_wave(
                 source,
                 spec,
                 {},
-                stage="development",
-                route_token_cap=int(config["operating_point"]["development_route_token_cap"]),
+                stage=stage,
+                route_token_cap=token_cap,
                 physical_gpu=physical_gpu,
                 shadow_expert_execution=(
                     spec.role == "pseudo" and spec.key != "provided_previous_residual_control"
@@ -340,6 +364,7 @@ def _router_sensitivity(
 
 def _composition_strata(
     rows: list[dict[str, Any]],
+    partition: str = "development",
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
     grouped: dict[str, dict[str, dict[str, float]]] = defaultdict(
         lambda: defaultdict(
@@ -353,9 +378,7 @@ def _composition_strata(
     )
     observations: list[dict[str, object]] = []
     for row in rows:
-        tensors = load_file(
-            str(_paths("development", int(row["row_index"]), str(row["policy"]))[1])
-        )
+        tensors = load_file(str(_paths(partition, int(row["row_index"]), str(row["policy"]))[1]))
         ids = tensors["natural_router_topk_ids"]
         weights = tensors["natural_router_topk_weights"].float()
         subsets = tensors["subsets"]
@@ -545,6 +568,161 @@ def aggregate_development() -> dict[str, object]:
     return result
 
 
+def aggregate_particles() -> dict[str, object]:
+    _config, samples = _protocol()
+    references = samples["partitions"]["development"]
+    rows: list[dict[str, Any]] = []
+    for reference in references:
+        for spec in PARTICLE_SPECS:
+            row = _valid("development", reference, spec)
+            if row is None:
+                raise RuntimeError(f"missing particle row: {reference['sample_id']}/{spec.key}")
+            rows.append(row)
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[str(row["policy"])].append(row)
+    aggregates = {
+        policy: _aggregate_policy(policy_rows) for policy, policy_rows in sorted(grouped.items())
+    }
+    development = _json(OUTPUT / "development" / "aggregates.json")["policies"]
+    comparisons = {
+        policy: {
+            reference: {
+                "mean_route_hit": float(aggregate["mean_route_hit"])
+                - float(development[reference]["mean_route_hit"]),
+                "mean_selected_mass": float(aggregate["mean_selected_mass"])
+                - float(development[reference]["mean_selected_mass"]),
+            }
+            for reference in (
+                "sampled_repeat_independent",
+                "self_greedy_causal",
+                "self_expected_top8_causal",
+            )
+        }
+        for policy, aggregate in aggregates.items()
+    }
+    root = OUTPUT / "particle_follow_up"
+    write_json_atomic(
+        root / "aggregates.json",
+        {
+            "analysis_id": ANALYSIS_ID,
+            "policies": aggregates,
+            "comparisons": comparisons,
+        },
+    )
+    write_json_atomic(
+        root / "audit.json",
+        {
+            "all_pass": all(_audit_pass(row) for row in rows),
+            "sample_policy_rows": len(rows),
+            "deterministic_probability_weighted_particles": True,
+            "production_rng_unchanged": True,
+        },
+    )
+    result = {
+        "state": "complete",
+        "sample_policy_rows": len(rows),
+        "all_audits_pass": all(_audit_pass(row) for row in rows),
+    }
+    write_json_atomic(root / "pipeline_status.json", result)
+    return result
+
+
+def aggregate_held_out() -> dict[str, object]:
+    config, samples = _protocol()
+    selection = _json(OUTPUT / "development" / "selection.json")
+    selected_key = str(selection["selected_deployable"])
+    selected = next(spec for spec in ALL_DEVELOPMENT_SPECS if spec.key == selected_key)
+    specs = tuple(dict.fromkeys((selected, SIMPLE_SPECS[0], SIMPLE_SPECS[-2], SIMPLE_SPECS[-1])))
+    references = samples["partitions"]["held_out_route"]
+    rows: list[dict[str, Any]] = []
+    for reference in references:
+        for spec in specs:
+            row = _valid("held_out_route", reference, spec)
+            if row is None:
+                raise RuntimeError(f"missing held-out row: {reference['sample_id']}/{spec.key}")
+            rows.append(row)
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[str(row["policy"])].append(row)
+    aggregates = {
+        policy: _aggregate_policy(policy_rows) for policy, policy_rows in sorted(grouped.items())
+    }
+    baseline = "sampled_repeat_independent"
+    previous = "previous_route_commitment"
+    selected_aggregate = aggregates[selected_key]
+    previous_aggregate = aggregates[previous]
+    route_delta = float(selected_aggregate["mean_route_hit"]) - float(
+        previous_aggregate["mean_route_hit"]
+    )
+    mass_delta = float(selected_aggregate["mean_selected_mass"]) - float(
+        previous_aggregate["mean_selected_mass"]
+    )
+    partial_gate = (
+        route_delta >= float(config["held_out_gate"]["route_hit_improvement_over_previous_minimum"])
+        and mass_delta
+        >= float(config["held_out_gate"]["selected_mass_improvement_over_previous_minimum"])
+        and float(selected_aggregate["mean_route_hit"])
+        >= float(config["held_out_gate"]["strong_route_hit_minimum"])
+        and float(selected_aggregate["mean_selected_mass"])
+        >= float(config["held_out_gate"]["strong_selected_mass_minimum"])
+        and float(selected_aggregate["estimated_transfer_reduction"])
+        >= float(config["held_out_gate"]["estimated_transfer_reduction_minimum"])
+        and all(_audit_pass(row) for row in rows)
+    )
+    root = OUTPUT / "held_out_route"
+    write_json_atomic(
+        root / "aggregates.json",
+        {
+            "analysis_id": ANALYSIS_ID,
+            "selected_deployable": selected_key,
+            "policies": aggregates,
+        },
+    )
+    write_json_atomic(
+        root / "paired_bootstrap.json",
+        {
+            "selected_vs_sampled_repeat": _paired_bootstrap(
+                {str(row["sample_id"]): _per_sample(row) for row in grouped[selected_key]},
+                {str(row["sample_id"]): _per_sample(row) for row in grouped[baseline]},
+            ),
+            "selected_vs_previous_route": _paired_bootstrap(
+                {str(row["sample_id"]): _per_sample(row) for row in grouped[selected_key]},
+                {str(row["sample_id"]): _per_sample(row) for row in grouped[previous]},
+            ),
+        },
+    )
+    strata, worst = _composition_strata(rows, "held_out_route")
+    write_json_atomic(root / "stratified_metrics.json", strata)
+    write_json_atomic(root / "worst_cases.json", worst)
+    audit = {
+        "all_pass": all(_audit_pass(row) for row in rows),
+        "sample_policy_rows": len(rows),
+        "cache_rng_shadow_information": True,
+        "accuracy_or_correctness_used": False,
+    }
+    write_json_atomic(root / "audit.json", audit)
+    decision = {
+        "selected_deployable": selected_key,
+        "selected_minus_previous_route_hit": route_delta,
+        "selected_minus_previous_selected_mass": mass_delta,
+        "all_available_strong_conditions_pass": partial_gate,
+        "oracle_gap_recovery_computed": False,
+        "task_accuracy_authorized": False,
+        "decision": "ROUTE_SIGNAL" if partial_gate else "STOP/PIVOT",
+    }
+    write_json_atomic(root / "decision.json", decision)
+    result = {
+        "state": "complete",
+        "sample_policy_rows": len(rows),
+        "selected_deployable": selected_key,
+        "decision": decision["decision"],
+        "all_audits_pass": audit["all_pass"],
+    }
+    write_json_atomic(root / "pipeline_status.json", result)
+    return result
+
+
 def _parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -553,7 +731,10 @@ def _parse() -> argparse.Namespace:
             "run-simple",
             "run-advanced",
             "run-particles",
+            "run-held-out",
             "aggregate-development",
+            "aggregate-particles",
+            "aggregate-held-out",
         ),
     )
     parser.add_argument("--gpu", type=int, default=1)
@@ -567,10 +748,18 @@ def main() -> None:
     if args.command == "aggregate-development":
         print(json.dumps(aggregate_development(), indent=2, sort_keys=True))
         return
+    if args.command == "aggregate-particles":
+        print(json.dumps(aggregate_particles(), indent=2, sort_keys=True))
+        return
+    if args.command == "aggregate-held-out":
+        print(json.dumps(aggregate_held_out(), indent=2, sort_keys=True))
+        return
     result = run_wave(
         (
             "simple_content_attention"
             if args.command == "run-simple"
+            else "held_out_selected"
+            if args.command == "run-held-out"
             else "particle_follow_up"
             if args.command == "run-particles"
             else "expected_and_autoregressive"
