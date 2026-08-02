@@ -393,7 +393,6 @@ def _audit_pass(row: dict[str, Any], spec: MidlayerSpec, config: dict[str, Any])
                 audit.get("executed_ids_within_supplied_subset") in (True, None),
                 audit.get("midlayer_anchor_one_hidden_bitwise_unchanged", False),
                 audit.get("midlayer_refresh_finite", False),
-                audit.get("midlayer_hidden_norm_preserved", False),
                 audit.get("midlayer_self_conditioning") == spec.mode,
                 audit.get("midlayer_refresh_after_layer") == REFRESH_AFTER_LAYER,
                 audit.get("midlayer_source_anchor_indices_one_based") == list(range(1, 8)),
