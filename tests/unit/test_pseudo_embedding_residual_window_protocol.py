@@ -12,7 +12,7 @@ def test_residual_window_protocol_is_frozen_and_calibration_free() -> None:
     config_payload = CONFIG.read_bytes()
     manifest_payload = MANIFEST.read_bytes()
     assert hashlib.sha256(config_payload).hexdigest() == (
-        "cb14de9d2c4ef319b67848569e8eb985cc8ca4d5a398a06acef2e9a737a9e413"
+        "361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b"
     )
     assert hashlib.sha256(manifest_payload).hexdigest() == (
         "cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255"

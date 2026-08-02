@@ -126,6 +126,20 @@ candidate_constraints:
   coefficients: analytic_fixed_no_grid_search
   deterministic_top32_tie_break: ascending_layer_scoped_expert_id
   ranking_uses_task_accuracy: false
+candidate_formulas:
+  notation:
+    p_a: full_pre_topk_probability_vector_from_pseudo_anchor_a
+    P: sum_a_1_to_8_p_a_total_mass_8
+    R: previous_window_selected_route_weight_scatter_sum_total_mass_8
+    top_n: descending_score_then_ascending_layer_scoped_expert_id
+  residual_pseudo_only: top32(P)
+  previous_window_route_only: top32(R)
+  sampled_anchor_one_plus_previous_window_route: top32(8_times_p_1_plus_R)
+  equal_pseudo_history: top32(P_plus_R)
+  sampled_top8_core_plus_history_fill: lock_top8(p_1)_then_fill_24_by_R_excluding_core
+  first_four_anchor_core_plus_history_fill: lock_union_of_each_anchor_1_to_4_native_top8_ranked_by_sum_p_1_to_4_capped_at_32_then_fill_by_R
+  linear_horizon_decay: top32(8_times_sum_a_1_to_8_of_9_minus_a_times_p_a_div_36_plus_R)
+  inverse_anchor_decay: top32(8_times_sum_a_1_to_8_of_p_a_div_a_div_sum_a_1_to_8_of_1_div_a_plus_R)
 development:
   rows_partition: development
   route_token_cap: 128
@@ -221,4 +235,3 @@ claim_boundary:
   maximum_positive_decision: NARROW
   no_full_dataset_claim: true
   no_runtime_speedup_claim: true
-

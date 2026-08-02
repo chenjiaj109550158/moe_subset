@@ -74,6 +74,25 @@ route transition tables, and default-vector values are forbidden. Exact-future
 contents are labelled information-oracle diagnostics and excluded from all
 candidate rankings.
 
+For an exact definition of the analytic combinations, let `p_a` be the full
+pre-top-k probability vector at pseudo anchor `a`, `P=sum(p_1..p_8)` (total mass
+8), and `R` be the previous window's selected native weights scattered into 128
+experts and summed (also total mass 8). The methods are fixed as follows:
+
+- pseudo-only and history-only select `top32(P)` and `top32(R)`;
+- sampled-anchor-plus-history selects `top32(8*p_1 + R)`;
+- equal evidence selects `top32(P + R)`;
+- sampled core locks `top8(p_1)` and fills 24 positions by `R`;
+- first-four-anchor core locks the union of each of anchors 1–4's native top-8,
+  ranks an oversized union by `sum(p_1..p_4)`, caps it at 32, then fills any
+  remaining positions by `R`;
+- linear decay selects `top32(8*sum((9-a)*p_a)/36 + R)`;
+- inverse decay selects `top32(8*sum(p_a/a)/sum(1/a) + R)`.
+
+Every ranking breaks equal scores by ascending layer-scoped expert ID. Core-fill
+methods keep the core, exclude it from fill ranking, and return exactly 32
+experts. The mass factors are analytic normalization, not fitted coefficients.
+
 The two smoke rows are mechanism evidence. Development selects one frozen
 analytic candidate without task accuracy. The old eight-row held-out set is now
 contaminated by previous method selection and is regression-only. The new
@@ -101,4 +120,3 @@ Teacher-forced route metrics and simulated transfer/stall are not task accuracy
 or runtime speedup. Measured task accuracy, exact-token agreement, NLL, and
 generation runtime exist only if true closed-loop generation is reached. Even a
 positive result is at most `NARROW` for this Qwen/GSM8K `H=8,B=32` pilot.
-
