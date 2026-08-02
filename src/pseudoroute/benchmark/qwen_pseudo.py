@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
 import torch
@@ -56,8 +56,8 @@ class QwenProbeCost:
     attention_queries: int
     attention_calls: int
     router_calls: int
-    expert_calls: int
     cpu_gpu_synchronizations: int
+    expert_calls: int = 0
 
 
 @dataclass(frozen=True)
@@ -69,12 +69,12 @@ class QwenPseudoProbeResult:
     pre_topk_probabilities: dict[int, Tensor]
     pseudo_topk_ids: dict[int, Tensor]
     pseudo_topk_weights: dict[int, Tensor]
-    shadow_executed_topk_ids: dict[int, Tensor]
-    shadow_moe_residuals: dict[int, Tensor]
     aggregate_utility: dict[int, Tensor]
     subsets: dict[int, tuple[int, ...]]
     cost: QwenProbeCost
     audit: dict[str, object]
+    shadow_executed_topk_ids: dict[int, Tensor] = field(default_factory=dict)
+    shadow_moe_residuals: dict[int, Tensor] = field(default_factory=dict)
 
 
 def _top_b(scores: Tensor, budget: int) -> tuple[int, ...]:
@@ -621,18 +621,16 @@ class QwenPseudoEmbeddingProbe:
             else self.ops.num_layers
         )
         return QwenPseudoProbeResult(
-            self.variant.key,
-            self.anchors,
-            positions,
-            logits,
-            probabilities,
-            topk_ids,
-            topk_weights,
-            shadow_executed_topk_ids,
-            shadow_moe_residuals,
-            utility,
-            subsets,
-            QwenProbeCost(
+            variant=self.variant.key,
+            anchors=self.anchors,
+            absolute_positions=positions,
+            raw_router_logits=logits,
+            pre_topk_probabilities=probabilities,
+            pseudo_topk_ids=topk_ids,
+            pseudo_topk_weights=topk_weights,
+            aggregate_utility=utility,
+            subsets=subsets,
+            cost=QwenProbeCost(
                 latency_seconds_measured=elapsed,
                 temporary_cuda_bytes_measured=temporary_cuda,
                 output_tensor_bytes=output_bytes,
@@ -652,7 +650,7 @@ class QwenPseudoEmbeddingProbe:
                 expert_calls=attention_calls if native_execution else 0,
                 cpu_gpu_synchronizations=sync_count,
             ),
-            {
+            audit={
                 "information_regime": "online_post_sample",
                 "deployable_inputs": (
                     "sampling_step_logits_and_current_policy_production_cache_only"
@@ -731,4 +729,6 @@ class QwenPseudoEmbeddingProbe:
                     else None
                 ),
             },
+            shadow_executed_topk_ids=shadow_executed_topk_ids,
+            shadow_moe_residuals=shadow_moe_residuals,
         )

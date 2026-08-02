@@ -1012,9 +1012,9 @@ def _aggregate_policy(rows: list[dict[str, Any]]) -> dict[str, int | float]:
             (int(cost["temporary_cuda_bytes_measured"]) for cost in costs), default=0
         ),
         "attention_queries": sum(int(cost["attention_queries"]) for cost in costs),
-        "attention_calls": sum(int(cost["attention_calls"]) for cost in costs),
+        "attention_calls": sum(int(cost.get("attention_calls", 0)) for cost in costs),
         "router_calls": sum(int(cost["router_calls"]) for cost in costs),
-        "expert_calls": sum(int(cost["expert_calls"]) for cost in costs),
+        "expert_calls": sum(int(cost.get("expert_calls", 0)) for cost in costs),
         "total_sample_policy_elapsed_seconds": sum(
             float(row["elapsed_seconds_measured"]) for row in rows
         ),
