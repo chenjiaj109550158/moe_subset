@@ -234,6 +234,11 @@ def candidate_subsets(
             )
             fill = _top_n(previous, budget - len(core), exclude=set(core))
             chosen = (*core, *fill)
+        elif method == "anchor_one_top8_plus_later_corrected_utility_fill":
+            core = _top_n(probabilities[0], TOP_K)
+            later = probabilities[1:].sum(dim=0)
+            fill = _top_n(later, budget - len(core), exclude=set(core))
+            chosen = (*core, *fill)
         elif method == "linear_horizon_decay":
             weights = torch.arange(HORIZON, 0, -1, dtype=torch.float64) * (HORIZON / 36)
             chosen = _top_n((weights[:, None] * probabilities).sum(dim=0) + previous, budget)
@@ -359,6 +364,8 @@ def _probe_for_spec(
     shadow_expert_execution: bool = False,
     hidden_state_correction: StateCorrection = "none",
     residual_correction: StateCorrection = "none",
+    correction_anchor_coefficients: tuple[float, ...] | None = None,
+    correction_max_relative_delta_norm: float | None = None,
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -411,6 +418,8 @@ def _probe_for_spec(
             ),
             hidden_state_correction,
             residual_correction,
+            correction_anchor_coefficients,
+            correction_max_relative_delta_norm,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -606,6 +615,8 @@ def run_policy_sample(
     sample_manifest_sha256: str = SAMPLES_SHA256,
     hidden_state_correction: StateCorrection = "none",
     residual_correction: StateCorrection = "none",
+    correction_anchor_coefficients: tuple[float, ...] | None = None,
+    correction_max_relative_delta_norm: float | None = None,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -644,6 +655,8 @@ def run_policy_sample(
         shadow_expert_execution=shadow_expert_execution,
         hidden_state_correction=hidden_state_correction,
         residual_correction=residual_correction,
+        correction_anchor_coefficients=correction_anchor_coefficients,
+        correction_max_relative_delta_norm=correction_max_relative_delta_norm,
     )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
@@ -875,6 +888,12 @@ def run_policy_sample(
         "shadow_expert_execution": shadow_expert_execution,
         "hidden_state_correction": hidden_state_correction,
         "residual_correction": residual_correction,
+        "correction_anchor_coefficients": (
+            list(correction_anchor_coefficients)
+            if correction_anchor_coefficients is not None
+            else None
+        ),
+        "correction_max_relative_delta_norm": correction_max_relative_delta_norm,
         "route_tokens": route_tokens,
         "boundaries": boundaries,
         "metrics": metrics,

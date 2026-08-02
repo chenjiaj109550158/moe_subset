@@ -9,6 +9,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoProbeResult,
     QwenPseudoVariant,
     StateCorrection,
+    _linear_velocity_norm_match,
 )
 from pseudoroute.benchmark.subset_closed_loop import _cache_mutation_signature
 
@@ -258,3 +259,92 @@ def test_one_forward_state_corrections_use_policy_history_without_mutation() -> 
         assert result.audit["executed_ids_within_supplied_subset"] is True
     assert _cache_mutation_signature(cache) == signature
     assert torch.equal(torch.random.get_rng_state(), rng)
+
+
+def test_protected_anchor_and_norm_cap_preserve_reference_norm() -> None:
+    reference = torch.tensor([[[1.0, 0.0], [1.0, 0.0]]])
+    delta = torch.tensor([0.0, 10.0])
+    uncapped = _linear_velocity_norm_match(
+        reference,
+        delta,
+        coefficients=(0.0, 0.875),
+    )
+    capped = _linear_velocity_norm_match(
+        reference,
+        delta,
+        coefficients=(0.0, 0.875),
+        max_relative_delta_norm=0.25,
+    )
+    assert torch.equal(capped[:, 0], reference[:, 0])
+    assert torch.allclose(capped.norm(dim=-1), reference.norm(dim=-1))
+    assert torch.linalg.vector_norm(capped[:, 1] - reference[:, 1]) < torch.linalg.vector_norm(
+        uncapped[:, 1] - reference[:, 1]
+    )
+
+
+def test_protected_residual_correction_keeps_anchor_one_router_state() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    subsets = {layer: (0, 1, 2) for layer in range(ops.num_layers)}
+    cache = _prefill(model)
+    history = torch.zeros(2, ops.num_layers, ops.hidden_size)
+    history[1] = torch.linspace(-0.2, 0.2, ops.hidden_size)[None]
+
+    def run(correction: StateCorrection) -> QwenPseudoProbeResult:
+        return QwenPseudoEmbeddingProbe(
+            model,
+            ops,
+            None,
+            QwenPseudoVariant(
+                "protected_residual",
+                "provided_sequence",
+                "causal",
+                "native_expert_execution",
+                residual_correction=correction,
+                correction_anchor_coefficients=(0.0, 0.5),
+                correction_max_relative_delta_norm=0.25,
+            ),
+            anchors=(1, 2),
+            budget=3,
+        ).predict(
+            cache,
+            sampled_next_token_id=4,
+            current_token_id=3,
+            anchor_token_ids=(4, 5),
+            execution_subsets=subsets,
+            execution_subset_source="previous_realized_window_subset",
+            recent_moe_outputs=history if correction != "none" else None,
+            correction_history_source=(
+                "current_policy_last_two_realized_mlp_states" if correction != "none" else None
+            ),
+        )
+
+    baseline = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "protected_residual_baseline",
+            "provided_sequence",
+            "causal",
+            "native_expert_execution",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        cache,
+        sampled_next_token_id=4,
+        current_token_id=3,
+        anchor_token_ids=(4, 5),
+        execution_subsets=subsets,
+        execution_subset_source="previous_realized_window_subset",
+    )
+    protected = run("recent_linear_norm")
+    for layer in range(ops.num_layers):
+        assert torch.equal(
+            protected.raw_router_logits[layer][0], baseline.raw_router_logits[layer][0]
+        )
+    assert not torch.allclose(protected.raw_router_logits[1][1], baseline.raw_router_logits[1][1])
+    assert protected.audit["anchor_one_correction_protected"] is True
+    assert protected.audit["anchor_correction_coefficients"] == [0.0, 0.5]
+    assert protected.audit["correction_max_relative_delta_norm"] == 0.25

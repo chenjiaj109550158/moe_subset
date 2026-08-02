@@ -54,6 +54,8 @@ class QwenPseudoVariant:
     particle_count: int = 1
     hidden_state_correction: StateCorrection = "none"
     residual_correction: StateCorrection = "none"
+    correction_anchor_coefficients: tuple[float, ...] | None = None
+    correction_max_relative_delta_norm: float | None = None
 
 
 @dataclass(frozen=True)
@@ -100,17 +102,46 @@ def _tensor_bytes(tensors: dict[int, Tensor]) -> int:
     return sum(value.numel() * value.element_size() for value in tensors.values())
 
 
-def _linear_velocity_norm_match(reference: Tensor, delta: Tensor) -> Tensor:
+def _linear_velocity_norm_match(
+    reference: Tensor,
+    delta: Tensor,
+    *,
+    coefficients: tuple[float, ...] | None = None,
+    max_relative_delta_norm: float | None = None,
+) -> Tensor:
     if reference.ndim != 3 or delta.ndim != 1 or reference.shape[-1] != delta.shape[0]:
         raise ValueError("state correction requires [batch, anchors, hidden] plus [hidden]")
-    coefficients = torch.arange(
-        1,
-        reference.shape[1] + 1,
+    values = (
+        tuple(float(index) for index in range(1, reference.shape[1] + 1))
+        if coefficients is None
+        else coefficients
+    )
+    if len(values) != reference.shape[1] or not all(
+        value >= 0 and torch.isfinite(torch.tensor(value)) for value in values
+    ):
+        raise ValueError("state correction coefficients must be finite and match anchors")
+    if max_relative_delta_norm is not None and (
+        max_relative_delta_norm <= 0
+        or not bool(torch.isfinite(torch.tensor(max_relative_delta_norm)))
+    ):
+        raise ValueError("state correction norm cap must be finite and positive")
+    coefficient_tensor = torch.tensor(
+        values,
         device=reference.device,
         dtype=torch.float32,
     ).reshape(1, -1, 1)
-    candidate = reference.float() + coefficients * delta.to(reference.device).float()[None, None]
-    reference_norm = reference.float().norm(dim=-1, keepdim=True)
+    reference_f = reference.float()
+    correction = coefficient_tensor * delta.to(reference.device).float()[None, None]
+    reference_norm = reference_f.norm(dim=-1, keepdim=True)
+    if max_relative_delta_norm is not None:
+        correction_norm = correction.norm(dim=-1, keepdim=True)
+        correction_scale = torch.where(
+            correction_norm > 0,
+            (max_relative_delta_norm * reference_norm / correction_norm).clamp(max=1),
+            torch.ones_like(correction_norm),
+        )
+        correction = correction * correction_scale
+    candidate = reference_f + correction
     candidate_norm = candidate.norm(dim=-1, keepdim=True).clamp_min(1e-12)
     corrected = candidate * (reference_norm / candidate_norm)
     if not bool(torch.isfinite(corrected).all()):
@@ -331,7 +362,12 @@ class QwenPseudoEmbeddingProbe:
         post_attention = residual + attention
         router_input = layer.post_attention_layernorm(post_attention)
         if router_input_delta is not None:
-            router_input = _linear_velocity_norm_match(router_input, router_input_delta)
+            router_input = _linear_velocity_norm_match(
+                router_input,
+                router_input_delta,
+                coefficients=self.variant.correction_anchor_coefficients,
+                max_relative_delta_norm=self.variant.correction_max_relative_delta_norm,
+            )
         route = self.ops.route(layer_idx, router_input.reshape(-1, self.ops.hidden_size))
         probabilities = route.logits.float().softmax(dim=-1)
         if self.variant.expert_contribution == "zero":
@@ -366,7 +402,12 @@ class QwenPseudoEmbeddingProbe:
             )
             executed_route = None
         if moe_residual_delta is not None:
-            contribution = _linear_velocity_norm_match(contribution, moe_residual_delta)
+            contribution = _linear_velocity_norm_match(
+                contribution,
+                moe_residual_delta,
+                coefficients=self.variant.correction_anchor_coefficients,
+                max_relative_delta_norm=self.variant.correction_max_relative_delta_norm,
+            )
         return (
             post_attention + contribution,
             route,
@@ -852,8 +893,29 @@ class QwenPseudoEmbeddingProbe:
         if hidden_correction or residual_correction:
             if not correction_history_source:
                 raise ValueError("state correction requires a policy-local history source")
+            if self.variant.attention != "causal":
+                raise ValueError("state correction requires one causal pseudo sequence")
         elif correction_history_source is not None:
             raise ValueError("correction history source requires an enabled correction")
+        correction_coefficients = (
+            self.variant.correction_anchor_coefficients
+            if self.variant.correction_anchor_coefficients is not None
+            else tuple(float(index) for index in range(1, len(self.anchors) + 1))
+        )
+        if hidden_correction or residual_correction:
+            if len(correction_coefficients) != len(self.anchors) or not all(
+                value >= 0 and bool(torch.isfinite(torch.tensor(value)))
+                for value in correction_coefficients
+            ):
+                raise ValueError("state correction coefficients must be finite and match anchors")
+            cap = self.variant.correction_max_relative_delta_norm
+            if cap is not None and (cap <= 0 or not bool(torch.isfinite(torch.tensor(cap)))):
+                raise ValueError("state correction norm cap must be finite and positive")
+        elif (
+            self.variant.correction_anchor_coefficients is not None
+            or self.variant.correction_max_relative_delta_norm is not None
+        ):
+            raise ValueError("state correction schedule requires an enabled correction")
         router_input_deltas = (
             recent_router_inputs[1] - recent_router_inputs[0]
             if recent_router_inputs is not None
@@ -1106,7 +1168,17 @@ class QwenPseudoEmbeddingProbe:
                 ),
                 "correction_history_finite": True,
                 "anchor_correction_coefficients": (
-                    list(range(1, len(self.anchors) + 1))
+                    list(correction_coefficients)
+                    if hidden_correction or residual_correction
+                    else None
+                ),
+                "anchor_one_correction_protected": (
+                    correction_coefficients[0] == 0
+                    if hidden_correction or residual_correction
+                    else None
+                ),
+                "correction_max_relative_delta_norm": (
+                    self.variant.correction_max_relative_delta_norm
                     if hidden_correction or residual_correction
                     else None
                 ),

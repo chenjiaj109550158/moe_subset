@@ -96,6 +96,13 @@ def test_all_frozen_candidate_formulas_return_deterministic_top32() -> None:
     assert history_only == tuple(range(8, 40))
     sampled_core = candidate_subsets(result, history, "sampled_top8_core_plus_history_fill")[0]
     assert set(range(8)) <= set(sampled_core)
+    protected_core = candidate_subsets(
+        result,
+        history,
+        "anchor_one_top8_plus_later_corrected_utility_fill",
+    )[0]
+    assert set(range(8)) <= set(protected_core)
+    assert 39 not in protected_core
 
 
 def test_frozen_policy_sets_have_four_residuals_and_eight_candidates() -> None:

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from pseudoroute.benchmark.pseudo_one_forward_protected_anchor import DAMPED, SPECS, UNDAMPED
+
 CONFIG = Path("configs/analysis/pseudo_one_forward_protected_anchor_v2.yaml")
 SAMPLES = Path("configs/analysis/pseudo_one_forward_protected_anchor_v2_samples.json")
 
@@ -42,3 +44,18 @@ def test_protected_anchor_protocol_is_frozen_before_results() -> None:
 def test_protected_anchor_protocol_hashes_are_deterministic() -> None:
     assert _sha256(CONFIG) == "5bac51be6be2ab90aed563eb9208ce23afa772c9b109e9fa1bf66ee319bb81ee"
     assert _sha256(SAMPLES) == "d37ff792acb6cb0d2fe0158040f7e3db8d3555783492c46ad4349362ada302ea"
+
+
+def test_protected_anchor_runner_matches_frozen_variants() -> None:
+    assert len(SPECS) == 5
+    assert DAMPED == tuple(index / 8 for index in range(8))
+    assert UNDAMPED == tuple(float(index) for index in range(8))
+    assert all(spec.coefficients[0] == 0 for spec in SPECS)
+    assert [spec.max_relative_delta_norm for spec in SPECS] == [
+        None,
+        None,
+        None,
+        0.25,
+        0.25,
+    ]
+    assert SPECS[-1].selection == "anchor_one_top8_plus_later_corrected_utility_fill"
