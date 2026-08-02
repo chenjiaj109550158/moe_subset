@@ -6,6 +6,14 @@ from pathlib import Path
 
 import yaml
 
+from pseudoroute.benchmark.pseudo_one_forward_context_continuation import (
+    CONFIG_SHA256 as RUNNER_CONFIG_SHA256,
+)
+from pseudoroute.benchmark.pseudo_one_forward_context_continuation import (
+    SAMPLES_SHA256 as RUNNER_SAMPLES_SHA256,
+)
+from pseudoroute.benchmark.pseudo_one_forward_context_continuation import SPECS
+
 ANALYSIS_ID = "pseudo_one_forward_context_continuation_v1"
 CONFIG = Path(f"configs/analysis/{ANALYSIS_ID}.yaml")
 SAMPLES = Path(f"configs/analysis/{ANALYSIS_ID}_samples.json")
@@ -20,6 +28,8 @@ def _sha256(path: Path) -> str:
 def test_context_continuation_protocol_fingerprints_and_scope() -> None:
     assert _sha256(CONFIG) == CONFIG_SHA256
     assert _sha256(SAMPLES) == SAMPLES_SHA256
+    assert RUNNER_CONFIG_SHA256 == CONFIG_SHA256
+    assert RUNNER_SAMPLES_SHA256 == SAMPLES_SHA256
     config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     samples = json.loads(SAMPLES.read_text(encoding="utf-8"))
 
@@ -38,6 +48,11 @@ def test_context_continuation_protocol_fingerprints_and_scope() -> None:
         "expert_contribution": "fresh_native_moe_residual",
     }
     assert [variant["key"] for variant in config["variants"]] == [
+        "longest_suffix_full_continuation",
+        "sampled_unigram_full_continuation",
+        "longest_suffix_partial_recent_fill",
+    ]
+    assert [spec.key for spec in SPECS] == [
         "longest_suffix_full_continuation",
         "sampled_unigram_full_continuation",
         "longest_suffix_partial_recent_fill",

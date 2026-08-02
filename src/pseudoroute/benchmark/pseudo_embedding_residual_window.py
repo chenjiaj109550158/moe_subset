@@ -22,6 +22,11 @@ from safetensors.torch import load_file, save_file
 from torch import Tensor, nn
 
 from pseudoroute.benchmark.config import AccuracySuiteConfig, load_accuracy_suite_config
+from pseudoroute.benchmark.context_continuation import (
+    ContextContinuationMode,
+    ContextContinuationPlan,
+    build_context_continuation,
+)
 from pseudoroute.benchmark.prefetch import (
     MoeOutputCaptureContext,
     NativeRouteCaptureContext,
@@ -111,6 +116,9 @@ ContentVariant = Literal[
     "self_expected_top8_causal",
     "self_top2_particle_probability_weighted",
     "self_top4_particle_probability_weighted",
+    "context_longest_suffix_full_causal",
+    "context_sampled_unigram_full_causal",
+    "context_longest_suffix_partial_causal",
 ]
 StateRetrievalMode = Literal[
     "none",
@@ -503,7 +511,7 @@ def _probe_for_spec(
         return None
     if spec.content is None or spec.residual is None:
         raise ValueError("pseudo policy spec is incomplete")
-    if spec.content.startswith(("recent", "exact")):
+    if spec.content.startswith(("recent", "exact", "context")):
         content: PseudoContent = "provided_sequence"
     elif spec.content.startswith("current"):
         content = "current_token"
@@ -575,7 +583,27 @@ def _anchor_ids(
         return recent_anchor_token_ids(boundary, prompt_tokens, source_tokens)
     if spec.content.startswith("exact_future"):
         return true_future_anchor_token_ids(boundary, source_tokens)
+    if spec.content.startswith("context_"):
+        mode = _context_continuation_mode(spec.content)
+        return build_context_continuation(
+            boundary,
+            prompt_tokens,
+            source_tokens,
+            mode,
+        ).anchor_token_ids
     raise ValueError(f"unknown content variant: {spec.content}")
+
+
+def _context_continuation_mode(content: str) -> ContextContinuationMode:
+    mapping: dict[str, ContextContinuationMode] = {
+        "context_longest_suffix_full_causal": "longest_suffix_full_continuation",
+        "context_sampled_unigram_full_causal": "sampled_unigram_full_continuation",
+        "context_longest_suffix_partial_causal": "longest_suffix_partial_recent_fill",
+    }
+    try:
+        return mapping[content]
+    except KeyError as error:
+        raise ValueError(f"unknown context-continuation content: {content}") from error
 
 
 def _natural_lookahead(
@@ -794,6 +822,18 @@ def run_policy_sample(
             "midlayer self-conditioning requires recent causal native execution without "
             "correction or retrieval"
         )
+    continuation_enabled = bool(spec.content and spec.content.startswith("context_"))
+    if continuation_enabled and (
+        not shadow_expert_execution
+        or hidden_state_correction != "none"
+        or residual_correction != "none"
+        or retrieval_enabled
+        or midlayer_enabled
+    ):
+        raise ValueError(
+            "context continuation requires causal native execution without correction, "
+            "retrieval, or midlayer refresh"
+        )
     device = inputs["input_ids"].device
     prompt_rng = _rng_snapshot(device)
     with (
@@ -903,7 +943,18 @@ def run_policy_sample(
                 or spec.content is None
             ):
                 raise AssertionError("pseudo policy construction failed")
-            anchor_ids = _anchor_ids(spec, boundary, prompt_tokens, source_tokens)
+            continuation_plan: ContextContinuationPlan | None = None
+            anchor_ids: tuple[int, ...] | None
+            if continuation_enabled:
+                continuation_plan = build_context_continuation(
+                    boundary,
+                    prompt_tokens,
+                    source_tokens,
+                    _context_continuation_mode(spec.content),
+                )
+                anchor_ids = continuation_plan.anchor_token_ids
+            else:
+                anchor_ids = _anchor_ids(spec, boundary, prompt_tokens, source_tokens)
             retrieval: TokenAlignedStateRetrieval | None = None
             if retrieval_enabled:
                 if anchor_ids is None:
@@ -1036,6 +1087,9 @@ def run_policy_sample(
                     "retrieval_state_bank_policy_local": retrieval is not None
                     if retrieval_enabled
                     else None,
+                    "context_continuation": (
+                        asdict(continuation_plan) if continuation_plan is not None else None
+                    ),
                 }
             )
             pseudo_logits.append(
@@ -1197,6 +1251,7 @@ def run_policy_sample(
         "midlayer_self_conditioning": midlayer_self_conditioning,
         "midlayer_refresh_after_layer": midlayer_refresh_after_layer,
         "midlayer_max_relative_embedding_delta_norm": (midlayer_max_relative_embedding_delta_norm),
+        "context_continuation_enabled": continuation_enabled,
         "final_state_history_tokens": len(state_history_token_ids),
         "source_v17_row_sha256": sha256_json(source),
         "source_token_ids_sha256": sha256_json(source_tokens),
