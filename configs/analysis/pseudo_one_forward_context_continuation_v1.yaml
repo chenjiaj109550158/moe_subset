@@ -1,0 +1,160 @@
+schema_version: 1
+analysis_id: pseudo_one_forward_context_continuation_v1
+status: protocol_frozen_before_model_execution
+artifact_root: artifacts/pseudo_one_forward_context_continuation_v1
+protocol_document: docs/pseudo_one_forward_context_continuation_v1.md
+
+source:
+  baseline_analysis_id: pseudo_one_forward_state_correction_v1
+  baseline_config: configs/analysis/pseudo_one_forward_state_correction_v1.yaml
+  baseline_config_sha256: 7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44
+  baseline_sample_manifest: configs/analysis/pseudo_one_forward_state_correction_v1_samples.json
+  baseline_sample_manifest_sha256: 350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c
+  baseline_artifact_root: artifacts/pseudo_one_forward_state_correction_v1
+  baseline_artifact_manifest_sha256: b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21
+  reference_policy: recent_sequence_causal_uncorrected
+  preceding_analysis_id: pseudo_one_forward_midlayer_self_conditioning_v1
+  preceding_artifact_root: artifacts/pseudo_one_forward_midlayer_self_conditioning_v1
+  preceding_artifact_manifest_sha256: f5098b420819830c12ca8cd7613baf6a784314b70477b3ea02a720d4a966aa5c
+
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+
+dataset:
+  key: gsm8k
+  source_suite: speculating_experts_accuracy_v17
+  split: test
+  new_rows_or_traces: false
+
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  resident_fraction: 0.25
+  route_token_cap: 64
+  attention: causal
+  subset_selection: first_four_anchor_core_plus_history_fill
+  boundary_zero_expert_access: full_native_top8
+  later_expert_access: current_policy_previous_realized_layer_local_b32_subset
+  expert_contribution: fresh_native_moe_residual
+
+context_continuation:
+  known_context:
+    order: prompt_then_current_policy_already_realized_then_sampled_next
+    includes_sampled_next: true
+    excludes_future_true_tokens_after_sampled_next: true
+  match:
+    comparison: exact_token_id
+    current_query: longest_suffix_ending_at_sampled_next
+    earlier_match_must_not_overlap_current_query: true
+    tie_break: most_recent_match_start
+    maximum_match_length: all_available_known_context
+  copied_content:
+    anchor_one: sampled_next_token
+    target_anchors_one_based: [2, 3, 4, 5, 6, 7, 8]
+    copied_indices_must_precede_known_context_length: true
+  fallback:
+    content: recent_sequence_causal
+    fitted_threshold: null
+
+variants:
+  - key: longest_suffix_full_continuation
+    match_rule: longest_suffix
+    required_copied_tokens: 7
+    partial_copy: false
+    fallback: recent_sequence_causal
+  - key: sampled_unigram_full_continuation
+    match_rule: sampled_token_unigram
+    required_copied_tokens: 7
+    partial_copy: false
+    fallback: recent_sequence_causal
+  - key: longest_suffix_partial_recent_fill
+    match_rule: longest_suffix
+    required_copied_tokens: 1
+    partial_copy: true
+    remaining_anchor_fill: recent_sequence_same_anchor_index
+    fallback: recent_sequence_causal
+
+information_boundary:
+  allowed:
+    - sampled_next_token
+    - prompt_token_ids
+    - current_policy_already_realized_token_ids
+    - current_policy_production_cache_read_only_copy_on_write
+    - current_policy_previous_realized_layer_local_b32_subset
+    - native_model_parameters
+  forbidden:
+    - future_true_tokens_after_sampled_next
+    - vanilla_future_trajectory
+    - benchmark_answer
+    - correctness
+    - task_accuracy
+    - learned_or_fitted_parameters
+    - offline_ngram_or_continuation_tables
+    - offline_expert_priors
+    - offline_route_transition_tables
+    - default_vector_values
+    - retrieved_history_hidden_states
+
+execution:
+  sample_manifest: configs/analysis/pseudo_one_forward_context_continuation_v1_samples.json
+  shard_count: 2
+  maximum_workers_per_physical_gpu: 1
+  atomic_json_safetensors_pairs: true
+  checksum_resume: true
+  retain_failed_markers: true
+  network_downloads: false
+
+audits:
+  require_production_cache_signature_unchanged: true
+  require_production_rng_unchanged: true
+  require_shadow_cache_discarded: true
+  require_one_causal_forward_per_boundary: true
+  expected_attention_calls_per_boundary: 48
+  expected_attention_queries_per_boundary: 384
+  expected_router_calls_per_boundary: 48
+  expected_expert_calls_per_boundary: 48
+  expected_lm_head_calls_per_boundary: 0
+  require_anchor_one_is_sampled_next: true
+  require_copied_indices_in_known_context: true
+  require_no_future_token_access: true
+  require_deterministic_tie_break: true
+
+analysis:
+  ranking_uses_accuracy_or_correctness: false
+  primary_metrics: [mean_selected_mass, mean_route_hit]
+  secondary_metrics:
+    - continuation_coverage
+    - copied_anchor_fraction
+    - matched_suffix_length
+    - estimated_transfer_reduction
+    - mean_probe_latency_seconds
+    - mean_content_planning_latency_seconds
+  bootstrap_samples: 10000
+  bootstrap_seed: 20260802
+  route_signal_minimum_absolute_improvement_over_uncorrected: 0.02
+  maximum_anchor_one_absolute_regression: 0.005
+  minimum_estimated_transfer_reduction: 0.30
+  maximum_mean_probe_latency_seconds: 0.50
+  held_out_route_authorized: false
+  actual_accuracy_authorized: false
+  learned_predictor_training: false
+
+reporting:
+  route_kind: teacher_forced_current_policy_hard_subset_state
+  continuation_source: current_policy_known_token_context_only
+  transfer_kind: simulated
+  probe_and_content_planning_latency: measured
+  task_accuracy: not_measured
+  runtime_speedup: not_measured
