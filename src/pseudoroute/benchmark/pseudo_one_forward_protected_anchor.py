@@ -374,8 +374,9 @@ def _router_sensitivity(
         baseline_energy = 0.0
         overlap = 0
         slots = 0
-        anchor_one_exact = 0
-        anchor_one_slots = 0
+        all_boundaries_anchor_one_exact = 0
+        boundary_zero_anchor_one_exact = 0
+        compared_sample_rows = 0
         for row in rows:
             candidate = load_file(str(_tensor_path(row)))["pseudo_router_logits"].double()
             reference = load_file(str(_tensor_path(baseline[str(row["sample_id"])])))[
@@ -391,15 +392,21 @@ def _router_sensitivity(
                 (candidate_ids.unsqueeze(-1) == reference_ids.unsqueeze(-2)).any(dim=-1).sum()
             )
             slots += candidate_ids.numel()
-            anchor_one_exact += int(torch.equal(candidate[:, :, 0], reference[:, :, 0]))
-            anchor_one_slots += 1
+            all_boundaries_anchor_one_exact += int(
+                torch.equal(candidate[:, :, 0], reference[:, :, 0])
+            )
+            boundary_zero_anchor_one_exact += int(
+                torch.equal(candidate[0, :, 0], reference[0, :, 0])
+            )
+            compared_sample_rows += 1
         output[policy] = {
             "normalized_centered_logit_rms": (
                 (squared / baseline_energy) ** 0.5 if baseline_energy else 0.0
             ),
             "pseudo_top8_overlap_with_uncorrected": overlap / slots,
-            "anchor_one_logits_exact_sample_rows": anchor_one_exact,
-            "anchor_one_logits_compared_sample_rows": anchor_one_slots,
+            "boundary_zero_anchor_one_logits_exact_sample_rows": (boundary_zero_anchor_one_exact),
+            "all_boundaries_anchor_one_logits_exact_sample_rows": (all_boundaries_anchor_one_exact),
+            "anchor_one_logits_compared_sample_rows": compared_sample_rows,
         }
     return {"reference": SOURCE_SPECS[0].key, "comparisons": output}
 
@@ -651,6 +658,12 @@ def _report() -> str:
         )
     lines.extend(
         [
+            "",
+            "The best protected+damped residual candidate is positive on all four "
+            "samples, but recovers only 0.003123 route hit and 0.002240 selected "
+            "mass—far below the frozen +0.02 signal. Boundary-zero anchor-one logits "
+            "remain exact under the shared production context; later anchor-one logits "
+            "may differ because each hard policy realizes a different context.",
             "",
             f"Development-only decision: **{decision['decision']}**. Selected route "
             f"signal: `{decision['selected_route_signal_variant']}`.",
