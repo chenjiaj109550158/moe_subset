@@ -122,6 +122,19 @@ held-out route or accuracy execution. See the
 [token-aligned protocol](docs/pseudo_one_forward_token_aligned_retrieval_v1.md)
 and [report](artifacts/pseudo_one_forward_token_aligned_retrieval_v1/report.md).
 
+The subsequent frozen one-forward test refreshed anchors 2–8 once at Qwen's
+midpoint. After layers 0–23, native final norm and LM head predicted a shifted
+token for each preceding anchor; its native embedding delta was added to the
+next anchor before layers 24–47. Anchor one remained bitwise unchanged, and the
+same forward still produced fresh MoE residuals under the preceding realized
+B=32 subset. Greedy and probability-weighted top-8 shifts improved the
+uncorrected 0.700267/0.714061 route hit/selected mass by only about
++0.00025/+0.00026. The 25% cap never activated because every raw shift was
+below 9.35% of the midpoint hidden norm. The frozen +0.02 signal failed, so this
+four-row development experiment is **STOP/PIVOT** with no held-out route or
+accuracy run. See the [mid-layer protocol](docs/pseudo_one_forward_midlayer_self_conditioning_v1.md)
+and [report](artifacts/pseudo_one_forward_midlayer_self_conditioning_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

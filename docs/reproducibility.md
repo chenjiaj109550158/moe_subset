@@ -393,3 +393,45 @@ policy measurements, probe/retrieval latency and memory are measured, and
 transfer is simulated. Held-out route, task accuracy, free generation, exact-
 token identity, NLL/perplexity, closed-loop runtime, and speedup were not
 measured.
+
+## Mid-layer shifted self-conditioning v1
+
+The immutable config and sample manifest are
+`configs/analysis/pseudo_one_forward_midlayer_self_conditioning_v1.yaml` and
+`configs/analysis/pseudo_one_forward_midlayer_self_conditioning_v1_samples.json`,
+with SHA-256 values
+`75f4c028871632139a3f68f290726cb4834931a3a89cd2cc16883e050ebbb67b` and
+`8314356459cbf1bf36bfafffecc0a0a2bb7fd750c22b85ef50cb921ff4b8f535`.
+They were committed before implementation and new model output. Reproduce the
+two offline shards and aggregate/finalize/validate with:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_midlayer_self_conditioning run --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_midlayer_self_conditioning run --gpu 1 --shard-index 1 --shard-count 2
+python -m pseudoroute.benchmark.pseudo_one_forward_midlayer_self_conditioning aggregate
+python -m pseudoroute.benchmark.pseudo_one_forward_midlayer_self_conditioning finalize
+python -m pseudoroute.benchmark.pseudo_one_forward_midlayer_self_conditioning validate
+```
+
+Each JSON+safetensors pair is atomic and checksum-resumable. The final root
+validates 12 candidate pairs, four checksum-pinned uncorrected references, 44
+manifest artifacts, and zero failure markers. The authoritative manifest
+SHA-256 is
+`ce8ff75e5c087d5c724b45075b06d1e0f2aedc0cd7007a9087fc5f27ca202cb2`.
+
+Every candidate uses one causal H=8 forward, native fresh MoE residuals, full
+top-8 access at boundary zero, and the current policy's previous realized B=32
+subset later. After layer 23, one seven-query native LM-head call produces a
+greedy or top-8 expected token embedding for the next anchor. Only anchors 2–8
+are shifted, per-anchor L2 norm is restored, and the shadow state continues
+through layers 24–47. No future true token, answer, accuracy, learned value,
+offline prior, route table, default-vector value, or retrieved state is used.
+
+All cache/RNG/shadow/information and exact call-count audits pass. The result is
+`STOP/PIVOT`: the best hit/mass gains were only +0.000264/+0.000259 versus the
+frozen +0.02 signal. Metrics are teacher-forced current-policy route evidence;
+probe and LM-head costs are measured and transfer is simulated. Held-out route,
+task accuracy, free generation, exact-token identity, NLL/perplexity, closed-
+loop runtime, and speedup were not measured.

@@ -4,9 +4,10 @@
 
 Qwen3-30B-A3B/GSM8K pseudo-embedding focused pilot v1 and its separately
 versioned calibration-free mechanism and one-forward state-correction analyses
-— including protected-anchor v2 and token-aligned state retrieval v1 — complete
-with scoped **STOP/PIVOT** decisions. Earlier M11, trained-model, and subset-
-oracle artifacts remain complete and unchanged.
+— including protected-anchor v2, token-aligned state retrieval v1, and mid-layer
+shifted self-conditioning v1 — complete with scoped **STOP/PIVOT** decisions.
+Earlier M11, trained-model, and subset-oracle artifacts remain complete and
+unchanged.
 
 ## Qwen/GSM8K pseudo-embedding focused pilot
 
@@ -225,6 +226,43 @@ free-generation, exact-token, closed-loop runtime, or speedup claim is made.
 Artifact-manifest SHA-256:
 `512c0670002ceee7b201c7f13b948e63766225887a5b778bceae4924e19ed893`.
 
+## Mid-layer shifted self-conditioning v1
+
+`pseudo_one_forward_midlayer_self_conditioning_v1` froze config SHA-256
+`75f4c028871632139a3f68f290726cb4834931a3a89cd2cc16883e050ebbb67b`,
+sample SHA-256
+`8314356459cbf1bf36bfafffecc0a0a2bb7fd750c22b85ef50cb921ff4b8f535`,
+the same four development IDs, three variants, call counts, and gates before
+implementation or model output.
+
+- Every boundary performs one causal H=8 traversal. After zero-based layer 23,
+  native final norm and LM head predict tokens from anchors 1–7; their input-
+  embedding deltas shift anchors 2–8 once before layers 24–47. Anchor one is
+  protected and remains bitwise unchanged at the refresh.
+- Greedy shifting scored 0.700521 route hit and 0.714245 selected mass versus
+  the checksum-pinned uncorrected 0.700267/0.714061, gains of only
+  +0.000254/+0.000183. Expected-top-8 embeddings ranked first at
+  0.700531/0.714320, gains of +0.000264/+0.000259; both paired 95% intervals
+  include zero for selected mass.
+- The prediction changed all seven shifted top-1 tokens, but the expected-top-8
+  embedding delta averaged only 0.0470 of midpoint hidden norm. Greedy averaged
+  0.0542 and never exceeded 0.0935, so the fixed 25% cap was inactive and the
+  capped/uncapped greedy route tensors were identical.
+- Post-refresh layers gained only about +0.00053 route hit and +0.00052 selected
+  mass over the uncorrected late-layer stratum. This is real but far below the
+  frozen +0.02 overall signal, while simulated transfer reduction remained
+  about 0.4667 and measured probe latency was 0.3027–0.3183 seconds/boundary.
+- All 12 atomic JSON+safetensors candidate pairs, four source references, 44
+  manifest artifacts, checksum resume, and cache/RNG/shadow/information/call-
+  count audits validate with zero failure markers.
+
+The development-only decision is **STOP/PIVOT**. Route metrics are teacher-
+forced on each current hard policy's own state; probe and LM-head costs are
+measured, transfer is simulated, and held-out route, task accuracy, free
+generation, exact-token identity, NLL/perplexity, closed-loop runtime, and
+speedup were not measured. Artifact-manifest SHA-256:
+`ce8ff75e5c087d5c724b45075b06d1e0f2aedc0cd7007a9087fc5f27ca202cb2`.
+
 ## Completed GPT-OSS/GSM8K hard scope
 
 `benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
@@ -313,13 +351,13 @@ closed-loop evaluation, and must not relabel this negative result.
 Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
-- `ruff format --check .`: PASS; 206 files already formatted.
+- `ruff format --check .`: PASS; 210 files already formatted.
 - `ruff check .`: PASS.
-- `mypy src/pseudoroute`: PASS; no issues in 108 source files.
+- `mypy src/pseudoroute`: PASS; no issues in 109 source files.
 - Focused residual-window/Qwen/shadow tests: PASS; 28 passed.
 - Particle-dispatch focused tests: PASS; 12 passed.
 - Token-aligned retrieval protocol/native tests: PASS; 7 passed.
-- `python -m pytest -ra`: PASS; 210 passed, 3 expected skips in 15.60s.
+- `python -m pytest -ra`: PASS; 215 passed, 3 expected skips in 15.98s.
 - Five calibration-free artifact validators: PASS; manifest counts
   11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
   terminal `complete/report_v1` `STOP/PIVOT`.
@@ -375,9 +413,10 @@ None.
 The original focused pseudo-embedding v1 stage, calibration-free prompt-route
 follow-up, previous-window residual-bank experiment, and one-forward state
 experiments, including protected-anchor v2 and token-aligned retrieval v1,
-remain terminal at **STOP/PIVOT**. Token identity alone is not a useful state
-correction at this point. The executed-pseudo composition analysis is terminal at a route-
-only **NARROW**: preserve its positive held-out route evidence, but do not run
+and mid-layer shifted self-conditioning v1 remain terminal at **STOP/PIVOT**.
+Token identity and a single midpoint embedding shift are not useful enough at
+this point. The executed-pseudo composition analysis is terminal at a route-only
+**NARROW**: preserve its positive held-out route evidence, but do not run
 actual accuracy from that analysis protocol because held-out oracle-gap recovery
 and a paired allowed-drop rule were not frozen there. A generation stage
 requires a new committed execution amendment using fixed existing IDs and gates

@@ -936,3 +936,64 @@ new information source beyond raw token identity—such as a separately frozen
 analytic attention/context transform—before any new rows. Held-out, accuracy,
 expanded samples, learned parameters, or offline calibration still require
 explicit authorization.
+
+## D-20260802-043 — Stop midpoint shifted self-conditioning at development
+
+**Status:** accepted
+
+**Context:** The user authorized one more calibration-free, single-forward
+attempt after token-aligned retrieval failed. Before implementation or model
+output, the project committed a four-row Qwen/GSM8K protocol. Each boundary
+performs one native causal H=8 traversal with fresh MoE residuals under full
+top-8 access initially and the current policy's preceding realized B=32 subset
+thereafter. After zero-based layer 23, native final norm and LM head predict a
+shifted content token from anchors 1–7. The native input-embedding difference
+between predicted and initial content shifts anchors 2–8 once; anchor one is
+bitwise protected. Greedy, expected-top-8, and greedy-with-25%-cap variants were
+fixed in advance.
+
+The checksum-pinned uncorrected reference scored 0.700267 route hit and 0.714061
+selected mass. Greedy shifting scored 0.700521/0.714245, deltas
++0.000254/+0.000183. Expected-top-8 ranked first at 0.700531/0.714320, deltas
++0.000264/+0.000259, with paired 95% intervals
+[-0.000183, 0.000712]/[-0.000265, 0.000714]. The shift changed all seven
+predicted top-1 tokens, but expected-top-8 embedding deltas averaged only 0.0470
+of midpoint hidden norm. Greedy deltas averaged 0.0542 and peaked at 0.0935, so
+the frozen 25% cap never activated and capped/uncapped greedy route tensors were
+identical.
+
+**Decision:** Record **STOP/PIVOT** and do not run held-out route evaluation or
+task accuracy. A single midpoint token-embedding shift has a measurable but
+negligible router effect and misses both frozen +0.02 route-signal requirements
+by roughly two orders of magnitude. Preserve the uncorrected one-forward method
+as the cheap reference and the earlier fully autoregressive self-greedy rollout
+as the stronger, more expensive route-only evidence.
+
+**Alternatives considered:** Tune refresh layer or shift scale on these rows,
+apply multiple refreshes, replace norm matching after seeing the results,
+promote a positive point estimate whose interval includes zero, or run accuracy
+despite the failed frozen route gate.
+
+**Consequences:** All cache/RNG/shadow/information audits pass, including
+bitwise preservation of anchor one and exactly one causal traversal, 48 native
+attention/router/expert calls, and one seven-query LM-head refresh per boundary.
+Measured mean probe latency was 0.3027–0.3183 seconds and simulated transfer
+reduction was 0.4666–0.4667. Twelve atomic candidate pairs, four source
+references, 44 manifest artifacts, checksum resume, and zero failure markers
+validate. Manifest SHA-256 is
+`ce8ff75e5c087d5c724b45075b06d1e0f2aedc0cd7007a9087fc5f27ca202cb2`.
+These are teacher-forced current-policy route measurements, not held-out
+validation, task accuracy, free generation, exact-token identity, runtime, or
+speedup.
+
+**Experiments affected:** Only
+`pseudo_one_forward_midlayer_self_conditioning_v1`. Earlier one-forward
+`STOP/PIVOT`, executed-pseudo route `NARROW`, focused pseudo `STOP/PIVOT`, GPT
+hard-only `NARROW`, trained-model `STOP/PIVOT`, and M11 conclusions remain
+unchanged.
+
+**Migration required:** Preserve these development rows and do not tune the
+midpoint or shift scale on them. A materially different calibration-free
+information transform must be frozen before new output. Held-out, accuracy,
+expanded rows, learned parameters, or offline calibration still require
+explicit authorization.
