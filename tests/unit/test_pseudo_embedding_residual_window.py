@@ -109,6 +109,13 @@ def test_frozen_policy_sets_have_four_residuals_and_eight_candidates() -> None:
     }
 
 
+def test_autoregressive_content_dispatches_to_causal_attention() -> None:
+    dispatch = residual_window._attention_for_spec_content
+    assert dispatch("self_top2_particle_probability_weighted", "self_topk_particles") == "causal"
+    assert dispatch("self_greedy_causal", "self_greedy") == "causal"
+    assert dispatch("sampled_repeat_independent", "sampled_next_token") == "independent"
+
+
 def _sample_row(policy: str, hit: int, mass: float, latency: float) -> dict[str, object]:
     return {
         "sample_id": "test-0",

@@ -339,6 +339,17 @@ def _static_subsets(config: dict[str, Any]) -> dict[int, tuple[int, ...]]:
     }
 
 
+def _attention_for_spec_content(
+    spec_content: str,
+    content: PseudoContent,
+) -> PseudoAttention:
+    return (
+        "causal"
+        if spec_content.endswith("causal") or content.startswith("self_")
+        else "independent"
+    )
+
+
 def _probe_for_spec(
     model: nn.Module,
     ops: Qwen3MoePrefetchOps,
@@ -366,7 +377,7 @@ def _probe_for_spec(
         content = "self_topk_particles"
     else:
         content = "sampled_next_token"
-    attention: PseudoAttention = "causal" if spec.content.endswith("causal") else "independent"
+    attention = _attention_for_spec_content(spec.content, content)
     contribution: ExpertContribution = (
         "native_expert_execution"
         if shadow_expert_execution
