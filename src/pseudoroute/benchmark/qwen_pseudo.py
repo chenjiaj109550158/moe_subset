@@ -29,7 +29,11 @@ PseudoContent = Literal[
     "provided_sequence",
 ]
 PseudoAttention = Literal["independent", "causal"]
-ExpertContribution = Literal["default_vector_selected_topk_mixture", "zero"]
+ExpertContribution = Literal[
+    "default_vector_selected_topk_mixture",
+    "provided_residual",
+    "zero",
+]
 
 
 @dataclass(frozen=True)
@@ -46,6 +50,7 @@ class QwenProbeCost:
     temporary_cuda_bytes_measured: int
     output_tensor_bytes: int
     persistent_default_vector_bytes: int
+    residual_bank_input_bytes: int
     attention_queries: int
     attention_calls: int
     router_calls: int
@@ -107,7 +112,7 @@ class QwenPseudoEmbeddingProbe:
         self,
         model: nn.Module,
         ops: Qwen3MoePrefetchOps,
-        defaults: DefaultVectorArtifact,
+        defaults: DefaultVectorArtifact | None,
         variant: QwenPseudoVariant,
         *,
         anchors: tuple[int, ...] = tuple(range(1, 9)),
@@ -119,14 +124,17 @@ class QwenPseudoEmbeddingProbe:
             raise ValueError("Qwen pseudo anchors must be contiguous from one")
         if budget < ops.top_k or budget > ops.num_experts:
             raise ValueError("Qwen pseudo budget is outside native expert bounds")
-        if tuple(defaults.mean.shape) != (
-            ops.num_layers,
-            ops.num_experts,
-            ops.hidden_size,
-        ):
-            raise ValueError("Qwen default-vector shape mismatch")
-        if tuple(defaults.count.shape) != (ops.num_layers, ops.num_experts):
-            raise ValueError("Qwen default-vector count shape mismatch")
+        if variant.expert_contribution == "default_vector_selected_topk_mixture":
+            if defaults is None:
+                raise ValueError("default-vector contribution requires a default artifact")
+            if tuple(defaults.mean.shape) != (
+                ops.num_layers,
+                ops.num_experts,
+                ops.hidden_size,
+            ):
+                raise ValueError("Qwen default-vector shape mismatch")
+            if tuple(defaults.count.shape) != (ops.num_layers, ops.num_experts):
+                raise ValueError("Qwen default-vector count shape mismatch")
         if variant.content == "current_token" and variant.attention == "causal":
             raise ValueError("the frozen pilot has no current-token causal variant")
         self.model = model
@@ -135,10 +143,14 @@ class QwenPseudoEmbeddingProbe:
         self.anchors = anchors
         self.budget = budget
         parameter = next(model.parameters())
-        self.defaults = defaults.mean.to(device=parameter.device, dtype=parameter.dtype)
-        self.default_counts = defaults.count
-        self.default_fingerprint = defaults.fingerprint
-        self.default_definition = defaults.definition
+        self.defaults = (
+            defaults.mean.to(device=parameter.device, dtype=parameter.dtype)
+            if defaults is not None
+            else None
+        )
+        self.default_counts = defaults.count if defaults is not None else None
+        self.default_fingerprint = defaults.fingerprint if defaults is not None else None
+        self.default_definition = defaults.definition if defaults is not None else None
 
     @property
     def _base(self) -> Any:
@@ -209,6 +221,7 @@ class QwenPseudoEmbeddingProbe:
         shadow_cache: Cache,
         attention_mask: Any,
         position_embeddings: tuple[Tensor, Tensor],
+        provided_residual: Tensor | None,
     ) -> tuple[Tensor, NativeRoute, Tensor]:
         layer = cast(Any, self.ops.layers[layer_idx])
         residual = hidden
@@ -225,12 +238,21 @@ class QwenPseudoEmbeddingProbe:
         probabilities = route.logits.float().softmax(dim=-1)
         if self.variant.expert_contribution == "zero":
             contribution = torch.zeros_like(router_input)
-        else:
+        elif self.variant.expert_contribution == "default_vector_selected_topk_mixture":
+            if self.defaults is None:
+                raise AssertionError("default-vector tensor missing")
             selected_defaults = self.defaults[layer_idx][route.ids]
             contribution = (
                 (route.weights.unsqueeze(-1) * selected_defaults)
                 .sum(dim=1)
                 .reshape_as(router_input)
+            )
+        else:
+            if provided_residual is None or provided_residual.shape != router_input.shape:
+                raise RuntimeError("provided MoE residual does not match pseudo router input")
+            contribution = provided_residual.to(
+                device=router_input.device,
+                dtype=router_input.dtype,
             )
         return post_attention + contribution, route, probabilities
 
@@ -242,6 +264,7 @@ class QwenPseudoEmbeddingProbe:
         current_token_id: int,
         expected_embedding: Tensor | None,
         anchor_token_ids: tuple[int, ...] | None,
+        provided_residuals: Tensor | None,
     ) -> tuple[
         dict[int, Tensor],
         dict[int, Tensor],
@@ -276,6 +299,11 @@ class QwenPseudoEmbeddingProbe:
                     cast(Cache, caches[anchor_idx]),
                     mask,
                     position_embeddings,
+                    (
+                        provided_residuals[anchor_idx, layer_idx][None, None]
+                        if provided_residuals is not None
+                        else None
+                    ),
                 )
                 logits[layer_idx].append(route.logits[0].detach().float().cpu())
                 probabilities[layer_idx].append(full_probs[0].detach().cpu())
@@ -296,6 +324,7 @@ class QwenPseudoEmbeddingProbe:
         current_token_id: int,
         expected_embedding: Tensor | None,
         anchor_token_ids: tuple[int, ...] | None,
+        provided_residuals: Tensor | None,
     ) -> tuple[
         dict[int, Tensor],
         dict[int, Tensor],
@@ -326,6 +355,11 @@ class QwenPseudoEmbeddingProbe:
                 cast(Cache, cache),
                 attention_mask,
                 position_embeddings,
+                (
+                    provided_residuals[:, layer_idx][None]
+                    if provided_residuals is not None
+                    else None
+                ),
             )
             logits[layer_idx] = route.logits.detach().float().cpu()
             probabilities[layer_idx] = full_probs.detach().cpu()
@@ -342,6 +376,8 @@ class QwenPseudoEmbeddingProbe:
         next_token_logits: Tensor | None = None,
         expected_top_m: int = 8,
         anchor_token_ids: tuple[int, ...] | None = None,
+        provided_residuals: Tensor | None = None,
+        provided_residual_source: str | None = None,
     ) -> QwenPseudoProbeResult:
         """Predict one H-window subset without mutating production state or RNG."""
         device = next(self.model.parameters()).device
@@ -362,6 +398,20 @@ class QwenPseudoEmbeddingProbe:
                 raise ValueError("provided_sequence requires one token ID per pseudo anchor")
         elif anchor_token_ids is not None:
             raise ValueError("anchor_token_ids are only valid for provided_sequence")
+        expected_residual_shape = (
+            len(self.anchors),
+            self.ops.num_layers,
+            self.ops.hidden_size,
+        )
+        if self.variant.expert_contribution == "provided_residual":
+            if provided_residuals is None or tuple(provided_residuals.shape) != (
+                expected_residual_shape
+            ):
+                raise ValueError("provided_residual requires [anchors, layers, hidden] residuals")
+            if not provided_residual_source:
+                raise ValueError("provided_residual requires an information-source label")
+        elif provided_residuals is not None or provided_residual_source is not None:
+            raise ValueError("provided residuals are only valid for provided_residual")
         sync_count = 0
         allocated_before = 0
         if device.type == "cuda":
@@ -392,6 +442,7 @@ class QwenPseudoEmbeddingProbe:
                         current_token_id,
                         expected_embedding,
                         anchor_token_ids,
+                        provided_residuals,
                     )
                 else:
                     logits, probabilities, topk_ids, topk_weights = self._causal_rollout(
@@ -401,6 +452,7 @@ class QwenPseudoEmbeddingProbe:
                         current_token_id,
                         expected_embedding,
                         anchor_token_ids,
+                        provided_residuals,
                     )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -448,6 +500,13 @@ class QwenPseudoEmbeddingProbe:
                 output_tensor_bytes=output_bytes,
                 persistent_default_vector_bytes=(
                     self.defaults.numel() * self.defaults.element_size()
+                    if self.defaults is not None
+                    else 0
+                ),
+                residual_bank_input_bytes=(
+                    provided_residuals.numel() * provided_residuals.element_size()
+                    if provided_residuals is not None
+                    else 0
                 ),
                 attention_queries=self.ops.num_layers * len(self.anchors),
                 attention_calls=attention_calls,
@@ -462,10 +521,20 @@ class QwenPseudoEmbeddingProbe:
                     else (
                         "caller_supplied_anchor_token_ids_and_current_policy_production_cache"
                         if self.variant.content == "provided_sequence"
-                        else "sampled_next_token_and_current_policy_production_cache_only"
+                        else (
+                            "sampled_next_token_current_policy_production_cache_and_"
+                            "current_policy_previous_window_residuals"
+                            if provided_residuals is not None
+                            else "sampled_next_token_and_current_policy_production_cache_only"
+                        )
                     )
                 ),
                 "anchor_token_ids_supplied": anchor_token_ids is not None,
+                "provided_residual_bank": provided_residuals is not None,
+                "provided_residual_source": provided_residual_source,
+                "provided_residual_shape": (
+                    list(provided_residuals.shape) if provided_residuals is not None else None
+                ),
                 "expected_top_m": (
                     expected_top_m if self.variant.content == "expected_top_m" else None
                 ),
@@ -484,6 +553,10 @@ class QwenPseudoEmbeddingProbe:
                 "layer_scoped_expert_ids": True,
                 "default_definition": self.default_definition,
                 "default_fingerprint": self.default_fingerprint,
-                "unobserved_default_pairs": int((self.default_counts == 0).sum()),
+                "unobserved_default_pairs": (
+                    int((self.default_counts == 0).sum())
+                    if self.default_counts is not None
+                    else None
+                ),
             },
         )

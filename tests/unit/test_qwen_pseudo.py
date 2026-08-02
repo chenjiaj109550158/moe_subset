@@ -6,8 +6,12 @@ from transformers import Qwen3MoeConfig, Qwen3MoeForCausalLM
 
 from pseudoroute.benchmark.prefetch import (
     DefaultVectorArtifact,
+    MoeOutputCaptureContext,
     NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
+    SubsetExecutionContext,
+    moe_output_bank,
+    moe_router_input_bank,
 )
 from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
@@ -301,4 +305,179 @@ def test_provided_anchor_sequence_rejects_missing_or_misplaced_ids() -> None:
             sampled_next_token_id=4,
             current_token_id=3,
             anchor_token_ids=(4, 5),
+        )
+
+
+def test_native_moe_output_capture_is_exact_and_tail_ordered() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    mlp_inputs: dict[int, torch.Tensor] = {}
+
+    def capture_input(_module: object, inputs: tuple[object, ...], *, layer: int) -> None:
+        value = inputs[0]
+        assert isinstance(value, torch.Tensor)
+        mlp_inputs[layer] = value.detach().clone()
+
+    handles = [
+        ops.mlp(layer).register_forward_pre_hook(
+            lambda module, inputs, index=layer: capture_input(module, inputs, layer=index)
+        )
+        for layer in range(ops.num_layers)
+    ]
+    try:
+        with MoeOutputCaptureContext(ops, tail_tokens=2) as capture, torch.inference_mode():
+            model(input_ids=torch.tensor([[1, 2, 3, 4]]), return_dict=True)
+            records = capture.drain()
+    finally:
+        for handle in handles:
+            handle.remove()
+    bank = moe_output_bank(records, expected_layers=ops.num_layers)
+    router_inputs = moe_router_input_bank(records, expected_layers=ops.num_layers)
+    assert bank.shape == (2, 2, 32)
+    assert router_inputs.shape == bank.shape
+    for layer, record in enumerate(records):
+        hidden = mlp_inputs[layer]
+        flat = hidden.reshape(-1, ops.hidden_size)
+        with torch.inference_mode():
+            route = ops.route(layer, flat)
+            expected = ops.experts(layer, flat, route).reshape_as(hidden)[:, -2:]
+        assert torch.equal(record.value, expected)
+        assert torch.equal(bank[:, layer], expected[0])
+        assert torch.equal(record.router_input, hidden[:, -2:])
+        assert torch.equal(router_inputs[:, layer], hidden[0, -2:])
+
+
+def test_hard_subset_capture_is_the_policy_executed_moe_output() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    token = torch.tensor([[4]])
+    with NativeRouteCaptureContext(ops) as native_capture, torch.inference_mode():
+        model(input_ids=token, return_dict=True)
+        native = native_capture.drain()
+    allowed = {}
+    for record in native:
+        first_natural = int(record.natural.ids[0, 0])
+        allowed[record.layer] = tuple(
+            expert for expert in range(ops.num_experts) if expert != first_natural
+        )[: ops.top_k]
+    mlp_inputs: dict[int, torch.Tensor] = {}
+
+    def capture_input(_module: object, inputs: tuple[object, ...], *, layer: int) -> None:
+        value = inputs[0]
+        assert isinstance(value, torch.Tensor)
+        mlp_inputs[layer] = value.detach().clone()
+
+    handles = [
+        ops.mlp(layer).register_forward_pre_hook(
+            lambda module, inputs, index=layer: capture_input(module, inputs, layer=index)
+        )
+        for layer in range(ops.num_layers)
+    ]
+    try:
+        with (
+            SubsetExecutionContext(ops, "hard", allowed) as subset,
+            MoeOutputCaptureContext(ops) as output_capture,
+            torch.inference_mode(),
+        ):
+            model(input_ids=token, return_dict=True)
+            routes = subset.drain()
+            outputs = output_capture.drain()
+    finally:
+        for handle in handles:
+            handle.remove()
+    assert any(not torch.equal(record.natural.ids, record.executed.ids) for record in routes)
+    for layer, (route, output) in enumerate(zip(routes, outputs, strict=True)):
+        hidden = mlp_inputs[layer]
+        with torch.inference_mode():
+            expected = ops.experts(
+                layer,
+                hidden.reshape(-1, ops.hidden_size),
+                route.executed,
+            ).reshape_as(hidden)
+        assert torch.equal(output.value, expected)
+        assert set(route.executed.ids.reshape(-1).tolist()) <= set(allowed[layer])
+
+
+def test_provided_residual_probe_is_calibration_free_and_changes_later_router() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    rng = torch.random.get_rng_state().clone()
+    residuals = torch.zeros((2, 2, 32), dtype=next(model.parameters()).dtype)
+    residuals[:, 0] = torch.arange(32, dtype=residuals.dtype)[None] / 3
+    provided = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "sampled_repeat_position_residual",
+            "sampled_next_token",
+            "independent",
+            "provided_residual",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        cache,
+        sampled_next_token_id=4,
+        current_token_id=3,
+        provided_residuals=residuals,
+        provided_residual_source="current_policy_previous_window_position_aligned",
+    )
+    zero = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "sampled_repeat_zero",
+            "sampled_next_token",
+            "independent",
+            "zero",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(cache, sampled_next_token_id=4, current_token_id=3)
+    assert torch.equal(provided.raw_router_logits[0], zero.raw_router_logits[0])
+    assert not torch.equal(provided.raw_router_logits[1], zero.raw_router_logits[1])
+    assert provided.cost.persistent_default_vector_bytes == 0
+    assert provided.cost.residual_bank_input_bytes == residuals.numel() * residuals.element_size()
+    assert provided.audit["provided_residual_bank"] is True
+    assert provided.audit["default_fingerprint"] is None
+    assert provided.audit["production_cache_signature_unchanged"] is True
+    assert provided.audit["production_rng_unchanged"] is True
+    assert _cache_mutation_signature(cache) == signature
+    assert torch.equal(torch.random.get_rng_state(), rng)
+
+
+def test_provided_residual_probe_rejects_wrong_shape_or_missing_source() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    probe = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "sampled_repeat_position_residual",
+            "sampled_next_token",
+            "causal",
+            "provided_residual",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    )
+    with pytest.raises(ValueError, match="anchors, layers, hidden"):
+        probe.predict(
+            _prefill(model),
+            sampled_next_token_id=4,
+            current_token_id=3,
+            provided_residuals=torch.zeros((1, 2, 32)),
+            provided_residual_source="previous_window",
+        )
+    with pytest.raises(ValueError, match="information-source label"):
+        probe.predict(
+            _prefill(model),
+            sampled_next_token_id=4,
+            current_token_id=3,
+            provided_residuals=torch.zeros((2, 2, 32)),
         )

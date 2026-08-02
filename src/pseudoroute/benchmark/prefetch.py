@@ -36,6 +36,15 @@ class SubsetRouteRecord:
 
 
 @dataclass(frozen=True)
+class MoeOutputRecord:
+    """Exact routed-expert mixture returned by one native MLP call."""
+
+    layer: int
+    value: Tensor
+    router_input: Tensor
+
+
+@dataclass(frozen=True)
 class DefaultVectorArtifact:
     count: Tensor
     mean: Tensor
@@ -566,6 +575,97 @@ class NativeRouteCaptureContext(AbstractContextManager["NativeRouteCaptureContex
         for handle in self._handles:
             handle.remove()
         self._handles.clear()
+
+
+class MoeOutputCaptureContext(AbstractContextManager["MoeOutputCaptureContext"]):
+    """Capture exact MLP outputs without changing native or patched execution."""
+
+    def __init__(
+        self,
+        ops: PrefetchModelOps,
+        *,
+        tail_tokens: int | None = None,
+    ) -> None:
+        if tail_tokens is not None and tail_tokens < 1:
+            raise ValueError("MoE output capture tail must be positive")
+        self.ops = ops
+        self.tail_tokens = tail_tokens
+        self._records: list[MoeOutputRecord] = []
+        self._handles: list[torch.utils.hooks.RemovableHandle] = []
+
+    def _capture(self, layer: int, inputs: tuple[object, ...], output: object) -> None:
+        if not isinstance(output, Tensor) or output.ndim != 3:
+            raise RuntimeError("MoE output capture requires a [batch, tokens, hidden] tensor")
+        router_input = inputs[0] if inputs else None
+        if not isinstance(router_input, Tensor) or router_input.shape != output.shape:
+            raise RuntimeError("MoE output capture requires a shape-matched router input")
+        value = output
+        if self.tail_tokens is not None:
+            value = value[:, -self.tail_tokens :]
+            router_input = router_input[:, -self.tail_tokens :]
+        self._records.append(
+            MoeOutputRecord(
+                layer,
+                value.detach().clone(),
+                router_input.detach().clone(),
+            )
+        )
+
+    def drain(self) -> tuple[MoeOutputRecord, ...]:
+        records = tuple(self._records)
+        self._records.clear()
+        return records
+
+    def __enter__(self) -> MoeOutputCaptureContext:
+        for layer in range(self.ops.num_layers):
+            self._handles.append(
+                self.ops.mlp(layer).register_forward_hook(
+                    lambda _module, inputs, output, index=layer: self._capture(
+                        index, inputs, output
+                    )
+                )
+            )
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        for handle in self._handles:
+            handle.remove()
+        self._handles.clear()
+
+
+def moe_output_bank(
+    records: tuple[MoeOutputRecord, ...],
+    *,
+    expected_layers: int,
+) -> Tensor:
+    """Stack one captured forward as [tokens, layers, hidden] for batch size one."""
+    if tuple(record.layer for record in records) != tuple(range(expected_layers)):
+        raise RuntimeError("MoE output capture missed or reordered a routed layer")
+    if any(record.value.ndim != 3 or record.value.shape[0] != 1 for record in records):
+        raise RuntimeError("residual-window capture requires batch size one")
+    token_counts = {int(record.value.shape[1]) for record in records}
+    hidden_sizes = {int(record.value.shape[2]) for record in records}
+    if len(token_counts) != 1 or len(hidden_sizes) != 1:
+        raise RuntimeError("MoE output capture shape differs across layers")
+    return torch.stack([record.value[0] for record in records], dim=1)
+
+
+def moe_router_input_bank(
+    records: tuple[MoeOutputRecord, ...],
+    *,
+    expected_layers: int,
+) -> Tensor:
+    """Stack the shape-matched native MLP inputs as [tokens, layers, hidden]."""
+    if tuple(record.layer for record in records) != tuple(range(expected_layers)):
+        raise RuntimeError("MoE router-input capture missed or reordered a routed layer")
+    if any(
+        record.router_input.ndim != 3 or record.router_input.shape[0] != 1 for record in records
+    ):
+        raise RuntimeError("router-input window capture requires batch size one")
+    shapes = {tuple(record.router_input.shape[1:]) for record in records}
+    if len(shapes) != 1:
+        raise RuntimeError("MoE router-input capture shape differs across layers")
+    return torch.stack([record.router_input[0] for record in records], dim=1)
 
 
 class SubsetExecutionContext(AbstractContextManager["SubsetExecutionContext"]):
