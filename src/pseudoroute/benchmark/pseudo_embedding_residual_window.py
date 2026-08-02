@@ -93,6 +93,7 @@ ResidualVariant = Literal[
 ContentVariant = Literal[
     "sampled_repeat_independent",
     "sampled_repeat_causal",
+    "current_repeat_independent",
     "recent_sequence_independent",
     "recent_sequence_causal",
     "exact_future_independent",
@@ -343,6 +344,8 @@ def _probe_for_spec(
     content: PseudoContent = (
         "provided_sequence"
         if spec.content.startswith(("recent", "exact"))
+        else "current_token"
+        if spec.content.startswith("current")
         else "sampled_next_token"
     )
     attention: PseudoAttention = "causal" if spec.content.endswith("causal") else "independent"
