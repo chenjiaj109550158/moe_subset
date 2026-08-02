@@ -1,0 +1,18 @@
+{
+  "analysis_id": "pseudo_one_forward_state_correction_v1",
+  "schema_version": 1,
+  "selection": {
+    "accuracy_correctness_or_ground_truth_used": false,
+    "new_rows_added": false,
+    "rule": "reuse_pseudo_executed_embedding_composition_v1_development_partition",
+    "source_manifest_sha256": "d554e10eed706e9bc35bdfbb91c58347c7e7a23fe23526460b06fc4e76bdaac1"
+  },
+  "partitions": {
+    "development": [
+      {"row_index": 0, "sample_id": "test-0"},
+      {"row_index": 439, "sample_id": "test-439"},
+      {"row_index": 879, "sample_id": "test-879"},
+      {"row_index": 1318, "sample_id": "test-1318"}
+    ]
+  }
+}

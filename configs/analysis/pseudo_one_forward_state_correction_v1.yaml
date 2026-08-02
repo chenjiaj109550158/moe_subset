@@ -1,0 +1,131 @@
+schema_version: 1
+analysis_id: pseudo_one_forward_state_correction_v1
+status: protocol_frozen_before_model_execution
+artifact_root: artifacts/pseudo_one_forward_state_correction_v1
+protocol_document: docs/pseudo_one_forward_state_correction_v1.md
+
+source:
+  composition_analysis_id: pseudo_executed_embedding_composition_v1
+  config: configs/analysis/pseudo_executed_embedding_composition_v1.yaml
+  config_sha256: 35d9ef891c4bccf8603cc0e4b98d8cbb51022a82f11ed72782293e374938e8f9
+  sample_manifest: configs/analysis/pseudo_executed_embedding_composition_v1_samples.json
+  sample_manifest_sha256: d554e10eed706e9bc35bdfbb91c58347c7e7a23fe23526460b06fc4e76bdaac1
+  artifact_manifest_sha256: e00e88fa8c20c90682f49b52415792681d688c02b74c887cb32be348d5efcac7
+
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+
+dataset:
+  key: gsm8k
+  source_suite: speculating_experts_accuracy_v17
+  split: test
+  new_rows_or_traces: false
+
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  resident_fraction: 0.25
+  route_token_cap: 64
+  content: recent_sequence
+  attention: causal
+  subset_selection: first_four_anchor_core_plus_history_fill
+  boundary_zero_expert_access: full_native_top8
+  later_expert_access: current_policy_previous_realized_layer_local_b32_subset
+
+history:
+  boundary_zero: last_two_full_expert_prompt_mlp_router_inputs_and_outputs
+  later_boundaries: last_two_current_policy_realized_window_mlp_router_inputs_and_outputs
+  delta: newest_minus_previous
+  detach: true
+
+anchor_correction:
+  coefficients: [1, 2, 3, 4, 5, 6, 7, 8]
+  hidden_velocity:
+    source: recent_native_post_attention_layernorm_mlp_inputs
+    insertion: after_native_post_attention_layernorm_before_native_gate_and_experts
+    formula: norm_match_l2(pseudo_router_input + anchor_coefficient * recent_delta)
+    reference_norm: uncorrected_pseudo_router_input_per_anchor
+  residual_velocity:
+    source: recent_native_moe_mixture_outputs
+    insertion: after_native_previous_subset_expert_execution_before_residual_add
+    formula: norm_match_l2(fresh_pseudo_moe_residual + anchor_coefficient * recent_delta)
+    reference_norm: fresh_pseudo_moe_residual_per_anchor
+  epsilon: 1.0e-12
+
+variants:
+  - key: recent_sequence_causal_uncorrected
+    hidden_velocity: none
+    residual_velocity: none
+    role: one_forward_baseline
+  - key: recent_sequence_causal_hidden_velocity_linear_norm
+    hidden_velocity: recent_linear_norm
+    residual_velocity: none
+    role: proposed_method_1
+  - key: recent_sequence_causal_residual_velocity_linear_norm
+    hidden_velocity: none
+    residual_velocity: recent_linear_norm
+    role: proposed_method_2
+
+information_boundary:
+  allowed:
+    - current_policy_production_cache_read_only_copy_on_write
+    - sampled_next_token
+    - prompt_or_already_realized_token_ids
+    - last_two_current_policy_realized_router_inputs
+    - last_two_current_policy_realized_moe_outputs
+  forbidden:
+    - future_true_tokens_after_sampled_next
+    - vanilla_future_trajectory
+    - benchmark_answer
+    - correctness
+    - task_accuracy
+    - learned_or_fitted_parameters
+    - offline_route_transition_tables
+    - offline_expert_priors
+    - default_vector_values
+
+execution:
+  sample_manifest: configs/analysis/pseudo_one_forward_state_correction_v1_samples.json
+  shard_count: 2
+  maximum_workers_per_physical_gpu: 1
+  atomic_json_safetensors_pairs: true
+  checksum_resume: true
+  retain_failed_markers: true
+  network_downloads: false
+
+audits:
+  require_production_cache_signature_unchanged: true
+  require_production_rng_unchanged: true
+  require_shadow_cache_discarded: true
+  require_one_causal_forward_per_boundary: true
+  expected_attention_calls_per_boundary: 48
+  expected_attention_queries_per_boundary: 384
+  expected_router_calls_per_boundary: 384
+  expected_expert_calls_per_boundary: 384
+  require_correction_finite: true
+  require_history_policy_local: true
+
+analysis:
+  ranking_uses_accuracy_or_correctness: false
+  primary_metrics: [mean_selected_mass, mean_route_hit]
+  secondary_metrics: [estimated_transfer_reduction, mean_probe_latency_seconds]
+  bootstrap_samples: 10000
+  bootstrap_seed: 20260802
+  route_signal_minimum_absolute_improvement_over_uncorrected: 0.02
+  maximum_mean_probe_latency_seconds: 0.50
+  held_out_route_authorized: false
+  actual_accuracy_authorized: false
+  learned_predictor_training: false
+
+reporting:
+  route_kind: teacher_forced_current_policy_hard_subset_state
+  transfer_kind: simulated
+  probe_latency_and_memory: measured
+  task_accuracy: not_measured
+  runtime_speedup: not_measured
