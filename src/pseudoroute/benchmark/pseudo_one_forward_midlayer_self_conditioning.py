@@ -375,6 +375,10 @@ def _refresh_summary(rows: list[dict[str, Any]]) -> dict[str, int | float]:
         "max_raw_embedding_delta_norm_ratio": max(raw),
         "mean_applied_embedding_delta_norm_ratio": sum(applied) / len(applied),
         "max_applied_embedding_delta_norm_ratio": max(applied),
+        "strict_bf16_norm_allclose_rtol_atol_1e3_passes": sum(
+            audit.get("midlayer_hidden_norm_preserved") is True for audit in audits
+        ),
+        "strict_bf16_norm_allclose_rtol_atol_1e3_total": len(audits),
     }
 
 
@@ -616,8 +620,15 @@ def _report() -> str:
     comparisons = _json(OUTPUT / "development" / "comparisons.json")
     anchors = _json(OUTPUT / "development" / "anchor_strata.json")
     halves = _json(OUTPUT / "development" / "layer_half_strata.json")
+    refresh = _json(OUTPUT / "development" / "refresh_report.json")
     decision = _json(OUTPUT / "development" / "decision.json")
     baseline_key = SOURCE_SPECS[0].key
+    strict_norm_passes = sum(
+        int(refresh[spec.key]["strict_bf16_norm_allclose_rtol_atol_1e3_passes"]) for spec in SPECS
+    )
+    strict_norm_total = sum(
+        int(refresh[spec.key]["strict_bf16_norm_allclose_rtol_atol_1e3_total"]) for spec in SPECS
+    )
     lines = [
         "# One-forward mid-layer shifted self-conditioning v1",
         "",
@@ -657,6 +668,13 @@ def _report() -> str:
             "",
             f"Development-only decision: **{decision['decision']}**. Selected route signal: "
             f"`{decision['selected_route_signal_variant']}`.",
+            "",
+            "The non-gating strict BF16 norm diagnostic "
+            "(`torch.allclose`, `rtol=atol=1e-3`) passed "
+            f"{strict_norm_passes}/{strict_norm_total} "
+            "boundary-policy checks. The implementation applies per-anchor L2 norm "
+            "restoration and the FP32 native unit test passes; this tighter-than-BF16 "
+            "post-cast diagnostic was not a frozen gate.",
             "",
             "Route values are teacher-forced on each policy's own hard-subset state. Probe "
             "and LM-head costs are measured; transfer is simulated. No held-out route, "

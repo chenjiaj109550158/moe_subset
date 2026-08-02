@@ -255,13 +255,17 @@ implementation or model output.
 - All 12 atomic JSON+safetensors candidate pairs, four source references, 44
   manifest artifacts, checksum resume, and cache/RNG/shadow/information/call-
   count audits validate with zero failure markers.
+- A separate non-gating BF16 post-cast norm diagnostic using
+  `torch.allclose(rtol=atol=1e-3)` passed only 29/96 boundary-policy checks. The
+  implementation applies L2 norm restoration and its FP32 native test passes;
+  the stricter-than-BF16 0.1% diagnostic is retained rather than hidden.
 
 The development-only decision is **STOP/PIVOT**. Route metrics are teacher-
 forced on each current hard policy's own state; probe and LM-head costs are
 measured, transfer is simulated, and held-out route, task accuracy, free
 generation, exact-token identity, NLL/perplexity, closed-loop runtime, and
 speedup were not measured. Artifact-manifest SHA-256:
-`ce8ff75e5c087d5c724b45075b06d1e0f2aedc0cd7007a9087fc5f27ca202cb2`.
+`f5098b420819830c12ca8cd7613baf6a784314b70477b3ea02a720d4a966aa5c`.
 
 ## Completed GPT-OSS/GSM8K hard scope
 
@@ -357,7 +361,7 @@ Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 - Focused residual-window/Qwen/shadow tests: PASS; 28 passed.
 - Particle-dispatch focused tests: PASS; 12 passed.
 - Token-aligned retrieval protocol/native tests: PASS; 7 passed.
-- `python -m pytest -ra`: PASS; 215 passed, 3 expected skips in 15.98s.
+- `python -m pytest -ra`: PASS; 215 passed, 3 expected skips in 17.32s.
 - Five calibration-free artifact validators: PASS; manifest counts
   11/20/18/22/31, final held-out 8/8 atomic rows, zero actual accuracy rows, and
   terminal `complete/report_v1` `STOP/PIVOT`.

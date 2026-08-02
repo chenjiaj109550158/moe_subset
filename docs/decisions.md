@@ -977,11 +977,15 @@ despite the failed frozen route gate.
 **Consequences:** All cache/RNG/shadow/information audits pass, including
 bitwise preservation of anchor one and exactly one causal traversal, 48 native
 attention/router/expert calls, and one seven-query LM-head refresh per boundary.
+The retained non-gating BF16 post-cast norm diagnostic uses a tighter
+`rtol=atol=1e-3` threshold and passes only 29/96 boundary-policy cases. The
+implementation applies norm restoration and its FP32 native test passes; this
+diagnostic was not silently promoted into or removed from the frozen gate.
 Measured mean probe latency was 0.3027–0.3183 seconds and simulated transfer
 reduction was 0.4666–0.4667. Twelve atomic candidate pairs, four source
 references, 44 manifest artifacts, checksum resume, and zero failure markers
 validate. Manifest SHA-256 is
-`ce8ff75e5c087d5c724b45075b06d1e0f2aedc0cd7007a9087fc5f27ca202cb2`.
+`f5098b420819830c12ca8cd7613baf6a784314b70477b3ea02a720d4a966aa5c`.
 These are teacher-forced current-policy route measurements, not held-out
 validation, task accuracy, free generation, exact-token identity, runtime, or
 speedup.
