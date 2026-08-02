@@ -525,6 +525,8 @@ def _route_metric(
 def _residual_statistics(residual: Tensor, router_input: Tensor) -> tuple[Tensor, Tensor]:
     residual_f = residual.float()
     input_f = router_input.float()
+    if input_f.device != residual_f.device:
+        input_f = input_f.to(residual_f.device)
     norms = residual_f.norm(dim=-1)
     cosine = torch.nn.functional.cosine_similarity(residual_f, input_f, dim=-1)
     return norms.cpu(), cosine.cpu()
