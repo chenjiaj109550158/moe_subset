@@ -30,5 +30,5 @@ def test_one_forward_state_correction_protocol_is_frozen_and_calibration_free() 
 
 
 def test_one_forward_state_correction_fingerprints_are_deterministic() -> None:
-    assert _sha256(CONFIG) == "511fb4465dbc348af0b144f2fc79e12d7b691f06e173e3abba3eac91b202bbcb"
+    assert _sha256(CONFIG) == "7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44"
     assert _sha256(SAMPLES) == "350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c"

@@ -27,6 +27,12 @@ dataset:
   split: test
   new_rows_or_traces: false
 
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+
 operating_point:
   horizon: 8
   budget_per_layer: 32
