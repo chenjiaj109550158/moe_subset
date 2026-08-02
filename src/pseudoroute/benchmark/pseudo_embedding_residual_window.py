@@ -219,7 +219,7 @@ def token_aligned_state_retrieval(
     candidate_embeddings: Tensor | None = None
     if mode == "exact_token_then_embedding_nearest":
         history_ids = torch.tensor(history_token_ids, device=embedding_weight.device)
-        candidate_embeddings = embedding_weight[history_ids].float()
+        candidate_embeddings = embedding_weight.detach()[history_ids].float()
 
     indices: list[int] = []
     similarity_values: list[float] = []
@@ -237,7 +237,7 @@ def token_aligned_state_retrieval(
         elif mode == "exact_token_then_embedding_nearest":
             if candidate_embeddings is None:
                 raise AssertionError("embedding-nearest candidates are missing")
-            query = embedding_weight[int(anchor_id)].float()[None]
+            query = embedding_weight.detach()[int(anchor_id)].float()[None]
             scores = torch.nn.functional.cosine_similarity(
                 candidate_embeddings,
                 query.expand_as(candidate_embeddings),

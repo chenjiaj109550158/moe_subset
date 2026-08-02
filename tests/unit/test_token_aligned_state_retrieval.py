@@ -77,6 +77,7 @@ def test_embedding_fallback_breaks_equal_cosine_by_most_recent_history() -> None
     embeddings[2] = torch.tensor([0.0, 1.0, 0.0])
     embeddings[3] = torch.tensor([0.0, 1.0, 0.0])
     embeddings[4] = torch.tensor([0.0, 1.0, 0.0])
+    embeddings.requires_grad_(True)
     result = token_aligned_state_retrieval(
         (1, 4),
         (1, 2, 1, 3),
@@ -92,6 +93,7 @@ def test_embedding_fallback_breaks_equal_cosine_by_most_recent_history() -> None
         "embedding_nearest_most_recent_tie",
     )
     assert result.similarities.tolist() == [1.0, 1.0]
+    assert result.similarities.requires_grad is False
     assert torch.equal(result.moe_outputs[1], -router[3])
 
 
