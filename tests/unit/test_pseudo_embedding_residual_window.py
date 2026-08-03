@@ -15,6 +15,7 @@ from pseudoroute.benchmark.pseudo_embedding_residual_window import (
     _residual_specs,
     _stratified_outputs,
     candidate_subsets,
+    previous_route_subsets,
     residual_bank_variant,
     route_scores,
 )
@@ -74,6 +75,32 @@ def test_pre_mask_route_history_scatter_uses_natural_not_executed() -> None:
     )
     scores = route_scores((SubsetRouteRecord(0, natural, executed, (2, 3)),), experts=4)
     assert torch.allclose(scores[0], torch.tensor([0.75, 0.65, 0.6, 0.0], dtype=torch.float64))
+
+
+def test_previous_route_uses_static_frequency_only_for_boundary_zero() -> None:
+    history = {0: torch.arange(40, dtype=torch.float64)}
+    static = {0: tuple(range(BUDGET))}
+    assert (
+        previous_route_subsets(
+            0,
+            history,
+            static,
+            static_frequency_first_window=True,
+        )
+        == static
+    )
+    assert previous_route_subsets(
+        HORIZON,
+        history,
+        static,
+        static_frequency_first_window=True,
+    )[0] == tuple(range(8, 40))
+    assert previous_route_subsets(
+        0,
+        history,
+        static,
+        static_frequency_first_window=False,
+    )[0] == tuple(range(8, 40))
 
 
 def test_all_frozen_candidate_formulas_return_deterministic_top32() -> None:

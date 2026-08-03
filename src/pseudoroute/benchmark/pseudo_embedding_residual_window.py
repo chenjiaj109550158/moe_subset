@@ -333,6 +333,23 @@ def route_scores(
     return scores
 
 
+def previous_route_subsets(
+    boundary: int,
+    history: dict[int, Tensor],
+    static_subsets: dict[int, tuple[int, ...]],
+    *,
+    static_frequency_first_window: bool,
+) -> dict[int, tuple[int, ...]]:
+    """Resolve previous-route commitment with an explicit first-window policy."""
+    if boundary == 0 and static_frequency_first_window:
+        if set(static_subsets) != set(history):
+            raise ValueError("static-first previous route is missing layer-local subsets")
+        if any(len(subset) != BUDGET for subset in static_subsets.values()):
+            raise ValueError("static-first previous route requires exactly B experts per layer")
+        return dict(static_subsets)
+    return {layer: tuple(sorted(_top_n(history[layer], BUDGET))) for layer in sorted(history)}
+
+
 def candidate_subsets(
     result: QwenPseudoProbeResult,
     history: dict[int, Tensor],
@@ -865,6 +882,7 @@ def run_policy_sample(
     diagnostic_state_patch: DiagnosticStatePatch = "none",
     diagnostic_hidden_after_layer: int | None = None,
     subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
+    previous_first_window_static_frequency: bool = False,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -1032,10 +1050,12 @@ def run_policy_sample(
             }
             audits.append({"boundary": boundary, **audit})
         elif spec.role == "previous":
-            active = {
-                layer: tuple(sorted(_top_n(history[layer], BUDGET)))
-                for layer in range(ops.num_layers)
-            }
+            active = previous_route_subsets(
+                boundary,
+                history,
+                static_subsets,
+                static_frequency_first_window=previous_first_window_static_frequency,
+            )
         elif spec.role == "static":
             active = static_subsets
         else:
@@ -1445,6 +1465,7 @@ def run_policy_sample(
         "diagnostic_state_patch": diagnostic_state_patch,
         "diagnostic_hidden_after_layer": diagnostic_hidden_after_layer,
         "subset_residual_execution": subset_residual_execution,
+        "previous_first_window_static_frequency": previous_first_window_static_frequency,
         "component_state_metric_order": [
             "attention_output_cosine",
             "router_input_cosine",
