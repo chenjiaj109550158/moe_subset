@@ -149,7 +149,7 @@ audits:
 reporting:
   conclusion_ceiling: TWO_ROW_ENGINEERING_PILOT
   speedup_reference: lossless_dynamic_top8_lru_b32
-  primary_speed_metric: aggregate_decode_tokens_per_second_including_planning_and_h2d
+  primary_speed_metric: aggregate_post_prefill_decode_forwards_per_second_including_planning_and_h2d
   secondary_speed_metric: aggregate_end_to_end_tokens_per_second_including_prefill
   prohibit_claims:
     - full_dataset_accuracy_preservation

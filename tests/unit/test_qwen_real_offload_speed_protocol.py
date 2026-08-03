@@ -16,7 +16,7 @@ def _sha256(path: Path) -> str:
 
 
 def test_real_offload_protocol_fingerprints_are_frozen() -> None:
-    assert _sha256(CONFIG) == "b477598f243e08d39ee91b24b1508372a6d4cdde7f0943127b86d40514e7ca8e"
+    assert _sha256(CONFIG) == "874ac3aef1802ffbb2274e2aeeb2bdb655a2350e348b09673d32354225a014d0"
     assert _sha256(SAMPLES) == "2a10f7d065a028e0ca52e6fa44757f40d8f9cc23f9a59004f87482b8b1bbf3df"
 
 

@@ -56,8 +56,9 @@ generation. Rows are atomic and checksum-resumable; failures are retained.
 
 ## Timing and interpretation
 
-The primary speed metric is generated tokens divided by decode wall time,
-including pseudo planning, all actual H2D copies, exposed waits, production
+The primary speed metric is post-prefill decode forwards divided by decode wall
+time. The first generated token belongs to prefill and is not in that numerator.
+Decode wall time includes planning, actual H2D copies, exposed waits, and production
 forward work, and stop checking. The secondary metric includes prompt prefill.
 Setup is reported separately. H2D bytes, cache hits/misses, CUDA-event transfer
 time, exposed stall, planning time, peak memory, output identity, and parsed
@@ -71,7 +72,7 @@ behavior, or the benefit of transfer/compute overlap.
 ## Frozen fingerprints
 
 The immutable config SHA-256 is
-`b477598f243e08d39ee91b24b1508372a6d4cdde7f0943127b86d40514e7ca8e`.
+`874ac3aef1802ffbb2274e2aeeb2bdb655a2350e348b09673d32354225a014d0`.
 The immutable sample-manifest SHA-256 is
 `2a10f7d065a028e0ca52e6fa44757f40d8f9cc23f9a59004f87482b8b1bbf3df`.
 Both are tested and committed before any model smoke or measured offload row.
