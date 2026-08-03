@@ -45,6 +45,7 @@ EXPERTS = 128
 TOP_K = 8
 HORIZON = 8
 BASELINE = "sampled_unigram_full_continuation"
+BFLOAT16_ABSOLUTE_TOLERANCE = float(torch.finfo(torch.bfloat16).eps)
 BASELINE_ROOT = Path("artifacts/pseudo_one_forward_context_continuation_v1")
 PREVIOUS = "previous_route_commitment"
 PREVIOUS_ROOT = Path("artifacts/pseudo_executed_embedding_composition_v1")
@@ -316,13 +317,16 @@ def _candidate_audit(
             return False
         weight_sum = float(audit["execution_weight_sum_mean"])
         captured = float(audit["captured_natural_mass_mean"])
-        if boundary_index == 0 and (abs(weight_sum - 1) > 1e-5 or abs(captured - 1) > 1e-5):
+        if boundary_index == 0 and (
+            abs(weight_sum - 1) > BFLOAT16_ABSOLUTE_TOLERANCE
+            or abs(captured - 1) > BFLOAT16_ABSOLUTE_TOLERANCE
+        ):
             return False
         if boundary_index > 0:
             if spec.strategy == "captured_natural_plus_substitute_missing_mass":
-                if abs(weight_sum - 1) > 1e-4:
+                if abs(weight_sum - 1) > BFLOAT16_ABSOLUTE_TOLERANCE:
                     return False
-            elif abs(weight_sum - captured) > 1e-4:
+            elif abs(weight_sum - captured) > BFLOAT16_ABSOLUTE_TOLERANCE:
                 return False
         continuation = audit.get("context_continuation") or {}
         if continuation.get("mode") != "sampled_unigram_full_continuation":
@@ -330,6 +334,28 @@ def _candidate_audit(
         if not continuation.get("anchor_one_is_sampled_next", False):
             return False
         if not continuation.get("copied_indices_in_known_context", False):
+            return False
+    return True
+
+
+def _candidate_tensor_weight_audit(
+    rows: list[dict[str, Any]],
+    paths: dict[str, Path],
+    spec: ResidualExecutionSpec,
+) -> bool:
+    for row in rows:
+        tensors = load_file(str(paths[str(row["sample_id"])]))
+        weights = tensors["shadow_executed_topk_weights"].float()
+        captured = tensors["shadow_captured_natural_mass"].float()
+        if not bool(torch.isfinite(weights).all()) or bool((weights < 0).any()):
+            return False
+        weight_sums = weights.sum(dim=-1)
+        target = (
+            torch.ones_like(weight_sums)
+            if spec.strategy == "captured_natural_plus_substitute_missing_mass"
+            else captured
+        )
+        if not torch.allclose(weight_sums, target, rtol=0.0, atol=BFLOAT16_ABSOLUTE_TOLERANCE):
             return False
     return True
 
@@ -376,7 +402,9 @@ def aggregate() -> dict[str, object]:
         )
         anchor_route_delta = candidate_anchors[spec.key][0] - baseline_anchor[0]
         anchor_mass_delta = candidate_anchors[spec.key][1] - baseline_anchor[1]
-        audit_pass = all(_candidate_audit(row, spec, config) for row in candidates[spec.key])
+        audit_pass = all(
+            _candidate_audit(row, spec, config) for row in candidates[spec.key]
+        ) and _candidate_tensor_weight_audit(candidates[spec.key], candidate_paths[spec.key], spec)
         passes = all(
             (
                 route_delta >= float(rule["minimum_mean_route_hit_delta_over_baseline"]),
@@ -450,7 +478,16 @@ def aggregate() -> dict[str, object]:
             captured.append(tensors["shadow_captured_natural_mass"].float())
         weights = torch.cat(weight_sums)
         masses = torch.cat(captured)
+        target = (
+            torch.ones_like(weights)
+            if spec.strategy == "captured_natural_plus_substitute_missing_mass"
+            else masses
+        )
         weight_report[spec.key] = {
+            "bfloat16_absolute_tolerance": BFLOAT16_ABSOLUTE_TOLERANCE,
+            "tensor_semantics_audit_pass": bool(
+                torch.allclose(weights, target, rtol=0.0, atol=BFLOAT16_ABSOLUTE_TOLERANCE)
+            ),
             "execution_weight_sum_mean": float(weights.mean()),
             "execution_weight_sum_min": float(weights.min()),
             "execution_weight_sum_max": float(weights.max()),
@@ -458,6 +495,7 @@ def aggregate() -> dict[str, object]:
             "captured_natural_mass_min": float(masses.min()),
             "captured_natural_mass_max": float(masses.max()),
             "mean_absolute_weight_sum_minus_captured_mass": float((weights - masses).abs().mean()),
+            "maximum_absolute_weight_sum_minus_target": float((weights - target).abs().max()),
         }
     decision = {
         "analysis_id": ANALYSIS_ID,
@@ -476,6 +514,7 @@ def aggregate() -> dict[str, object]:
         "accuracy_or_correctness_used": False,
         "future_tokens_or_component_oracle_used": False,
         "learned_or_fitted_parameters": False,
+        "bfloat16_absolute_weight_tolerance": BFLOAT16_ABSOLUTE_TOLERANCE,
     }
     root = OUTPUT / "development"
     write_json_atomic(
