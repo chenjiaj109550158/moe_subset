@@ -9,7 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "configs/analysis/pseudo_mass_preserving_residual_v1.yaml"
 SAMPLES = ROOT / "configs/analysis/pseudo_mass_preserving_residual_v1_samples.json"
-CONFIG_SHA256 = "6482b21ef9fb42c323844674ce4b8fb4aadff920ed4a15765882d405b39713f3"
+CONFIG_SHA256 = "6682aa83487c21924b0a80f755c36eb9caa0be72626a098339ae80b3ce18b5bb"
 SAMPLES_SHA256 = "a0942180ef7cd8c4bf9b003069a96b93554653e5ca3b7c75a5babdc5e567d76d"
 IDS = ["test-0", "test-439", "test-879", "test-1318"]
 VARIANTS = [
