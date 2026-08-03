@@ -1,0 +1,188 @@
+schema_version: 1
+analysis_id: pseudo_mass_preserving_residual_v1
+status: protocol_frozen_before_model_execution
+artifact_root: artifacts/pseudo_mass_preserving_residual_v1
+protocol_document: docs/pseudo_mass_preserving_residual_v1.md
+
+source:
+  diagnosis_config: configs/analysis/pseudo_state_component_swap_v1.yaml
+  diagnosis_config_sha256: 6fc9c4cd92de0108c198de03de63badd38f0a5c9885aad33e15a893ea5efe53f
+  diagnosis_sample_manifest: configs/analysis/pseudo_state_component_swap_v1_samples.json
+  diagnosis_sample_manifest_sha256: 2a75b1cb96f46189d469d1d5a431174351fa726f44a71909cd1708c5ed27bb17
+  diagnosis_artifact_manifest: artifacts/pseudo_state_component_swap_v1/artifact_manifest.json
+  diagnosis_artifact_manifest_sha256: 3e16d668dab1f279eedb1ce89a84d618f76016f94f84c5dba1944298a3eac69b
+  diagnosis_classification: moe_residual_dominant
+  context_config: configs/analysis/pseudo_one_forward_context_continuation_v1.yaml
+  context_config_sha256: 519502aa463af860f4f639ff1233bf14d77bfca6ee6cb5aeff28f80817316897
+  context_sample_manifest: configs/analysis/pseudo_one_forward_context_continuation_v1_samples.json
+  context_sample_manifest_sha256: 20a38b86b2b04ded8ded9faaf1c9eb0a90cb73668e9c23980188367a3369b4d4
+  context_artifact_manifest: artifacts/pseudo_one_forward_context_continuation_v1/artifact_manifest.json
+  context_artifact_manifest_sha256: 1ce50ae324605f7a9ac60e87242c37b9856c9e2db5a5e98879990864c4f854d9
+  frozen_baseline_policy: sampled_unigram_full_continuation
+  focused_suite_config: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml
+  focused_suite_config_sha256: 41b902ac392b777bce0c0eb4efc97e47e4b31376a64605752cf03ea2b9ce6dba
+
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+
+dataset:
+  key: gsm8k
+  split: test
+  partition: development
+  sample_count: 4
+  new_rows_or_traces: false
+  saved_v17_token_trajectories_only: true
+
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  routed_experts_per_layer: 128
+  resident_fraction: 0.25
+  native_top_k: 8
+  route_token_cap: 64
+  pseudo_content: sampled_unigram_full_continuation
+  pseudo_attention: native_causal_single_batched_traversal
+  boundary_zero_expert_access: full_native_top8
+  later_expert_access: current_policy_previous_realized_layer_local_b32_subset
+  subset_selection: first_four_anchor_core_plus_history_fill
+  actual_replay: hard_mask_teacher_forced_saved_v17_tokens_on_policy_own_state
+
+information_boundary:
+  allowed:
+    - sampled_next_token
+    - prompt_token_ids
+    - current_policy_already_realized_token_ids
+    - current_policy_production_cache_read_only_copy_on_write
+    - current_policy_previous_realized_layer_local_b32_subset
+    - current_pseudo_router_pre_topk_logits
+    - current_pseudo_native_top8_ids_and_weights
+    - native_model_parameters
+  forbidden:
+    - future_true_tokens_after_sampled_next
+    - vanilla_future_trajectory
+    - full_expert_future_state
+    - benchmark_answer
+    - correctness
+    - task_accuracy
+    - learned_or_fitted_parameters
+    - offline_expert_priors
+    - offline_route_transition_tables
+    - default_vector_values
+    - retrieved_history_hidden_states
+
+variants:
+  order:
+    - natural_top8_intersection_zero_missing
+    - rerouted_top8_scaled_by_captured_natural_mass
+    - captured_natural_plus_substitute_missing_mass
+  natural_top8_intersection_zero_missing:
+    captured_natural_ids: preserve
+    captured_natural_weights: preserve
+    missing_natural_mass: zero
+    substitute_experts: none
+    output_weight_sum: captured_natural_mass
+  rerouted_top8_scaled_by_captured_natural_mass:
+    resident_route: deterministic_top8_by_pre_topk_logit
+    resident_route_normalization: native
+    output_scale: captured_natural_top8_weight_mass
+    output_weight_sum: captured_natural_mass
+  captured_natural_plus_substitute_missing_mass:
+    captured_natural_ids: preserve
+    captured_natural_weights: preserve
+    substitute_count: number_of_missing_natural_top8_slots
+    substitute_selection: descending_pre_topk_logit_then_ascending_expert_id
+    substitute_pool: resident_b32_excluding_captured_natural_ids
+    substitute_normalization: softmax_then_scale_to_missing_natural_weight_mass
+    output_weight_sum: one
+
+determinism:
+  expert_ids_are_layer_scoped: true
+  tie_break: ascending_layer_scoped_expert_id
+  captured_mass_definition: sum_native_normalized_top8_weights_whose_ids_are_in_resident_b32
+  no_fitted_scale_or_threshold: true
+
+execution:
+  sample_manifest: configs/analysis/pseudo_mass_preserving_residual_v1_samples.json
+  variants_per_sample: 3
+  expected_new_sample_variant_rows: 12
+  frozen_baseline_rows_reused: 4
+  shard_count: 1
+  maximum_workers_per_physical_gpu: 1
+  atomic_json_safetensors_pairs: true
+  checksum_resume: true
+  retain_failed_markers: true
+  network_downloads: false
+
+audits:
+  require_production_cache_signature_unchanged: true
+  require_production_rng_unchanged: true
+  require_shadow_cache_discarded: true
+  require_one_causal_forward_per_boundary: true
+  require_executed_ids_within_previous_subset: true
+  require_boundary_zero_exact_native_execution: true
+  require_no_future_token_access: true
+  require_deterministic_tie_break: true
+  require_finite_nonnegative_execution_weights: true
+  expected_attention_calls_per_boundary: 48
+  expected_attention_queries_per_boundary: 384
+  expected_router_calls_per_boundary: 48
+  expected_expert_calls_per_boundary: 48
+  expected_lm_head_calls_per_boundary: 0
+
+selection_rule:
+  ranking_uses_accuracy_or_correctness: false
+  baseline: sampled_unigram_full_continuation
+  eligible_requires:
+    minimum_mean_route_hit_delta_over_baseline: 0.0
+    minimum_mean_selected_mass_delta_over_baseline: 0.0
+    maximum_anchor_one_route_hit_regression: 0.005
+    maximum_anchor_one_selected_mass_regression: 0.005
+    minimum_estimated_transfer_reduction: 0.30
+    maximum_mean_probe_latency_seconds: 0.50
+    all_cache_rng_information_and_weight_audits_pass: true
+  rank_eligible_by:
+    - descending_mean_selected_mass
+    - descending_mean_route_hit
+    - descending_estimated_transfer_reduction
+    - ascending_mean_probe_latency_seconds
+    - ascending_variant_key
+  no_eligible_variant_decision: STOP/PIVOT
+
+progress_gate:
+  comparison_reference: previous_route_commitment
+  minimum_absolute_mean_route_hit_improvement: 0.05
+  minimum_absolute_mean_selected_mass_improvement: 0.05
+  not_worse_than_static_frequency: true
+  resident_fraction: 0.25
+  minimum_estimated_transfer_reduction: 0.30
+  cache_rng_information_and_weight_audits_must_pass: true
+  held_out_route_requires_separate_frozen_protocol: true
+  actual_accuracy_requires_held_out_route_gate: true
+
+analysis:
+  bootstrap_samples: 10000
+  bootstrap_seed: 20260803
+  task_accuracy_authorized: false
+  held_out_route_authorized: false
+  learned_predictor_training: false
+
+reporting:
+  route_kind: teacher_forced_current_policy_hard_subset_state
+  baseline_kind: checksum_pinned_prior_measured_row
+  candidate_route_and_state_metrics: measured
+  probe_runtime_and_memory: measured
+  transfer_kind: simulated
+  task_accuracy: not_measured
+  runtime_speedup: not_measured
