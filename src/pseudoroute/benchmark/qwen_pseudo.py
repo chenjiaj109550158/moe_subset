@@ -13,9 +13,13 @@ from transformers.masking_utils import create_causal_mask
 
 from pseudoroute.benchmark.prefetch import (
     DefaultVectorArtifact,
+    MoeOutputCaptureContext,
     NativeRoute,
+    NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
     masked_route_from_natural,
+    moe_output_bank,
+    moe_router_input_bank,
 )
 from pseudoroute.benchmark.subset_closed_loop import (
     _cache_length,
@@ -45,6 +49,13 @@ StateCorrection = Literal["none", "recent_linear_norm"]
 StateRetrievalTarget = Literal["none", "router_input", "moe_residual"]
 StateRetrievalMix = Literal["none", "additive_norm", "replace_norm"]
 MidlayerSelfConditioning = Literal["none", "greedy_shift", "expected_top8_shift"]
+DiagnosticStatePatch = Literal[
+    "none",
+    "oracle_attention_output",
+    "oracle_moe_residual",
+    "oracle_attention_and_moe",
+    "oracle_hidden_after_layer",
+]
 
 
 @dataclass(frozen=True)
@@ -64,6 +75,24 @@ class QwenPseudoVariant:
     midlayer_self_conditioning: MidlayerSelfConditioning = "none"
     midlayer_refresh_after_layer: int | None = None
     midlayer_max_relative_embedding_delta_norm: float | None = None
+    diagnostic_state_patch: DiagnosticStatePatch = "none"
+    diagnostic_hidden_after_layer: int | None = None
+
+
+@dataclass(frozen=True)
+class QwenNaturalComponentState:
+    """Full-expert future states captured on a disposable native Qwen cache."""
+
+    attention_outputs: Tensor
+    router_inputs: Tensor
+    moe_residuals: Tensor
+    layer_outputs: Tensor
+    router_logits: Tensor
+    topk_ids: Tensor
+    topk_weights: Tensor
+    latency_seconds_measured: float
+    temporary_cuda_bytes_measured: int
+    audit: dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -83,6 +112,7 @@ class QwenProbeCost:
     lm_head_calls: int = 0
     lm_head_queries: int = 0
     midlayer_refreshes: int = 0
+    diagnostic_state_input_bytes: int = 0
 
 
 @dataclass(frozen=True)
@@ -100,6 +130,9 @@ class QwenPseudoProbeResult:
     audit: dict[str, object]
     shadow_executed_topk_ids: dict[int, Tensor] = field(default_factory=dict)
     shadow_moe_residuals: dict[int, Tensor] = field(default_factory=dict)
+    shadow_attention_outputs: dict[int, Tensor] = field(default_factory=dict)
+    shadow_router_inputs: dict[int, Tensor] = field(default_factory=dict)
+    shadow_layer_outputs: dict[int, Tensor] = field(default_factory=dict)
 
 
 def _top_b(scores: Tensor, budget: int) -> tuple[int, ...]:
@@ -224,6 +257,184 @@ def _restore_rng(device: torch.device, state: tuple[Tensor, Tensor | None]) -> N
         torch.cuda.set_rng_state(state[1], device)
 
 
+def _hidden_tensor(output: object, *, source: str) -> Tensor:
+    if isinstance(output, Tensor):
+        value = output
+    elif isinstance(output, (tuple, list)) and output and isinstance(output[0], Tensor):
+        value = output[0]
+    else:
+        raise RuntimeError(f"{source} did not expose a leading hidden-state tensor")
+    if value.ndim != 3 or value.shape[0] != 1:
+        raise RuntimeError(f"{source} hidden state must be [1, tokens, hidden]")
+    return value
+
+
+def capture_natural_qwen_components(
+    model: nn.Module,
+    ops: Qwen3MoePrefetchOps,
+    production_cache: object,
+    token_ids: tuple[int, ...],
+) -> QwenNaturalComponentState:
+    """Capture exact native future components without mutating production state."""
+    if ops.model is not model:
+        raise ValueError("natural component capture ops/model identity mismatch")
+    if not 1 <= len(token_ids) <= 8:
+        raise ValueError("natural component capture requires one to eight future tokens")
+    device = next(model.parameters()).device
+    boundary_length = _cache_length(production_cache)
+    cache_before = _cache_mutation_signature(production_cache)
+    rng_before = _rng_snapshot(device)
+    shadow_cache = _fork_cache_copy_on_write(production_cache)
+    attention_values: dict[int, Tensor] = {}
+    layer_values: dict[int, Tensor] = {}
+    handles: list[torch.utils.hooks.RemovableHandle] = []
+
+    def capture_attention(layer: int, output: object) -> None:
+        if layer in attention_values:
+            raise RuntimeError("native attention component captured more than once")
+        attention_values[layer] = (
+            _hidden_tensor(
+                output,
+                source="native attention",
+            )
+            .detach()
+            .clone()
+        )
+
+    def capture_layer(layer: int, output: object) -> None:
+        if layer in layer_values:
+            raise RuntimeError("native layer output captured more than once")
+        layer_values[layer] = (
+            _hidden_tensor(
+                output,
+                source="native decoder layer",
+            )
+            .detach()
+            .clone()
+        )
+
+    allocated_before = 0
+    sync_count = 0
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        sync_count += 1
+        allocated_before = torch.cuda.memory_allocated(device)
+        torch.cuda.reset_peak_memory_stats(device)
+    started = time.perf_counter()
+    cache_unchanged = False
+    rng_unchanged = False
+    fork_identity_unchanged = False
+    try:
+        for layer_idx, layer in enumerate(ops.layers):
+            handles.append(
+                cast(Any, layer).self_attn.register_forward_hook(
+                    lambda _module, _inputs, output, index=layer_idx: capture_attention(
+                        index, output
+                    )
+                )
+            )
+            handles.append(
+                layer.register_forward_hook(
+                    lambda _module, _inputs, output, index=layer_idx: capture_layer(index, output)
+                )
+            )
+        input_ids = torch.tensor([token_ids], dtype=torch.long, device=device)
+        with (
+            NativeRouteCaptureContext(ops) as route_capture,
+            MoeOutputCaptureContext(ops) as moe_capture,
+            torch.inference_mode(),
+        ):
+            output = cast(
+                Any,
+                model(
+                    input_ids=input_ids,
+                    past_key_values=shadow_cache,
+                    use_cache=True,
+                    return_dict=True,
+                ),
+            )
+            routes = route_capture.drain()
+            moe_records = moe_capture.drain()
+        fork_identity_unchanged = output.past_key_values is shadow_cache
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+            sync_count += 1
+        elapsed = time.perf_counter() - started
+        cache_unchanged = (
+            _cache_length(production_cache) == boundary_length
+            and _cache_mutation_signature(production_cache) == cache_before
+        )
+        rng_unchanged = _rng_equal(rng_before, _rng_snapshot(device))
+    finally:
+        for handle in handles:
+            handle.remove()
+        _restore_rng(device, rng_before)
+    if not cache_unchanged:
+        raise RuntimeError("natural component capture mutated the production cache")
+    if not rng_unchanged:
+        raise RuntimeError("natural component capture changed generation RNG")
+    if not fork_identity_unchanged:
+        raise RuntimeError("natural component capture changed shadow cache identity")
+    expected_layers = tuple(range(ops.num_layers))
+    if tuple(sorted(attention_values)) != expected_layers:
+        raise RuntimeError("natural attention capture missed a routed layer")
+    if tuple(sorted(layer_values)) != expected_layers:
+        raise RuntimeError("natural layer-output capture missed a routed layer")
+    if tuple(record.layer for record in routes) != expected_layers:
+        raise RuntimeError("natural router capture missed or reordered a routed layer")
+    attention_outputs = torch.stack(
+        [attention_values[layer][0] for layer in expected_layers], dim=1
+    )
+    layer_outputs = torch.stack([layer_values[layer][0] for layer in expected_layers], dim=1)
+    router_inputs = moe_router_input_bank(moe_records, expected_layers=ops.num_layers)
+    moe_residuals = moe_output_bank(moe_records, expected_layers=ops.num_layers)
+    router_logits = torch.stack([record.natural.logits for record in routes], dim=1)
+    topk_ids = torch.stack([record.natural.ids for record in routes], dim=1)
+    topk_weights = torch.stack([record.natural.weights for record in routes], dim=1)
+    expected_state_shape = (len(token_ids), ops.num_layers, ops.hidden_size)
+    if any(
+        tuple(value.shape) != expected_state_shape
+        for value in (attention_outputs, router_inputs, moe_residuals, layer_outputs)
+    ):
+        raise RuntimeError("natural component state bank shape mismatch")
+    temporary_cuda = (
+        max(0, torch.cuda.max_memory_allocated(device) - allocated_before)
+        if device.type == "cuda"
+        else 0
+    )
+    return QwenNaturalComponentState(
+        attention_outputs=attention_outputs,
+        router_inputs=router_inputs,
+        moe_residuals=moe_residuals,
+        layer_outputs=layer_outputs,
+        router_logits=router_logits,
+        topk_ids=topk_ids,
+        topk_weights=topk_weights,
+        latency_seconds_measured=elapsed,
+        temporary_cuda_bytes_measured=temporary_cuda,
+        audit={
+            "information_regime": "diagnostic_future_state_oracle",
+            "deployable": False,
+            "token_count": len(token_ids),
+            "production_cache_sequence_length_before": boundary_length,
+            "production_cache_sequence_length_after": _cache_length(production_cache),
+            "production_cache_signature_unchanged": True,
+            "production_rng_unchanged": True,
+            "shadow_cache_identity_unchanged": True,
+            "shadow_cache_discarded": True,
+            "native_attention": True,
+            "native_rope": True,
+            "native_router": True,
+            "full_native_expert_access": True,
+            "attention_calls": ops.num_layers,
+            "attention_queries": ops.num_layers * len(token_ids),
+            "router_calls": ops.num_layers,
+            "expert_calls": ops.num_layers,
+            "cpu_gpu_synchronizations": sync_count,
+        },
+    )
+
+
 class QwenPseudoEmbeddingProbe:
     """Run exact Qwen attention/RoPE/router on disposable shadow residuals."""
 
@@ -320,6 +531,27 @@ class QwenPseudoEmbeddingProbe:
             or variant.midlayer_max_relative_embedding_delta_norm is not None
         ):
             raise ValueError("midlayer refresh settings require self-conditioning")
+        diagnostic_enabled = variant.diagnostic_state_patch != "none"
+        if diagnostic_enabled and (
+            variant.content != "provided_sequence"
+            or variant.attention != "causal"
+            or variant.expert_contribution != "native_expert_execution"
+        ):
+            raise ValueError(
+                "diagnostic state patches require causal provided content and native expert "
+                "execution"
+            )
+        if diagnostic_enabled and (correction_enabled or retrieval_enabled or midlayer_enabled):
+            raise ValueError(
+                "diagnostic state patches cannot be combined with correction, retrieval, or "
+                "midlayer refresh"
+            )
+        if variant.diagnostic_state_patch == "oracle_hidden_after_layer":
+            checkpoint = variant.diagnostic_hidden_after_layer
+            if checkpoint is None or not 0 <= checkpoint < ops.num_layers - 1:
+                raise ValueError("diagnostic hidden checkpoint must precede the final layer")
+        elif variant.diagnostic_hidden_after_layer is not None:
+            raise ValueError("diagnostic hidden checkpoint requires the hidden patch variant")
         self.model = model
         self.ops = ops
         self.variant = variant
@@ -543,6 +775,9 @@ class QwenPseudoEmbeddingProbe:
         retrieved_router_input: Tensor | None = None,
         retrieved_moe_residual: Tensor | None = None,
         retrieval_similarities: Tensor | None = None,
+        attention_output_override: Tensor | None = None,
+        moe_residual_override: Tensor | None = None,
+        shadow_state_sink: dict[str, dict[int, Tensor]] | None = None,
     ) -> tuple[Tensor, NativeRoute, Tensor, NativeRoute | None, Tensor]:
         layer = cast(Any, self.ops.layers[layer_idx])
         residual = hidden
@@ -553,6 +788,13 @@ class QwenPseudoEmbeddingProbe:
             past_key_values=shadow_cache,
             position_embeddings=position_embeddings,
         )
+        if attention_output_override is not None:
+            if attention_output_override.shape != attention.shape:
+                raise ValueError("oracle attention output shape does not match pseudo attention")
+            attention = attention_output_override.to(
+                device=attention.device,
+                dtype=attention.dtype,
+            )
         post_attention = residual + attention
         router_input = layer.post_attention_layernorm(post_attention)
         if router_input_delta is not None:
@@ -620,8 +862,21 @@ class QwenPseudoEmbeddingProbe:
                 retrieval_similarities,
                 mixing=self.variant.state_retrieval_mix,
             )
+        if moe_residual_override is not None:
+            if moe_residual_override.shape != contribution.shape:
+                raise ValueError("oracle MoE residual shape does not match pseudo residual")
+            contribution = moe_residual_override.to(
+                device=contribution.device,
+                dtype=contribution.dtype,
+            )
+        layer_output = post_attention + contribution
+        if shadow_state_sink is not None:
+            shadow_state_sink["attention_outputs"][layer_idx] = attention[0].detach().cpu()
+            shadow_state_sink["router_inputs"][layer_idx] = router_input[0].detach().cpu()
+            shadow_state_sink["moe_residuals"][layer_idx] = contribution[0].detach().cpu()
+            shadow_state_sink["layer_outputs"][layer_idx] = layer_output[0].detach().cpu()
         return (
-            post_attention + contribution,
+            layer_output,
             route,
             probabilities,
             executed_route,
@@ -721,7 +976,11 @@ class QwenPseudoEmbeddingProbe:
         retrieved_router_inputs: Tensor | None,
         retrieved_moe_residuals: Tensor | None,
         retrieval_similarities: Tensor | None,
+        oracle_component_state: QwenNaturalComponentState | None,
     ) -> tuple[
+        dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
@@ -750,8 +1009,31 @@ class QwenPseudoEmbeddingProbe:
         topk_weights: dict[int, Tensor] = {}
         executed_ids: dict[int, Tensor] = {}
         moe_residuals: dict[int, Tensor] = {}
+        shadow_state_sink: dict[str, dict[int, Tensor]] | None = (
+            {
+                "attention_outputs": {},
+                "router_inputs": {},
+                "moe_residuals": {},
+                "layer_outputs": {},
+            }
+            if oracle_component_state is not None
+            else None
+        )
         midlayer_audit: dict[str, object] = {}
         for layer_idx in range(self.ops.num_layers):
+            patch = self.variant.diagnostic_state_patch
+            attention_override = (
+                oracle_component_state.attention_outputs[:, layer_idx][None]
+                if oracle_component_state is not None
+                and patch in {"oracle_attention_output", "oracle_attention_and_moe"}
+                else None
+            )
+            moe_override = (
+                oracle_component_state.moe_residuals[:, layer_idx][None]
+                if oracle_component_state is not None
+                and patch in {"oracle_moe_residual", "oracle_attention_and_moe"}
+                else None
+            )
             (
                 hidden,
                 route,
@@ -783,6 +1065,9 @@ class QwenPseudoEmbeddingProbe:
                     else None
                 ),
                 retrieval_similarities,
+                attention_override,
+                moe_override,
+                shadow_state_sink,
             )
             logits[layer_idx] = route.logits.detach().float().cpu()
             probabilities[layer_idx] = full_probs.detach().cpu()
@@ -791,6 +1076,18 @@ class QwenPseudoEmbeddingProbe:
             if executed_route is not None:
                 executed_ids[layer_idx] = executed_route.ids.detach().cpu()
                 moe_residuals[layer_idx] = moe_residual[0].detach().cpu()
+            if (
+                oracle_component_state is not None
+                and patch == "oracle_hidden_after_layer"
+                and layer_idx == self.variant.diagnostic_hidden_after_layer
+            ):
+                hidden = oracle_component_state.layer_outputs[:, layer_idx][None].to(
+                    device=hidden.device,
+                    dtype=hidden.dtype,
+                )
+                if shadow_state_sink is None:
+                    raise AssertionError("diagnostic shadow-state sink is missing")
+                shadow_state_sink["layer_outputs"][layer_idx] = hidden[0].detach().cpu()
             if (
                 self.variant.midlayer_self_conditioning != "none"
                 and layer_idx == self.variant.midlayer_refresh_after_layer
@@ -806,6 +1103,9 @@ class QwenPseudoEmbeddingProbe:
             topk_weights,
             executed_ids,
             moe_residuals,
+            (shadow_state_sink["attention_outputs"] if shadow_state_sink is not None else {}),
+            shadow_state_sink["router_inputs"] if shadow_state_sink is not None else {},
+            shadow_state_sink["layer_outputs"] if shadow_state_sink is not None else {},
             midlayer_audit,
         )
 
@@ -1055,6 +1355,8 @@ class QwenPseudoEmbeddingProbe:
         retrieved_moe_residuals: Tensor | None = None,
         retrieval_similarities: Tensor | None = None,
         retrieval_state_source: str | None = None,
+        oracle_component_state: QwenNaturalComponentState | None = None,
+        oracle_component_source: str | None = None,
     ) -> QwenPseudoProbeResult:
         """Predict one H-window subset without mutating production state or RNG."""
         device = next(self.model.parameters()).device
@@ -1187,6 +1489,72 @@ class QwenPseudoEmbeddingProbe:
             )
         ):
             raise ValueError("retrieval inputs require an enabled state-retrieval variant")
+        diagnostic_patch = self.variant.diagnostic_state_patch
+        diagnostic_state_supplied = oracle_component_state is not None
+        if diagnostic_patch != "none" and not diagnostic_state_supplied:
+            raise ValueError("diagnostic state patch requires natural component state")
+        if oracle_component_state is not None:
+            if not oracle_component_source:
+                raise ValueError("natural component state requires a diagnostic source label")
+            if (
+                self.variant.content != "provided_sequence"
+                or self.variant.attention != "causal"
+                or self.variant.expert_contribution != "native_expert_execution"
+            ):
+                raise ValueError(
+                    "natural component diagnostics require causal provided content and native "
+                    "expert execution"
+                )
+            expected_component_shape = (
+                len(self.anchors),
+                self.ops.num_layers,
+                self.ops.hidden_size,
+            )
+            component_values = (
+                oracle_component_state.attention_outputs,
+                oracle_component_state.router_inputs,
+                oracle_component_state.moe_residuals,
+                oracle_component_state.layer_outputs,
+            )
+            if any(tuple(value.shape) != expected_component_shape for value in component_values):
+                raise ValueError("natural component state bank shape mismatch")
+            if tuple(oracle_component_state.router_logits.shape) != (
+                len(self.anchors),
+                self.ops.num_layers,
+                self.ops.num_experts,
+            ):
+                raise ValueError("natural component router-logit shape mismatch")
+            expected_topk_shape = (
+                len(self.anchors),
+                self.ops.num_layers,
+                self.ops.top_k,
+            )
+            if any(
+                tuple(value.shape) != expected_topk_shape
+                for value in (
+                    oracle_component_state.topk_ids,
+                    oracle_component_state.topk_weights,
+                )
+            ):
+                raise ValueError("natural component top-k shape mismatch")
+            if not all(bool(torch.isfinite(value).all()) for value in component_values):
+                raise ValueError("natural component state contains non-finite values")
+            if not bool(torch.isfinite(oracle_component_state.router_logits).all()) or not bool(
+                torch.isfinite(oracle_component_state.topk_weights).all()
+            ):
+                raise ValueError("natural component routes contain non-finite values")
+            if not all(
+                bool(oracle_component_state.audit.get(key, False))
+                for key in (
+                    "production_cache_signature_unchanged",
+                    "production_rng_unchanged",
+                    "shadow_cache_discarded",
+                    "full_native_expert_access",
+                )
+            ):
+                raise ValueError("natural component capture audit is incomplete")
+        elif oracle_component_source is not None:
+            raise ValueError("diagnostic component source requires natural component state")
         correction_coefficients = (
             self.variant.correction_anchor_coefficients
             if self.variant.correction_anchor_coefficients is not None
@@ -1233,6 +1601,9 @@ class QwenPseudoEmbeddingProbe:
         try:
             with torch.inference_mode():
                 midlayer_audit: dict[str, object] = {}
+                shadow_attention_outputs: dict[int, Tensor] = {}
+                shadow_router_inputs: dict[int, Tensor] = {}
+                shadow_layer_outputs: dict[int, Tensor] = {}
                 if next_token_logits is not None:
                     expected_embedding = self._expected_embedding(
                         next_token_logits.to(device),
@@ -1294,6 +1665,9 @@ class QwenPseudoEmbeddingProbe:
                         topk_weights,
                         shadow_executed_topk_ids,
                         shadow_moe_residuals,
+                        shadow_attention_outputs,
+                        shadow_router_inputs,
+                        shadow_layer_outputs,
                         midlayer_audit,
                     ) = self._causal_rollout(
                         production_cache,
@@ -1309,6 +1683,7 @@ class QwenPseudoEmbeddingProbe:
                         retrieved_router_inputs,
                         retrieved_moe_residuals,
                         retrieval_similarities,
+                        oracle_component_state,
                     )
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
@@ -1365,6 +1740,9 @@ class QwenPseudoEmbeddingProbe:
                 topk_weights,
                 shadow_executed_topk_ids,
                 shadow_moe_residuals,
+                shadow_attention_outputs,
+                shadow_router_inputs,
+                shadow_layer_outputs,
             )
         )
         temporary_cuda = (
@@ -1432,11 +1810,34 @@ class QwenPseudoEmbeddingProbe:
                     else 0
                 ),
                 midlayer_refreshes=(1 if self.variant.midlayer_self_conditioning != "none" else 0),
+                diagnostic_state_input_bytes=(
+                    sum(
+                        value.numel() * value.element_size()
+                        for value in (
+                            oracle_component_state.attention_outputs,
+                            oracle_component_state.router_inputs,
+                            oracle_component_state.moe_residuals,
+                            oracle_component_state.layer_outputs,
+                            oracle_component_state.router_logits,
+                            oracle_component_state.topk_ids,
+                            oracle_component_state.topk_weights,
+                        )
+                    )
+                    if oracle_component_state is not None
+                    else 0
+                ),
             ),
             audit={
-                "information_regime": "online_post_sample",
+                "information_regime": (
+                    "diagnostic_future_state_oracle"
+                    if diagnostic_state_supplied
+                    else "online_post_sample"
+                ),
+                "deployable": not diagnostic_state_supplied,
                 "deployable_inputs": (
-                    "sampling_step_logits_and_current_policy_production_cache_only"
+                    "diagnostic_exact_future_tokens_and_full_native_component_state"
+                    if diagnostic_state_supplied
+                    else "sampling_step_logits_and_current_policy_production_cache_only"
                     if boundary_expected
                     else (
                         "caller_supplied_anchor_token_ids_and_current_policy_production_cache"
@@ -1463,6 +1864,29 @@ class QwenPseudoEmbeddingProbe:
                     )
                 ),
                 "anchor_token_ids_supplied": anchor_token_ids is not None,
+                "diagnostic_state_patch": diagnostic_patch,
+                "diagnostic_hidden_after_layer": self.variant.diagnostic_hidden_after_layer,
+                "diagnostic_component_state_supplied": diagnostic_state_supplied,
+                "diagnostic_component_source": oracle_component_source,
+                "diagnostic_component_shape": (
+                    list(oracle_component_state.layer_outputs.shape)
+                    if oracle_component_state is not None
+                    else None
+                ),
+                "diagnostic_oracle_inputs_present": diagnostic_state_supplied,
+                "shadow_component_states_complete": (
+                    all(
+                        set(values) == set(range(self.ops.num_layers))
+                        for values in (
+                            shadow_attention_outputs,
+                            shadow_router_inputs,
+                            shadow_moe_residuals,
+                            shadow_layer_outputs,
+                        )
+                    )
+                    if diagnostic_state_supplied
+                    else None
+                ),
                 "provided_residual_bank": provided_residuals is not None,
                 "provided_residual_source": provided_residual_source,
                 "provided_residual_shape": (
@@ -1575,4 +1999,7 @@ class QwenPseudoEmbeddingProbe:
             },
             shadow_executed_topk_ids=shadow_executed_topk_ids,
             shadow_moe_residuals=shadow_moe_residuals,
+            shadow_attention_outputs=shadow_attention_outputs,
+            shadow_router_inputs=shadow_router_inputs,
+            shadow_layer_outputs=shadow_layer_outputs,
         )

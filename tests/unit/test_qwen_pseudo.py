@@ -16,6 +16,7 @@ from pseudoroute.benchmark.prefetch import (
 from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
     QwenPseudoVariant,
+    capture_natural_qwen_components,
 )
 from pseudoroute.benchmark.subset_closed_loop import (
     _cache_mutation_signature,
@@ -533,3 +534,133 @@ def test_provided_residual_probe_rejects_wrong_shape_or_missing_source() -> None
             current_token_id=3,
             provided_residuals=torch.zeros((2, 2, 32)),
         )
+
+
+def test_natural_component_capture_is_exact_copy_on_write_and_rng_read_only() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    cache = _prefill(model)
+    signature = _cache_mutation_signature(cache)
+    rng = torch.random.get_rng_state().clone()
+    natural = capture_natural_qwen_components(model, ops, cache, (4, 5))
+    assert natural.attention_outputs.shape == (2, 2, 32)
+    assert natural.router_inputs.shape == (2, 2, 32)
+    assert natural.moe_residuals.shape == (2, 2, 32)
+    assert natural.layer_outputs.shape == (2, 2, 32)
+    assert natural.router_logits.shape == (2, 2, 4)
+    assert natural.topk_ids.shape == (2, 2, 2)
+    assert natural.topk_weights.shape == (2, 2, 2)
+    assert natural.audit["production_cache_signature_unchanged"] is True
+    assert natural.audit["production_rng_unchanged"] is True
+    assert natural.audit["full_native_expert_access"] is True
+    assert natural.audit["deployable"] is False
+    assert _cache_mutation_signature(cache) == signature
+    assert torch.equal(torch.random.get_rng_state(), rng)
+
+
+def test_unpatched_exact_future_shadow_matches_native_component_capture() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    cache = _prefill(model)
+    natural = capture_natural_qwen_components(model, ops, cache, (4, 5))
+    result = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "exact_future_unpatched",
+            "provided_sequence",
+            "causal",
+            "native_expert_execution",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        cache,
+        sampled_next_token_id=4,
+        current_token_id=3,
+        anchor_token_ids=(4, 5),
+        execution_subset_source="full_native_topk_prefill_access",
+        oracle_component_state=natural,
+        oracle_component_source="current_policy_copy_on_write_full_native_future",
+    )
+    for layer in range(ops.num_layers):
+        assert torch.allclose(result.raw_router_logits[layer], natural.router_logits[:, layer])
+        assert torch.allclose(
+            result.shadow_attention_outputs[layer], natural.attention_outputs[:, layer]
+        )
+        assert torch.allclose(result.shadow_router_inputs[layer], natural.router_inputs[:, layer])
+        assert torch.allclose(result.shadow_moe_residuals[layer], natural.moe_residuals[:, layer])
+        assert torch.allclose(result.shadow_layer_outputs[layer], natural.layer_outputs[:, layer])
+    assert result.audit["diagnostic_component_state_supplied"] is True
+    assert result.audit["shadow_component_states_complete"] is True
+    assert result.audit["deployable"] is False
+
+
+@pytest.mark.parametrize(
+    ("patch", "checkpoint"),
+    [
+        ("oracle_attention_output", None),
+        ("oracle_moe_residual", None),
+        ("oracle_attention_and_moe", None),
+        ("oracle_hidden_after_layer", 0),
+    ],
+)
+def test_diagnostic_component_patch_uses_declared_native_state(
+    patch: str,
+    checkpoint: int | None,
+) -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    cache = _prefill(model)
+    natural = capture_natural_qwen_components(model, ops, cache, (4, 5))
+    execution_subsets = {
+        layer: tuple(
+            expert
+            for expert in range(ops.num_experts)
+            if expert not in set(natural.topk_ids[:, layer].reshape(-1).tolist())
+        )[: ops.top_k]
+        for layer in range(ops.num_layers)
+    }
+    if any(len(subset) < ops.top_k for subset in execution_subsets.values()):
+        execution_subsets = {layer: tuple(range(ops.top_k)) for layer in range(ops.num_layers)}
+    result = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            f"diagnostic_{patch}",
+            "provided_sequence",
+            "causal",
+            "native_expert_execution",
+            diagnostic_state_patch=patch,  # type: ignore[arg-type]
+            diagnostic_hidden_after_layer=checkpoint,
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        cache,
+        sampled_next_token_id=4,
+        current_token_id=3,
+        anchor_token_ids=(4, 5),
+        execution_subsets=execution_subsets,
+        execution_subset_source="current_policy_previous_realized_window_subset",
+        oracle_component_state=natural,
+        oracle_component_source="current_policy_copy_on_write_full_native_future",
+    )
+    if patch in {"oracle_attention_output", "oracle_attention_and_moe"}:
+        for layer in range(ops.num_layers):
+            assert torch.equal(
+                result.shadow_attention_outputs[layer], natural.attention_outputs[:, layer]
+            )
+    if patch in {"oracle_moe_residual", "oracle_attention_and_moe"}:
+        for layer in range(ops.num_layers):
+            assert torch.equal(result.shadow_moe_residuals[layer], natural.moe_residuals[:, layer])
+    if patch == "oracle_hidden_after_layer":
+        assert checkpoint is not None
+        assert torch.equal(
+            result.shadow_layer_outputs[checkpoint], natural.layer_outputs[:, checkpoint]
+        )
+    assert result.audit["diagnostic_state_patch"] == patch
+    assert result.audit["production_cache_signature_unchanged"] is True
+    assert result.audit["production_rng_unchanged"] is True

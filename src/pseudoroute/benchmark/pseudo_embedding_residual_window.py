@@ -44,10 +44,12 @@ from pseudoroute.benchmark.pseudo_embedding_content_smoke import (
 )
 from pseudoroute.benchmark.pseudo_embedding_route import _source_model, _source_rows
 from pseudoroute.benchmark.qwen_pseudo import (
+    DiagnosticStatePatch,
     ExpertContribution,
     MidlayerSelfConditioning,
     PseudoAttention,
     PseudoContent,
+    QwenNaturalComponentState,
     QwenPseudoEmbeddingProbe,
     QwenPseudoProbeResult,
     QwenPseudoVariant,
@@ -57,6 +59,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
     _restore_rng,
     _rng_equal,
     _rng_snapshot,
+    capture_natural_qwen_components,
 )
 from pseudoroute.benchmark.runner import (
     _encode_saved_rendered_prompt,
@@ -506,6 +509,8 @@ def _probe_for_spec(
     midlayer_self_conditioning: MidlayerSelfConditioning = "none",
     midlayer_refresh_after_layer: int | None = None,
     midlayer_max_relative_embedding_delta_norm: float | None = None,
+    diagnostic_state_patch: DiagnosticStatePatch = "none",
+    diagnostic_hidden_after_layer: int | None = None,
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -565,6 +570,8 @@ def _probe_for_spec(
             midlayer_self_conditioning,
             midlayer_refresh_after_layer,
             midlayer_max_relative_embedding_delta_norm,
+            diagnostic_state_patch,
+            diagnostic_hidden_after_layer,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -760,6 +767,69 @@ def _residual_statistics(residual: Tensor, router_input: Tensor) -> tuple[Tensor
     return norms.cpu(), cosine.cpu()
 
 
+def component_state_alignment(
+    result: QwenPseudoProbeResult,
+    natural: QwenNaturalComponentState,
+) -> tuple[Tensor, Tensor, Tensor]:
+    """Return state cosines, centered-logit cosines, and natural-slot overlap."""
+    layer_order = range(natural.router_logits.shape[1])
+    shadow_states = (
+        torch.stack([result.shadow_attention_outputs[layer] for layer in layer_order], dim=1),
+        torch.stack([result.shadow_router_inputs[layer] for layer in layer_order], dim=1),
+        torch.stack([result.shadow_moe_residuals[layer] for layer in layer_order], dim=1),
+        torch.stack([result.shadow_layer_outputs[layer] for layer in layer_order], dim=1),
+    )
+    natural_states = (
+        natural.attention_outputs,
+        natural.router_inputs,
+        natural.moe_residuals,
+        natural.layer_outputs,
+    )
+    state_cosines = torch.stack(
+        [
+            torch.nn.functional.cosine_similarity(
+                shadow.float(),
+                reference.detach().float().cpu(),
+                dim=-1,
+            )
+            for shadow, reference in zip(shadow_states, natural_states, strict=True)
+        ]
+    )
+    pseudo_logits = torch.stack(
+        [result.raw_router_logits[layer] for layer in layer_order], dim=1
+    ).float()
+    natural_logits = natural.router_logits.detach().float().cpu()
+    centered_pseudo = pseudo_logits - pseudo_logits.mean(dim=-1, keepdim=True)
+    centered_natural = natural_logits - natural_logits.mean(dim=-1, keepdim=True)
+    centered_logit_cosines = torch.nn.functional.cosine_similarity(
+        centered_pseudo,
+        centered_natural,
+        dim=-1,
+    )
+    pseudo_ids = torch.stack([result.pseudo_topk_ids[layer] for layer in layer_order], dim=1)
+    natural_ids = natural.topk_ids.detach().cpu()
+    natural_slot_overlap = (
+        (natural_ids.unsqueeze(-1) == pseudo_ids.unsqueeze(-2)).any(dim=-1).float().mean(dim=-1)
+    )
+    return state_cosines, centered_logit_cosines, natural_slot_overlap
+
+
+def oracle_subset_jaccard(
+    active: dict[int, tuple[int, ...]],
+    natural: QwenNaturalComponentState,
+    *,
+    budget: int = BUDGET,
+) -> Tensor:
+    """Compare the committed B32 subset with exact full-expert future utility."""
+    probabilities = natural.router_logits.detach().float().cpu().softmax(dim=-1)
+    values: list[float] = []
+    for layer in range(probabilities.shape[1]):
+        oracle = set(_top_n(probabilities[:, layer].sum(dim=0), budget))
+        candidate = set(active[layer])
+        values.append(len(oracle & candidate) / len(oracle | candidate))
+    return torch.tensor(values, dtype=torch.float32)
+
+
 def run_policy_sample(
     config: dict[str, Any],
     suite: Any,
@@ -788,6 +858,9 @@ def run_policy_sample(
     midlayer_self_conditioning: MidlayerSelfConditioning = "none",
     midlayer_refresh_after_layer: int | None = None,
     midlayer_max_relative_embedding_delta_norm: float | None = None,
+    capture_natural_component_state: bool = False,
+    diagnostic_state_patch: DiagnosticStatePatch = "none",
+    diagnostic_hidden_after_layer: int | None = None,
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -796,6 +869,18 @@ def run_policy_sample(
     route_tokens = min(route_token_cap, len(source_tokens))
     if route_tokens < HORIZON or inputs["input_ids"].shape[1] < HORIZON:
         raise ValueError("residual-window replay requires at least eight prompt and output tokens")
+    if diagnostic_state_patch != "none" and not capture_natural_component_state:
+        raise ValueError("diagnostic state patch requires natural component capture")
+    if capture_natural_component_state and (
+        not shadow_expert_execution
+        or spec.role != "pseudo"
+        or spec.content != "exact_future_causal"
+        or spec.residual != "zero"
+        or spec.selection != "first_four_anchor_core_plus_history_fill"
+    ):
+        raise ValueError(
+            "natural component diagnostics require the frozen exact-future causal native path"
+        )
     retrieval_enabled = state_retrieval_mode != "none"
     if retrieval_enabled != (state_retrieval_target != "none") or retrieval_enabled != (
         state_retrieval_mix != "none"
@@ -883,16 +968,26 @@ def run_policy_sample(
         midlayer_self_conditioning=midlayer_self_conditioning,
         midlayer_refresh_after_layer=midlayer_refresh_after_layer,
         midlayer_max_relative_embedding_delta_norm=(midlayer_max_relative_embedding_delta_norm),
+        diagnostic_state_patch=diagnostic_state_patch,
+        diagnostic_hidden_after_layer=diagnostic_hidden_after_layer,
     )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
     probe_costs: list[dict[str, object]] = []
+    oracle_component_capture_costs: list[dict[str, object]] = []
     retrieval_costs: list[dict[str, object]] = []
     audits: list[dict[str, object]] = []
     boundaries: list[int] = []
     subsets: list[Tensor] = []
     pseudo_logits: list[Tensor] = []
     pseudo_probabilities: list[Tensor] = []
+    oracle_component_router_logits: list[Tensor] = []
+    oracle_component_topk_ids: list[Tensor] = []
+    oracle_component_topk_weights: list[Tensor] = []
+    component_state_cosines: list[Tensor] = []
+    centered_router_logit_cosines: list[Tensor] = []
+    pseudo_oracle_topk_overlaps: list[Tensor] = []
+    planning_subset_oracle_jaccards: list[Tensor] = []
     residual_norms: list[Tensor] = []
     residual_cosines: list[Tensor] = []
     residual_digests: list[str] = []
@@ -914,6 +1009,7 @@ def run_policy_sample(
         transformed = residual_bank_variant(residual_bank, spec.residual or "zero")
         planning_residual = transformed
         result: QwenPseudoProbeResult | None = None
+        natural_component_state: QwenNaturalComponentState | None = None
         if spec.role == "oracle":
             future, audit = _natural_lookahead(
                 model,
@@ -955,6 +1051,29 @@ def run_policy_sample(
                 anchor_ids = continuation_plan.anchor_token_ids
             else:
                 anchor_ids = _anchor_ids(spec, boundary, prompt_tokens, source_tokens)
+            if capture_natural_component_state:
+                if anchor_ids is None or len(anchor_ids) != HORIZON:
+                    raise RuntimeError(
+                        "natural component diagnostic requires eight exact future anchors"
+                    )
+                natural_component_state = capture_natural_qwen_components(
+                    model,
+                    ops,
+                    cache,
+                    anchor_ids,
+                )
+                oracle_component_capture_costs.append(
+                    {
+                        "boundary": boundary,
+                        "latency_seconds_measured": (
+                            natural_component_state.latency_seconds_measured
+                        ),
+                        "temporary_cuda_bytes_measured": (
+                            natural_component_state.temporary_cuda_bytes_measured
+                        ),
+                        **natural_component_state.audit,
+                    }
+                )
             retrieval: TokenAlignedStateRetrieval | None = None
             if retrieval_enabled:
                 if anchor_ids is None:
@@ -1051,8 +1170,32 @@ def run_policy_sample(
                     if retrieval is not None
                     else None
                 ),
+                oracle_component_state=natural_component_state,
+                oracle_component_source=(
+                    "current_policy_copy_on_write_full_native_future"
+                    if natural_component_state is not None
+                    else None
+                ),
             )
             active = candidate_subsets(result, history, spec.selection)
+            if natural_component_state is not None:
+                state_cosines, logit_cosines, topk_overlaps = component_state_alignment(
+                    result,
+                    natural_component_state,
+                )
+                component_state_cosines.append(state_cosines)
+                centered_router_logit_cosines.append(logit_cosines)
+                pseudo_oracle_topk_overlaps.append(topk_overlaps)
+                planning_subset_oracle_jaccards.append(
+                    oracle_subset_jaccard(active, natural_component_state)
+                )
+                oracle_component_router_logits.append(
+                    natural_component_state.router_logits.detach().float().cpu()
+                )
+                oracle_component_topk_ids.append(natural_component_state.topk_ids.detach().cpu())
+                oracle_component_topk_weights.append(
+                    natural_component_state.topk_weights.detach().float().cpu()
+                )
             if shadow_expert_execution:
                 planning_residual = torch.stack(
                     [result.shadow_moe_residuals[layer] for layer in range(ops.num_layers)],
@@ -1089,6 +1232,11 @@ def run_policy_sample(
                     else None,
                     "context_continuation": (
                         asdict(continuation_plan) if continuation_plan is not None else None
+                    ),
+                    "oracle_component_capture": (
+                        natural_component_state.audit
+                        if natural_component_state is not None
+                        else None
                     ),
                 }
             )
@@ -1197,6 +1345,18 @@ def run_policy_sample(
         tensors["pseudo_pre_topk_probabilities"] = torch.stack(pseudo_probabilities)
     if shadow_executed_ids:
         tensors["shadow_executed_topk_ids"] = torch.stack(shadow_executed_ids)
+    if oracle_component_router_logits:
+        tensors.update(
+            {
+                "oracle_component_router_logits": torch.stack(oracle_component_router_logits),
+                "oracle_component_topk_ids": torch.stack(oracle_component_topk_ids),
+                "oracle_component_topk_weights": torch.stack(oracle_component_topk_weights),
+                "component_state_cosines": torch.stack(component_state_cosines),
+                "centered_router_logit_cosines": torch.stack(centered_router_logit_cosines),
+                "pseudo_oracle_topk_overlaps": torch.stack(pseudo_oracle_topk_overlaps),
+                "planning_subset_oracle_jaccards": torch.stack(planning_subset_oracle_jaccards),
+            }
+        )
     row: dict[str, object] = {
         "schema_version": 1,
         "state": "complete",
@@ -1229,6 +1389,7 @@ def run_policy_sample(
         "boundaries": boundaries,
         "metrics": metrics,
         "probe_costs": probe_costs,
+        "oracle_component_capture_costs": oracle_component_capture_costs,
         "retrieval_costs": retrieval_costs,
         "cache_rng_audits": audits,
         "prompt_capture_audit": {
@@ -1251,6 +1412,16 @@ def run_policy_sample(
         "midlayer_self_conditioning": midlayer_self_conditioning,
         "midlayer_refresh_after_layer": midlayer_refresh_after_layer,
         "midlayer_max_relative_embedding_delta_norm": (midlayer_max_relative_embedding_delta_norm),
+        "capture_natural_component_state": capture_natural_component_state,
+        "diagnostic_state_patch": diagnostic_state_patch,
+        "diagnostic_hidden_after_layer": diagnostic_hidden_after_layer,
+        "component_state_metric_order": [
+            "attention_output_cosine",
+            "router_input_cosine",
+            "moe_residual_cosine",
+            "decoder_layer_output_cosine",
+        ],
+        "component_swaps_deployable": False if capture_natural_component_state else None,
         "context_continuation_enabled": continuation_enabled,
         "final_state_history_tokens": len(state_history_token_ids),
         "source_v17_row_sha256": sha256_json(source),
