@@ -1224,3 +1224,57 @@ unchanged.
 **Migration required:** Any additional row, token-cap change, resident budget,
 cache policy, overlap schedule, quantization, model revision, dataset, NVMe
 path, or multi-GPU configuration requires a separately frozen amendment.
+## D-20260803-048 — Stop the real-offload pseudo candidate after identity failure and no speedup
+
+**Status:** accepted
+
+**Context:** D-20260803-047 froze a two-row single-A100 comparison of
+traditional exact native-top-8 offloading and
+`natural_top8_intersection_zero_missing_h8_b32`. The implementation moved all
+57,982,058,496 routed-expert bytes to pinned CPU memory, removed full CUDA
+expert parameters, allocated 14,495,514,624 bytes of B=32 CUDA slots, performed
+actual H2D copies, and measured transfer/stall with CUDA events. An initial
+candidate run exposed sensitivity to the expert GEMM batching order. The engine
+was corrected to reproduce Qwen's top-k-position-major native batching,
+including zero-weight rows for resident experts, and proportional bitwise CUDA
+tests passed. Candidate trajectories still diverged, indicating that
+full-resident versus offloaded BF16 state differences were amplified by router
+and subset decisions rather than a missing-weight load.
+
+**Decision:** Record
+**STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE** for only the two-row
+Qwen/GSM8K H=8,B=32 engineering scope. Traditional offload preserved frozen
+vanilla tokens and answers 2/2. The candidate answered 2/2 and had zero
+production expert misses, but preserved its frozen mask-only token trajectory
+0/2, with first divergences at tokens 4 and 2. Aggregate post-prefill decode
+throughput was 0.509055 forwards/s for traditional and 0.503535 for the
+candidate: 0.989157x, or -1.084%. Actual H2D bytes fell 28.770% and CUDA-event
+transfer time fell 31.386%, but no runtime speedup was measured.
+
+**Alternatives considered:** Treat two correct answers as an accuracy GO,
+discard divergent rows, silently loosen exact identity, rerun the recovered
+263-token row, compare raw generated tokens/s despite different trajectory
+lengths, infer speedup from H2D reduction, change B/H or sample IDs after
+seeing results, or add overlap/fusion without a new protocol.
+
+**Consequences:** The completed measurement and the failed identity gate are
+both retained. Four actual rows, two smoke rows, physical memory audits,
+checksummed resume, and the 18-entry manifest validate. Two failed markers and
+two diagnostic rows remain provenance; one completed row is explicitly
+recovered from its checksum-valid diagnostic. All reported output/runtime/H2D
+values are measured; legacy candidate transfer estimates remain simulated.
+This Python runner is deliberately unoverlapped and instrumented, so the
+negative speed result is implementation-specific and does not prove an
+optimized offloader cannot improve.
+
+**Experiments affected:** Only
+`qwen_real_offload_speed_pilot_v1`. Prior mask-only accuracy, hard-oracle,
+route-level, simulated-transfer, trained-model, and TinyMoE runtime conclusions
+remain unchanged.
+
+**Migration required:** Preserve the two IDs, AB/BA order, token caps, raw rows,
+diagnostics, failed markers, fingerprints, and STOP/PIVOT decision. Any
+additional samples, tolerance-based identity criterion, fused expert kernel,
+overlap schedule, prefill policy, B/H change, quantization, NVMe/NVLink path,
+model/dataset revision, or production claim requires a separately frozen
+amendment.

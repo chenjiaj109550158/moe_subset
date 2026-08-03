@@ -77,3 +77,18 @@ The amended frozen sample-manifest SHA-256 is
 `aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819`.
 Both are tested and committed before any model smoke or measured offload row.
 
+## Final result
+
+The completed two-row pilot measured 0.509055 post-prefill forwards/s for
+traditional exact-top-8 offload and 0.503535 forwards/s for the H=8/B=32
+candidate, a 0.989157x ratio (-1.084%). Actual H2D bytes decreased 28.770% and
+CUDA-event transfer time decreased 31.386%; candidate production misses were
+zero. Traditional generation matched frozen vanilla exactly 2/2. Candidate
+answers were correct 2/2, but mask-only exact identity failed 0/2, at first
+divergence tokens 4 and 2.
+
+The focused decision is
+`STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE`. The result is true closed-loop
+generation with physical expert copies, not identity materialization or trace
+simulation. The measured speed result is specific to this unoverlapped,
+instrumented Python runner and two rows.

@@ -12,6 +12,11 @@ accuracy pilot is now complete at **PILOT_NARROW_WITH_ONE_ALLOWED_LOSS**.
 Its separately frozen same-eight true hard-routing-oracle amendment is complete
 at **PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING**, with 8/8 measured accuracy but
 only 0.524826 weighted exact-token agreement.
+The separately frozen two-row real Qwen expert-offload pilot is also complete.
+Traditional exact-top-8 offload preserved frozen vanilla tokens 2/2; the H=8,
+B=32 pseudo candidate reduced actual H2D by 28.770% but measured 0.989157x
+normalized decode throughput and failed mask-only exact identity 0/2. Its scoped
+decision is **STOP/PIVOT**.
 Earlier M11, trained-model, and subset-oracle artifacts remain complete and
 unchanged.
 
@@ -576,3 +581,51 @@ sample rows require explicit human authorization.
 ## Decisions needing human review
 
 None.
+## Real Qwen expert-offload speed pilot v1
+
+The pre-output config/sample fingerprints are
+`9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec` and
+`aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819`.
+The pilot used two frozen wave-one rows in AB/BA order, one A100-SXM4-80GB,
+BF16, 48 routed layers, 128 experts/layer, native top-8, and 32 CUDA expert
+slots/layer. The 57,982,058,496-byte routed-expert store was pinned CPU memory;
+the CUDA slot capacity was 14,495,514,624 bytes. Setup extraction was measured
+separately and excluded from inference throughput.
+
+- Traditional per-token exact-top-8 LRU offload generated 490 tokens across two
+  rows, scored 2/2, and preserved frozen vanilla tokens 2/2. Aggregate
+  post-prefill decode throughput was 0.509055 forwards/s.
+- `natural_top8_intersection_zero_missing_h8_b32` generated 470 tokens,
+  scored 2/2, and had zero production expert misses, but preserved the frozen
+  mask-only trajectory 0/2; first token divergences were 4 and 2.
+- Candidate throughput was 0.503535 forwards/s, or 0.989157x traditional
+  (-1.084%). Actual H2D fell from 584,558,051,328 to 416,377,995,264 bytes
+  (-28.770%), and CUDA-event transfer time fell 31.386%. Transfer reduction did
+  not become runtime speedup in this unoverlapped instrumented Python runner.
+- All four rows are true closed-loop generation with actual CPU-to-CUDA copies;
+  zero are identity-materialized. Structural validation passes row count,
+  checksums, pinned sources, B=32 slots, removed full CUDA expert parameters,
+  lossless identity, and candidate zero-production-miss audits.
+- Two failed markers from the initial strict-identity attempts and their
+  diagnostics are retained. One completed measurement was checksum-recovered
+  from its atomic diagnostic instead of being rerun.
+
+Focused decision: **STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE**. This is not a
+full-dataset accuracy or production speedup claim. Artifacts and the measured/
+simulated partition are in
+`artifacts/qwen_real_offload_speed_pilot_v1/`; the artifact-manifest file
+SHA-256 is
+`3704e8d3bbb7c4a8f7c8eebe39ea7275214668365c4c9547548a2bfbacfd8ccf`.
+
+## Real-offload exact checks
+
+Recorded 2026-08-03 UTC on Python 3.14.6, PyTorch 2.13.0+cu130,
+Transformers 5.14.1, and one A100-SXM4-80GB.
+
+- Artifact validator: PASS; four actual rows, two smoke rows, 18 manifest
+  entries, retained failure provenance, checksum resume, and terminal
+  `STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE`.
+- `python -m pytest -ra`: PASS; 261 passed, 3 expected skips in 12.37s.
+- `python -m ruff check .`: PASS.
+- `python -m ruff format --check .`: PASS; 243 files formatted.
+- `python -m mypy src/pseudoroute`: PASS; no issues in 119 source files.

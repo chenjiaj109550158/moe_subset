@@ -960,6 +960,40 @@ def aggregate() -> dict[str, object]:
         summaries[CANDIDATE]["aggregate_post_prefill_decode_forwards_per_second_measured"],
     )
     speedup = candidate_rate / lossless_rate
+    lossless_h2d = int(cast(Any, summaries[LOSSLESS]["actual_h2d_bytes"]))
+    candidate_h2d = int(cast(Any, summaries[CANDIDATE]["actual_h2d_bytes"]))
+    h2d_reduction = 1 - candidate_h2d / lossless_h2d
+    lossless_transfer = float(cast(Any, summaries[LOSSLESS]["cuda_event_transfer_seconds"]))
+    candidate_transfer = float(cast(Any, summaries[CANDIDATE]["cuda_event_transfer_seconds"]))
+    transfer_time_reduction = 1 - candidate_transfer / lossless_transfer
+    lossless_accuracy = int(cast(Any, summaries[LOSSLESS]["correct_rows"])) / int(
+        cast(Any, summaries[LOSSLESS]["rows"])
+    )
+    candidate_accuracy = int(cast(Any, summaries[CANDIDATE]["correct_rows"])) / int(
+        cast(Any, summaries[CANDIDATE]["rows"])
+    )
+    per_sample = [
+        {
+            "sample_id": sample_id,
+            "policies": {
+                policy: {
+                    "generated_tokens": int(row["generated_tokens"]),
+                    "correct": bool(row["correct"]),
+                    "reference_exact_identity": bool(
+                        row["required_reference_exact_token_identity"]
+                    ),
+                    "first_token_divergence": row["first_token_divergence_from_required_reference"],
+                    "decode_forwards_per_second_measured": float(
+                        row["decode_forwards_per_second_measured"]
+                    ),
+                }
+                for policy in POLICIES
+                for row in grouped[policy]
+                if row["sample_id"] == sample_id
+            },
+        }
+        for sample_id in ("test-44", "test-632")
+    ]
     lossless_identity = all(
         bool(row["required_reference_exact_token_identity"]) for row in grouped[LOSSLESS]
     )
@@ -987,6 +1021,15 @@ def aggregate() -> dict[str, object]:
         "policy_rows": len(rows),
         "policy_summaries": summaries,
         "candidate_vs_lossless_decode_throughput_ratio_measured": speedup,
+        "candidate_vs_lossless_actual_h2d_reduction_measured": h2d_reduction,
+        "candidate_vs_lossless_cuda_event_transfer_time_reduction_measured": (
+            transfer_time_reduction
+        ),
+        "lossless_actual_h2d_bytes": lossless_h2d,
+        "candidate_actual_h2d_bytes": candidate_h2d,
+        "lossless_task_accuracy_measured": lossless_accuracy,
+        "candidate_task_accuracy_measured": candidate_accuracy,
+        "per_sample": per_sample,
         "lossless_reference_exact_identity_gate_pass": lossless_identity,
         "candidate_reference_exact_identity_gate_pass": candidate_identity,
         "candidate_vs_lossless_decode_speedup_percent_measured": (speedup - 1) * 100,
@@ -1010,6 +1053,9 @@ def aggregate() -> dict[str, object]:
         OUTPUT / "decision.json",
         {
             "schema_version": 1,
+            "actual_h2d_reduction_measured": h2d_reduction,
+            "cuda_event_transfer_time_reduction_measured": transfer_time_reduction,
+            "task_accuracy_measured": {LOSSLESS: lossless_accuracy, CANDIDATE: candidate_accuracy},
             "state": "complete",
             "pilot_id": PILOT_ID,
             "focused_decision": decision,
@@ -1021,19 +1067,46 @@ def aggregate() -> dict[str, object]:
             "claim_limit": "not a full-dataset or production serving speedup claim",
         },
     )
+    candidate_divergences = ", ".join(
+        f"{row['sample_id']}: token {row['first_token_divergence_from_required_reference']}"
+        for row in grouped[CANDIDATE]
+    )
+    candidate_production_misses = sum(
+        int(
+            cast(dict[str, Any], row["actual_offload_metrics"])["phase_metrics"]["production"][
+                "cache_misses"
+            ]
+        )
+        for row in grouped[CANDIDATE]
+    )
     report = (
         "# Qwen real expert-offload speed pilot\n\n"
         f"Decision: **{decision}**. This is a two-row engineering result only.\n\n"
-        f"- Traditional exact-top-8 decode rate: {lossless_rate:.6f} forwards/s.\n"
-        f"- H=8/B=32 pseudo-subset decode rate: {candidate_rate:.6f} forwards/s.\n"
-        f"- Candidate / traditional measured ratio: {speedup:.6f}x "
-        f"({(speedup - 1) * 100:.3f}%).\n"
-        f"- Traditional exact-reference identity gate: {lossless_identity}.\n"
-        f"- Pseudo mask-only exact-reference identity gate: {candidate_identity}.\n"
+        "## Measured speed and transfer\n\n"
+        f"- Traditional exact-top-8: {lossless_rate:.6f} post-prefill forwards/s.\n"
+        f"- H=8/B=32 pseudo subset: {candidate_rate:.6f} post-prefill forwards/s.\n"
+        f"- Candidate / traditional: {speedup:.6f}x "
+        f"({(speedup - 1) * 100:.3f}%). No speedup was measured.\n"
+        f"- Actual H2D: {lossless_h2d:,} vs {candidate_h2d:,} bytes; "
+        f"candidate reduction {h2d_reduction * 100:.3f}%.\n"
+        f"- CUDA-event transfer time reduction: {transfer_time_reduction * 100:.3f}%.\n"
+        f"- Candidate production expert misses: {candidate_production_misses}.\n\n"
+        "## Closed-loop outputs\n\n"
+        f"- GSM8K accuracy: traditional {int(lossless_accuracy * 2)}/2; "
+        f"candidate {int(candidate_accuracy * 2)}/2. This is measured task accuracy.\n"
+        f"- Traditional frozen-vanilla exact identity: {lossless_identity} (2/2).\n"
+        f"- Candidate frozen mask-only exact identity: {candidate_identity} (0/2); "
+        f"first divergences were {candidate_divergences}.\n"
         f"- Actual closed-loop rows: {len(rows)}; identity-materialized rows: 0.\n\n"
-        "Runtime, task outputs, H2D bytes, and CUDA-event transfer/stall are measured. "
-        "The candidate's legacy route/transfer estimates remain simulated diagnostics. "
-        "No full-dataset, overlap, NVMe, NVLink, or production-serving claim is made.\n"
+        "## Physical and information boundary\n\n"
+        "- Full routed-expert weights were held in pinned CPU BF16 storage; CUDA held "
+        "32 expert slots per layer (25%). Every reported transfer was an actual CPU-to-CUDA "
+        "copy. The candidate used its own closed-loop context and had zero production misses.\n"
+        "- Runtime, outputs, H2D bytes, and CUDA-event transfer/stall are measured. "
+        "Legacy route/transfer estimates stored in candidate rows are simulated diagnostics only.\n"
+        "- This unoverlapped Python reference runner includes instrumentation overhead. "
+        "It does not measure NVMe, NVLink, multi-GPU, transfer/compute overlap, a fused serving "
+        "kernel, or full-dataset accuracy, and it cannot support a production speedup claim.\n"
     )
     (OUTPUT / "report.md").parent.mkdir(parents=True, exist_ok=True)
     write_json_atomic(OUTPUT / "report_payload.json", {"markdown": report})
@@ -1050,6 +1123,7 @@ def finalize() -> dict[str, object]:
         for path in OUTPUT.rglob("*")
         if path.is_file()
         and path.name != "artifact_manifest.json"
+        and path.name != "validation.json"
         and not path.name.endswith(".FAILED.json")
     )
     failures = sorted(path for path in OUTPUT.rglob("*.FAILED.json"))

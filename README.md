@@ -240,3 +240,25 @@ is sufficient. They must estimate required space first, retain room for generate
 traces/artifacts, pin revisions where possible, and record source fingerprints.
 Large downloads are cached outside version control and are never required by the
 default unit-test suite.
+## Real Qwen expert offloading
+
+The versioned `qwen_real_offload_speed_pilot_v1` implements actual
+Qwen3-MoE expert-weight offloading rather than trace simulation. Full packed
+routed-expert tensors are held in pinned CPU BF16 memory; each routed layer owns
+32 CUDA slots and a deterministic LRU map. Cache misses issue real asynchronous
+CPU-to-CUDA copies on a dedicated stream and record CUDA-event transfer and
+exposed-stall time. Traditional execution leaves the all-128 router unmasked
+and loads the exact native top-8 on demand. The pseudo candidate plans a hard
+top-32 subset every eight decoded tokens and forbids production misses.
+
+On the two predeclared GSM8K rows, traditional offload preserved frozen vanilla
+tokens and answers 2/2. The pseudo candidate also answered 2/2 and reduced actual
+H2D bytes by 28.770%, but its normalized measured decode rate was 0.989157x the
+traditional baseline and its trajectory differed from the frozen mask-only
+candidate 2/2. The focused decision is
+**STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE**. These are unoverlapped,
+instrumented single-A100 engineering measurements, not full-dataset accuracy or
+production-serving speedup evidence. See the
+[protocol](docs/qwen_real_offload_speed_pilot_v1.md),
+[report](artifacts/qwen_real_offload_speed_pilot_v1/report.md), and
+[decision](artifacts/qwen_real_offload_speed_pilot_v1/decision.json).

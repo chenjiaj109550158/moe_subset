@@ -566,3 +566,47 @@ Accuracy, token agreement, route coverage, NLL/perplexity, total generation
 runtime, and peak CUDA allocation are measured. Expert transfer reduction is
 simulated. This diagnostic is nondeployable, not a one-forward pseudo method,
 and cannot support a production speedup or full-dataset accuracy claim.
+## Real Qwen expert-offload speed pilot v1
+
+The immutable config and sample manifest are
+`configs/benchmark/qwen_real_offload_speed_pilot_v1.yaml` and
+`configs/benchmark/qwen_real_offload_speed_pilot_v1_samples.json`, at SHA-256
+`9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec` and
+`aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819`.
+All model, dataset, vanilla-row, and mask-only reference inputs are local and
+checksum-pinned; the runner does not download.
+
+Run or resume in the frozen order:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -m   pseudoroute.benchmark.qwen_real_offload_speed run --stage smoke --physical-gpu 0
+python -m pseudoroute.benchmark.qwen_real_offload_speed audit-smoke
+CUDA_VISIBLE_DEVICES=0 python -m   pseudoroute.benchmark.qwen_real_offload_speed run --stage actual --physical-gpu 0
+python -m pseudoroute.benchmark.qwen_real_offload_speed finalize
+python -m pseudoroute.benchmark.qwen_real_offload_speed validate
+```
+
+Rows are atomic and reused only after pilot, config, sample, stage, ID, policy,
+cap, serialization, and payload checksum validation. Full expert extraction is
+reported in `setup/` and excluded from inference throughput. Failed attempts
+are retained. An identity-failure diagnostic contains measured tokens, timing,
+H2D metrics, and its own checksum; the runner can recover it into an explicitly
+marked completed measurement without repeating GPU generation.
+
+The final root contains four actual closed-loop rows and two smoke rows.
+Traditional rows require exact frozen-vanilla identity. Candidate identity is a
+separately reported gate: both measured candidates remained correct but
+diverged from their frozen mask-only references. Validation requires actual
+H2D, pinned CPU sources, 32 CUDA slots/layer, no full expert parameter on CUDA,
+zero identity materialization, lossless identity, and zero candidate production
+misses. The artifact-manifest file SHA-256 is
+`3704e8d3bbb7c4a8f7c8eebe39ea7275214668365c4c9547548a2bfbacfd8ccf`;
+its internal payload SHA-256 is
+`44bb91376054f514766e8e2bf6ebba69c05e695c0208164218825681a429ff07`.
+
+Task outputs, exact-token identity, wall time, actual H2D bytes, cache events,
+and CUDA-event transfer/stall are measured. Legacy route/transfer estimates
+inside candidate rows are simulated diagnostics. The runner implements no
+transfer/compute overlap and includes research instrumentation overhead; it
+does not establish NVMe, NVLink, multi-GPU, fused-kernel, full-dataset, or
+production-serving behavior.
