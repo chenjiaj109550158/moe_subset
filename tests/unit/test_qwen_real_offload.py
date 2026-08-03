@@ -28,10 +28,11 @@ class _FakeExperts(nn.Module):
 
     def forward(self, hidden: Tensor, ids: Tensor, weights: Tensor) -> Tensor:
         result = torch.zeros_like(hidden)
-        for expert in ids.unique().tolist():
-            positions = (ids == int(expert)).nonzero(as_tuple=False)
-            token_indices = positions[:, 0]
-            topk_positions = positions[:, 1]
+        expert_mask = F.one_hot(ids, num_classes=4).permute(2, 1, 0)
+        expert_hit = torch.greater(expert_mask.sum(dim=(-1, -2)), 0).nonzero()
+        for expert_index in expert_hit:
+            expert = expert_index[0]
+            topk_positions, token_indices = torch.where(expert_mask[expert])
             gate, up = F.linear(hidden[token_indices], self.gate_up_proj[expert]).chunk(2, dim=-1)
             value = F.linear(self.act_fn(gate) * up, self.down_proj[expert])
             value = value * weights[token_indices, topk_positions, None]
@@ -83,12 +84,14 @@ def test_qwen_offload_round_trip_is_exact_and_measures_real_h2d() -> None:
     model = _FakeQwen(device="cuda")
     experts = model.model.layers[0].mlp.experts
     hidden = torch.tensor(
-        [[0.5, -0.25, 1.0], [-0.5, 0.75, 0.125]],
+        [[0.5, -0.25, 1.0], [-0.5, 0.75, 0.125], [0.2, -0.1, 0.8]],
         device="cuda",
         dtype=torch.bfloat16,
     )
-    ids = torch.tensor([[0, 1], [2, 3]], device="cuda")
-    weights = torch.tensor([[0.6, 0.4], [0.55, 0.45]], device="cuda", dtype=torch.bfloat16)
+    ids = torch.tensor([[0, 1], [2, 3], [1, 0]], device="cuda")
+    weights = torch.tensor(
+        [[0.6, 0.4], [0.55, 0.0], [0.0, 0.2]], device="cuda", dtype=torch.bfloat16
+    )
     expected = experts(hidden, ids, weights)
 
     engine = QwenExpertOffloadEngine(model, slots_per_layer=2)
@@ -102,10 +105,10 @@ def test_qwen_offload_round_trip_is_exact_and_measures_real_h2d() -> None:
     assert engine.no_full_expert_parameter_on_cuda
     assert engine.pinned_cpu_expert_bytes == engine.full_cpu_expert_bytes
     assert engine.gpu_expert_slot_capacity_bytes * 2 == engine.full_cpu_expert_bytes
-    assert metrics.h2d_bytes == engine.full_cpu_expert_bytes
-    assert metrics.cache_misses == 4
+    assert metrics.h2d_bytes * 4 == engine.full_cpu_expert_bytes * 3
+    assert metrics.cache_misses == 3
     assert metrics.phase_metrics["decode"].transfer_batches == 2
-    assert engine.resident_experts(0) == frozenset({2, 3})
+    assert engine.resident_experts(0) == frozenset({1, 2})
     assert engine.audit()["all_cpu_sources_pinned"] is True
 
 

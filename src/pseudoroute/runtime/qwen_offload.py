@@ -404,6 +404,8 @@ class QwenExpertOffloadEngine:
     ) -> Tensor:
         if hidden_states.ndim != 2:
             raise ValueError("Qwen offloaded experts require flat [tokens, hidden] input")
+        expert_mask = F.one_hot(top_k_index, num_classes=self.ops.num_experts)
+        expert_mask = expert_mask.permute(2, 1, 0)
         used = nonzero_expert_ids(top_k_index, top_k_weights)
         output = torch.zeros_like(hidden_states)
         for start in range(0, len(used), self.slots_per_layer):
@@ -411,15 +413,8 @@ class QwenExpertOffloadEngine:
             self._load_group(layer, group)
             slots = self.cuda_layers[layer]
             for expert in group:
-                positions = (top_k_index == expert).nonzero(as_tuple=False)
-                token_indices = positions[:, 0]
-                topk_positions = positions[:, 1]
+                topk_positions, token_indices = torch.where(expert_mask[expert])
                 selected_weights = top_k_weights[token_indices, topk_positions]
-                nonzero = selected_weights.ne(0)
-                if not bool(nonzero.any()):
-                    continue
-                token_indices = token_indices[nonzero]
-                selected_weights = selected_weights[nonzero]
                 slot = slots.expert_to_slot[expert]
                 current = hidden_states[token_indices]
                 gate, up = F.linear(current, slots.gate_up[slot]).chunk(2, dim=-1)

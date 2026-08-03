@@ -601,6 +601,40 @@ def _run_stages(
                     execution_git_head=revision,
                 )
             if not bool(row["required_reference_exact_token_identity"]):
+                failure_diagnostic: dict[str, object] = {
+                    "schema_version": 1,
+                    "state": "failed_identity_diagnostic",
+                    "pilot_id": PILOT_ID,
+                    "config_sha256": CONFIG_SHA256,
+                    "sample_manifest_sha256": SAMPLES_SHA256,
+                    "stage": stage,
+                    "row_index": row_index,
+                    "sample_id": reference["sample_id"],
+                    "policy": policy,
+                    "generated_token_ids": row["generated_token_ids"],
+                    "reference_token_ids": row["reference_token_ids"],
+                    "first_token_divergence_from_required_reference": row[
+                        "first_token_divergence_from_required_reference"
+                    ],
+                    "generated_tokens": row["generated_tokens"],
+                    "correct": row["correct"],
+                    "subset_trajectory_sha256": row.get("subset_trajectory_sha256"),
+                    "first_route_divergence": row.get("first_route_divergence"),
+                    "actual_offload_metrics": row["actual_offload_metrics"],
+                    "prefill_wall_seconds_measured": row["prefill_wall_seconds_measured"],
+                    "decode_wall_seconds_measured": row["decode_wall_seconds_measured"],
+                    "planning_wall_seconds_measured": row["planning_wall_seconds_measured"],
+                    "prefetch_wall_seconds_measured": row["prefetch_wall_seconds_measured"],
+                    "production_wall_seconds_measured": row["production_wall_seconds_measured"],
+                    "execution_git_head": revision,
+                    "pid": os.getpid(),
+                    "ppid": os.getppid(),
+                }
+                failure_diagnostic["failure_payload_sha256"] = sha256_json(failure_diagnostic)
+                diagnostic_path = _sample_path(stage, row_index, policy).with_name(
+                    f"{policy}.{os.getpid()}.DIAGNOSTIC.json"
+                )
+                write_json_atomic(diagnostic_path, failure_diagnostic)
                 raise RuntimeError(
                     f"real-offload output identity failed for {reference['sample_id']} {policy}"
                 )
