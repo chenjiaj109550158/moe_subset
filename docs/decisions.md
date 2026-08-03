@@ -1183,3 +1183,44 @@ fingerprints, paired 8/8 result, token divergences, and nondeployable scope.
 Additional rows, a different cap or operating point, learned/calibrated values,
 model/dataset changes, or a production offloading benchmark require a new
 predeclared protocol and explicit authorization.
+
+## D-20260803-047 — Freeze a paired two-row real Qwen expert-offload speed pilot
+
+**Status:** accepted
+
+**Context:** The user authorized implementation of actual expert-weight
+offloading and requested a small GSM8K speed comparison between traditional
+per-token exact routing and `natural_top8_intersection_zero_missing`. Prior
+Qwen transfer and stall values were simulations; the existing real runtime was
+TinyMoE-only and cannot serve as Qwen evidence.
+
+**Decision:** Before any new model output, freeze
+`qwen_real_offload_speed_pilot_v1` on the first two already-predeclared
+wave-one rows, `test-44` and `test-632`. Give both policies exactly 32 CUDA
+expert slots per layer. The traditional baseline executes unmasked natural
+top-8 with deterministic LRU loads. The candidate uses H=8/B=32 hard
+commitment and the frozen mass-preserving zero-missing pseudo residual. Require
+pinned bfloat16 CPU sources, actual CPU-to-CUDA copies, CUDA-event transfer and
+stall timing, atomic resume, and exact token agreement with the corresponding
+full-resident reference rows. Alternate AB/BA policy order across the two
+samples. Exclude model extraction and slot allocation from inference
+throughput but report them separately.
+
+**Alternatives considered:** Compare against an 8-slot traditional baseline,
+reuse simulated bytes as speed, include model load in decode throughput, choose
+short rows after observing runtime, add new GSM8K IDs, or claim overlap without
+implementing it.
+
+**Consequences:** This is a two-row engineering pilot on one A100 and its
+observed PCIe link. It may measure implementation-specific speed and actual
+transfer reduction, but it cannot establish full-dataset accuracy, general
+production speedup, NVMe behavior, multi-GPU/NVLink behavior, or
+transfer/compute-overlap gains.
+
+**Experiments affected:** Only the new real-offload pilot. All prior Qwen
+accuracy, route, hard-oracle, and simulated-transfer conclusions remain
+unchanged.
+
+**Migration required:** Any additional row, token-cap change, resident budget,
+cache policy, overlap schedule, quantization, model revision, dataset, NVMe
+path, or multi-GPU configuration requires a separately frozen amendment.

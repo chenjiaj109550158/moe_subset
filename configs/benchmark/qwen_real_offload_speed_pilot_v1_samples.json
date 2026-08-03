@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "pilot_id": "qwen_real_offload_speed_pilot_v1",
+  "selection": {
+    "source_manifest": "configs/benchmark/pseudo_mass_preserving_residual_accuracy_pilot_v1_samples.json",
+    "source_manifest_sha256": "ac1aeb3da4778d09628c2e3188fd524392ce253b9fc04b8c795c0312f82dadfe",
+    "source_partition": "closed_loop_wave_1",
+    "rule": "first_two_rows_in_predeclared_wave_one_order",
+    "accuracy_correctness_answer_runtime_or_policy_result_used_to_select_ids": false,
+    "replacement_after_execution": false
+  },
+  "samples": [
+    {
+      "partition": "closed_loop_wave_1",
+      "row_index": 44,
+      "sample_id": "test-44",
+      "sha256_rank": "0319517d5d3ce043565fa8868fc08f0a1db763d3232bf8819439c46a5966cd18",
+      "rendered_prompt_sha256": "62fa2b96bcd73c704a41f5c2e5ea40d6b845f706c4c152f1b18486d84066ec9a",
+      "target_sha256": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "source_v17_generated_tokens": 314,
+      "source_v17_correct": true,
+      "mask_only_candidate_generated_tokens": 331,
+      "mask_only_candidate_correct": true
+    },
+    {
+      "partition": "closed_loop_wave_1",
+      "row_index": 632,
+      "sample_id": "test-632",
+      "sha256_rank": "03257319b8083115c0a7817996362f3531656cca8f53cd2cae4a6cc0bacf9e35",
+      "rendered_prompt_sha256": "43d841ee9d0d6dc2e1135acd1955268d121aea06be20c8549849d2f6db6e1cd2",
+      "target_sha256": "811786ad1ae74adfdd20dd0372abaaebc6246e343aebd01da0bfc4c02bf0106c",
+      "source_v17_generated_tokens": 176,
+      "source_v17_correct": true,
+      "mask_only_candidate_generated_tokens": 187,
+      "mask_only_candidate_correct": true
+    }
+  ]
+}
+

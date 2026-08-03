@@ -1,0 +1,159 @@
+schema_version: 1
+pilot_id: qwen_real_offload_speed_pilot_v1
+status: protocol_frozen_before_any_real_offload_measurement
+artifact_root: artifacts/qwen_real_offload_speed_pilot_v1
+protocol_document: docs/qwen_real_offload_speed_pilot_v1.md
+sample_manifest: configs/benchmark/qwen_real_offload_speed_pilot_v1_samples.json
+
+authorization:
+  user_approved_real_offload_implementation_and_gsm8k_speed_pilot: true
+  approved_at_utc: "2026-08-03"
+  dataset_expansion_beyond_manifest: forbidden
+  network_downloads: forbidden
+
+source:
+  model_id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  model_revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  dataset_id: openai/gsm8k
+  dataset_config: main
+  dataset_split: test
+  dataset_revision: 740312add88f781978c0658806c59bc2815b9866
+  source_sample_manifest: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json
+  source_sample_manifest_sha256: 21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93
+  frozen_vanilla_rows: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl
+  frozen_vanilla_rows_sha256: 4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae
+  frozen_mask_only_candidate_root: artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual
+
+model:
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+  hidden_size: 2048
+  moe_intermediate_size: 768
+
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+  max_new_tokens: 512
+  prompt_rendering: exact_saved_v17_rendered_prompt
+  answer_parser: exact_v17_gsm8k_parser
+  stop_strings: exact_v17
+
+offload:
+  host_store: pinned_cpu_bfloat16
+  pinned_memory_required: true
+  gpu_slots_per_layer: 32
+  resident_fraction: 0.25
+  transfer_direction: cpu_to_cuda
+  transfer_stream: dedicated_cuda_stream
+  transfer_completion: current_stream_wait_event
+  speculative_transfer_compute_overlap: false
+  cache_replacement: deterministic_lru_ascending_expert_id_tie_break
+  reset_cache_before_each_sample_policy: true
+  setup_extraction_excluded_from_inference_throughput: true
+  setup_extraction_measured_separately: true
+
+policies:
+  lossless_dynamic_top8_lru_b32:
+    role: traditional_lossless_offload_baseline
+    router_scope: all_128_experts
+    executed_route: exact_native_top8
+    router_mask: none
+    on_cache_miss: load_exact_selected_expert_before_execution
+    resident_cache_budget_per_layer: 32
+    required_reference: frozen_v17_vanilla_exact_tokens
+  natural_top8_intersection_zero_missing_h8_b32:
+    role: deployable_calibration_free_pseudoroute_candidate
+    horizon: 8
+    subset_budget_per_layer: 32
+    content: sampled_unigram_full_continuation
+    content_fallback: recent_sequence_causal
+    subset_selection: first_four_anchor_core_plus_previous_route_history_fill
+    boundary_zero_shadow_expert_access: dynamic_lossless_native_top8
+    later_shadow_expert_access: natural_top8_intersection_with_current_subset
+    captured_natural_weights: preserve
+    missing_natural_mass: zero
+    substitute_experts: none
+    production_router_mask: outside_subset_negative_infinity
+    production_expert_miss: forbidden
+    required_reference: frozen_mask_only_candidate_exact_tokens
+
+execution:
+  mechanism_smoke:
+    row_index: 44
+    sample_id: test-44
+    max_new_tokens: 2
+    policies:
+      - lossless_dynamic_top8_lru_b32
+      - natural_top8_intersection_zero_missing_h8_b32
+    result_selects_samples_or_policy: false
+  measured:
+    sample_count: 2
+    policy_rows: 4
+    row_order:
+      - [test-44, lossless_dynamic_top8_lru_b32]
+      - [test-44, natural_top8_intersection_zero_missing_h8_b32]
+      - [test-632, natural_top8_intersection_zero_missing_h8_b32]
+      - [test-632, lossless_dynamic_top8_lru_b32]
+    repetitions_per_sample_policy: 1
+    atomic_json_rows: true
+    checksum_resume: true
+    retain_failed_markers: true
+    maximum_workers_per_physical_gpu: 1
+    network_downloads: false
+
+measurements:
+  measured:
+    - setup_wall_seconds
+    - pinned_cpu_expert_bytes
+    - gpu_expert_slot_capacity_bytes
+    - actual_h2d_expert_bytes
+    - actual_expert_loads_and_cache_hits
+    - cuda_event_transfer_seconds
+    - cuda_event_exposed_stall_seconds
+    - prefill_wall_seconds
+    - decode_wall_seconds_including_planning_and_transfers
+    - planning_wall_seconds
+    - production_compute_wall_seconds
+    - end_to_end_inference_wall_seconds
+    - generated_tokens_and_tokens_per_second
+    - peak_cuda_allocated_and_reserved_bytes
+    - exact_token_reference_agreement
+    - gsm8k_parsed_answer_and_correctness
+  not_measured:
+    - transfer_compute_overlap_speedup
+    - nvme_offload
+    - multi_gpu_nvlink_offload
+    - full_dataset_accuracy
+
+audits:
+  require_cpu_expert_source_tensors: true
+  require_pinned_cpu_expert_source_tensors: true
+  require_cuda_slot_tensors: true
+  require_no_full_expert_parameter_on_cuda_after_extraction: true
+  require_slot_capacity_equal_b32_per_layer: true
+  require_lossless_native_top8_no_mask: true
+  require_lossless_exact_reference_tokens: true
+  require_candidate_exact_mask_only_reference_tokens: true
+  require_candidate_one_causal_h8_pseudo_traversal_per_boundary: true
+  require_candidate_production_experts_resident_before_execution: true
+  require_cache_rng_and_shadow_invariants: true
+  require_actual_transfer_bytes_from_copy_operations: true
+  require_transfer_and_stall_timing_from_cuda_events: true
+  require_zero_identity_materialized_rows: true
+
+reporting:
+  conclusion_ceiling: TWO_ROW_ENGINEERING_PILOT
+  speedup_reference: lossless_dynamic_top8_lru_b32
+  primary_speed_metric: aggregate_decode_tokens_per_second_including_planning_and_h2d
+  secondary_speed_metric: aggregate_end_to_end_tokens_per_second_including_prefill
+  prohibit_claims:
+    - full_dataset_accuracy_preservation
+    - production_speedup_beyond_measured_hardware_and_two_rows
+    - transfer_compute_overlap
+    - nvme_or_multi_gpu_speedup
+
