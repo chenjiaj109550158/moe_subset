@@ -9,6 +9,9 @@ shifted self-conditioning v1 — remain complete with scoped **STOP/PIVOT**
 decisions. The subsequent current-context continuation v1 produced a positive
 four-row **DEVELOPMENT_ROUTE_SIGNAL**. Its separately frozen eight-row actual
 accuracy pilot is now complete at **PILOT_NARROW_WITH_ONE_ALLOWED_LOSS**.
+Its separately frozen same-eight true hard-routing-oracle amendment is complete
+at **PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING**, with 8/8 measured accuracy but
+only 0.524826 weighted exact-token agreement.
 Earlier M11, trained-model, and subset-oracle artifacts remain complete and
 unchanged.
 
@@ -351,6 +354,40 @@ universally best pseudo-content heuristic.
 
 Artifacts: `artifacts/pseudo_one_forward_accuracy_pilot_v1/`.
 
+## Matched-eight true hard routing-oracle amendment
+
+`pseudo_one_forward_hard_oracle_v1` was frozen and committed after the parent
+accuracy pilot, but before any hard-oracle output. Config SHA-256 is
+`60e03148a24ad16859ca21631a3644d4db6930b0bdaddc482060646b77e902b6`; it
+reuses the exact parent eight-row manifest at SHA-256
+`fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046`.
+
+- All eight rows are true Qwen hard closed-loop generation at `H=8,B=32`.
+  Each boundary naturally looks ahead from the hard policy's own context,
+  selects top-32 per-layer experts by summed future selected routing mass, and
+  masks outside-subset logits before native top-8 normalization.
+- Hard oracle and frozen same-row vanilla both scored 8/8. Paired
+  gains/losses/ties were 0/0/8; the fixed 10,000-resample paired bootstrap
+  difference interval was `[0,0]` on these eight rows.
+- The run is not identity materialization: weighted exact-token agreement was
+  0.524826, six of eight rows diverged, and the hard trajectories generated
+  2,120 tokens versus 2,101 frozen vanilla tokens.
+- Weighted route hit/selected mass were 0.946483/0.966458. Total measured
+  research-runner time was 7,706.46 seconds (0.2751 tokens/s). Simulated
+  transfer reduction was 0.766503; no offloading runtime or speedup was
+  measured.
+- Eight atomic checksum rows, checksum resume, cache/RNG lookahead restoration,
+  provenance, zero failure markers, and 19 manifest artifacts validate. The
+  artifact-manifest SHA-256 is
+  `336d97c416aba6a80ad205228667bbbde570378a872c5cf7bd707544ce98cc28`.
+
+The result is **PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING**. It is a
+nondeployable routing-information ceiling on this matched-eight Qwen/GSM8K
+scope, not full-dataset GO, not a one-extra-forward pseudo method, and not a
+revision of the parent pseudo-policy decision.
+
+Artifacts: `artifacts/pseudo_one_forward_hard_oracle_v1/`.
+
 ## Completed GPT-OSS/GSM8K hard scope
 
 `benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
@@ -435,6 +472,18 @@ predeclared pivot, such as quality-aware soft fallback or matched-budget
 closed-loop evaluation, and must not relabel this negative result.
 
 ## Exact check results
+
+Matched-eight hard-oracle amendment final checks recorded 2026-08-03 UTC on
+Python 3.14.6, PyTorch 2.13.0+cu130, Transformers 5.14.1, and one
+A100-SXM4-80GB.
+
+- Hard-oracle artifact validator: PASS; 8/8 actual hard closed-loop rows, 19
+  manifest artifacts, zero failed markers, checksum resume, and terminal
+  `complete/report_v1` `PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING`.
+- `python -m pytest -ra`: PASS; 227 passed, 3 expected skips in 11.60s.
+- `ruff check .`: PASS.
+- `ruff format --check .`: PASS; 222 files already formatted.
+- `mypy src/pseudoroute`: PASS; no issues in 113 source files.
 
 One-forward accuracy-pilot final checks recorded 2026-08-03 UTC on Python
 3.14.6, PyTorch 2.13.0+cu130, Transformers 5.14.1, and one

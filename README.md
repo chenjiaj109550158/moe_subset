@@ -168,6 +168,19 @@ dataset GO or runtime-speedup claim is allowed. See the
 [accuracy protocol](docs/pseudo_one_forward_accuracy_pilot_v1.md) and
 [report](artifacts/pseudo_one_forward_accuracy_pilot_v1/report.md).
 
+A separately versioned post-hoc amendment then measured the true routing-
+information hard oracle on the exact same eight rows. At every `H=8` boundary,
+it performs a natural full-expert lookahead from the hard policy's own current
+context, selects each layer's top-32 routed experts, and truly masks everything
+outside that subset during generation. It scored 8/8, matching frozen same-row
+vanilla with paired gains/losses/ties 0/0/8. This is not token identity: weighted
+exact-token agreement was 0.524826 and six of eight trajectories diverged.
+Weighted route hit/selected mass were 0.946483/0.966458. The scoped result is a
+nondeployable **PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING**; transfer reduction is
+simulated and the result does not change the parent pseudo-policy decision. See
+the [hard-oracle protocol](docs/pseudo_one_forward_hard_oracle_v1.md) and
+[report](artifacts/pseudo_one_forward_hard_oracle_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is

@@ -527,3 +527,42 @@ token agreement, route/mass coverage, NLL/perplexity, probe latency, total
 generation time, and peak CUDA memory are measured. Transfer is simulated.
 Future-exact content additionally performs natural autoregressive lookahead and
 is excluded from deployable one-forward and speedup claims.
+
+## Matched-eight Qwen/GSM8K hard routing-oracle amendment
+
+The post-hoc amendment is frozen in
+`configs/benchmark/pseudo_one_forward_hard_oracle_v1.yaml`, with SHA-256
+`60e03148a24ad16859ca21631a3644d4db6930b0bdaddc482060646b77e902b6`.
+It reuses the parent resolved sample manifest verbatim at SHA-256
+`fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046`.
+The artifact root is `artifacts/pseudo_one_forward_hard_oracle_v1`.
+
+Run or resume the sole offline GPU worker, then finalize and validate:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_hard_oracle run --gpu 0
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_one_forward_hard_oracle finalize
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_one_forward_hard_oracle validate
+```
+
+The runner writes one atomic checksum JSON per sample and skips only rows whose
+pilot/config/sample identity, policy, cap, state, and payload checksum all
+match. Failure markers are preserved. The completed root validates eight
+actual hard closed-loop rows, 19 manifest artifacts, checksum resume, and zero
+failure markers. Artifact-manifest SHA-256 is
+`336d97c416aba6a80ad205228667bbbde570378a872c5cf7bd707544ce98cc28`.
+
+At each boundary the oracle naturally rolls out from the hard policy's current
+context, restores or preserves the production cache and RNG, aggregates future
+selected routing weights, and selects deterministic per-layer top-32 subsets.
+Actual generation masks all other routed experts before native top-k and
+normalization. The model and dataset load in offline mode from the pinned cache;
+no vanilla rows are regenerated.
+
+Accuracy, token agreement, route coverage, NLL/perplexity, total generation
+runtime, and peak CUDA allocation are measured. Expert transfer reduction is
+simulated. This diagnostic is nondeployable, not a one-forward pseudo method,
+and cannot support a production speedup or full-dataset accuracy claim.

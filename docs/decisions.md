@@ -1126,3 +1126,60 @@ pairing, and nondeployable diagnostic as pilot evidence. Any combined selector,
 additional rows, different cap, learned/calibrated value, model/dataset change,
 or production offloading benchmark requires a separately frozen protocol and
 appropriate authorization.
+
+## D-20260803-046 — Retain matched-eight hard routing oracle as a diagnostic ceiling
+
+**Status:** accepted
+
+**Context:** After the completed one-forward accuracy pilot, the user requested
+the true hard routing-oracle accuracy on the same eight frozen Qwen/GSM8K rows.
+Before any oracle generation, a separately versioned post-hoc amendment pinned
+the existing row manifest, `H=8,B=32`, greedy v17 prompts/parser/512-token cap,
+policy semantics, paired reporting rule, and nondeployable claim boundary. At
+each boundary the oracle performs natural full-expert lookahead from the hard
+policy's own current context, sums future selected routing weights per layer,
+selects deterministic top-32 subsets, then actually masks outside-subset router
+logits before native top-8 selection and normalization.
+
+Hard oracle preserved all eight answers, matching frozen same-row vanilla at
+8/8 with paired gains/losses/ties 0/0/8 and a conditional eight-row paired
+bootstrap difference interval of `[0,0]`. It did not preserve the natural token
+trajectory: weighted exact-token agreement was 0.524826, six of eight samples
+diverged, and hard generation produced 2,120 tokens versus 2,101 frozen vanilla
+tokens. Weighted route hit and selected routing mass were 0.946483 and
+0.966458. Measured research-runner time was 7,706.46 seconds; simulated
+transfer reduction was 0.766503.
+
+**Decision:** Record **PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING** for only the
+matched-eight Qwen/GSM8K `H=8,B=32` scope. The perfect-routing-information
+ceiling preserved answer accuracy on this small sample, but it is not
+deployable, is not a one-extra-forward pseudo-embedding method, and does not
+establish full-dataset preservation or offloading speedup. It does not revise
+the parent `PILOT_NARROW_WITH_ONE_ALLOWED_LOSS` pseudo-policy decision.
+
+**Alternatives considered:** Treat future-exact pseudo content as the routing
+oracle, materialize vanilla identity rows, rerun vanilla, replace the frozen
+IDs or cap, use a vanilla future trajectory instead of the current hard policy
+context, infer runtime speedup from simulated transfer, or promote eight
+matched successes to full-dataset GO.
+
+**Consequences:** All eight rows are actual hard closed-loop generation and
+zero are identity-materialized. Cache/RNG lookahead restoration, current-policy
+context, hard-mask/native-router semantics, raw-row checksums, resume, row
+count, provenance, and the 19-artifact manifest validate with zero failure
+markers. Artifact-manifest SHA-256 is
+`336d97c416aba6a80ad205228667bbbde570378a872c5cf7bd707544ce98cc28`.
+Accuracy, token identity, route coverage, NLL/perplexity, peak allocation, and
+research-runner runtime are measured; transfer and its reduction are simulated.
+
+**Experiments affected:** Only `pseudo_one_forward_hard_oracle_v1` gains this
+matched-eight diagnostic. The parent one-forward accuracy pilot, context-
+continuation route signal, earlier one-forward `STOP/PIVOT`, executed-pseudo
+route `NARROW`, focused pseudo `STOP/PIVOT`, GPT hard-only `NARROW`, trained-
+model `STOP/PIVOT`, and M11 conclusions remain unchanged.
+
+**Migration required:** Preserve the frozen IDs, raw rows, config/sample
+fingerprints, paired 8/8 result, token divergences, and nondeployable scope.
+Additional rows, a different cap or operating point, learned/calibrated values,
+model/dataset changes, or a production offloading benchmark require a new
+predeclared protocol and explicit authorization.
