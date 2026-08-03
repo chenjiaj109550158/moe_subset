@@ -7,7 +7,8 @@ versioned calibration-free mechanism and one-forward state-correction analyses
 — including protected-anchor v2, token-aligned state retrieval v1, and mid-layer
 shifted self-conditioning v1 — remain complete with scoped **STOP/PIVOT**
 decisions. The subsequent current-context continuation v1 produced a positive
-four-row **DEVELOPMENT_ROUTE_SIGNAL**, without authorizing held-out or accuracy.
+four-row **DEVELOPMENT_ROUTE_SIGNAL**. Its separately frozen eight-row actual
+accuracy pilot is now complete at **PILOT_NARROW_WITH_ONE_ALLOWED_LOSS**.
 Earlier M11, trained-model, and subset-oracle artifacts remain complete and
 unchanged.
 
@@ -309,6 +310,47 @@ free generation, exact-token identity, NLL/perplexity, closed-loop runtime, or
 speedup was measured. Artifact-manifest SHA-256:
 `1ce50ae324605f7a9ac60e87242c37b9856c9e2db5a5e98879990864c4f854d9`.
 
+## One-forward Qwen/GSM8K accuracy pilot v1
+
+`pseudo_one_forward_accuracy_pilot_v1` froze config SHA-256
+`d9515855b897189fde9f36fba151af5467ebc93e46bbf09bb79ad5b39e5f10af`,
+sample-manifest SHA-256
+`fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046`,
+the eight `closed_loop_wave_1` IDs, policies, 512-token cap, paired gate, and
+execution order before any new accuracy output.
+
+- All 24 sample/policy rows use actual Qwen hard closed-loop generation at
+  `H=8,B=32`; outside-subset logits are masked, native top-8 normalization runs
+  after masking, and no row is identity-materialized.
+- Frozen v17 vanilla was reused at 8/8 and not regenerated. Recent-sequence and
+  sampled-unigram each scored 7/8 (0.875); the paired comparison was one gain,
+  one loss, and six ties. Both pass the predeclared one-question allowed-drop
+  gate, while neither reaches the strong 8/8 preservation signal.
+- Sampled-unigram improved aggregate route hit/selected mass from
+  0.730267/0.745076 to 0.757617/0.772934, but did not improve paired accuracy.
+  It recovered `test-1311` while losing `test-1264` relative to recent-
+  sequence.
+- Exact-future content scored 6/8 despite higher 0.783271/0.803592 route
+  coverage. It uses 1,960 full-expert natural lookahead calls across the pilot,
+  is nondeployable, and is a token-content diagnostic rather than a perfect
+  route oracle.
+- Aggregate route hit can be misleading after trajectory divergence: both
+  observed 512-token deployable failures had route hit above 0.94, while lower-
+  coverage paired policies answered those samples correctly.
+- Cache/RNG/shadow/information audits, 24 row payload checksums, atomic resume,
+  row counts, and the 50-artifact manifest validate with zero failure markers.
+  The artifact-manifest SHA-256 is
+  `12e9d371485b7375561f8f194fbdb6e3f1ea57fda02cddabfd12a17a408eef67`.
+- Accuracy, token agreement, routes, NLL/perplexity, probe cost, memory, and
+  research-runner generation time are measured. Expert transfer reduction is
+  simulated; production offloading runtime and speedup are not measured.
+
+The focused decision is **PILOT_NARROW_WITH_ONE_ALLOWED_LOSS**, capped at
+`PILOT_NARROW` because `N=8`. It is not full-dataset GO and does not select a
+universally best pseudo-content heuristic.
+
+Artifacts: `artifacts/pseudo_one_forward_accuracy_pilot_v1/`.
+
 ## Completed GPT-OSS/GSM8K hard scope
 
 `benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2` completed all 1,319 actual hard
@@ -394,7 +436,19 @@ closed-loop evaluation, and must not relabel this negative result.
 
 ## Exact check results
 
-Focused-pilot final checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
+One-forward accuracy-pilot final checks recorded 2026-08-03 UTC on Python
+3.14.6, PyTorch 2.13.0+cu130, Transformers 5.14.1, and one
+A100-SXM4-80GB.
+
+- Accuracy artifact validator: PASS; 24/24 actual hard closed-loop rows, 50
+  manifest artifacts, zero failed markers, checksum resume, and terminal
+  `complete/report_v1` `PILOT_NARROW_WITH_ONE_ALLOWED_LOSS`.
+- `python -m pytest -ra`: PASS; 224 passed, 3 expected skips in 13.01s.
+- `ruff check .`: PASS.
+- `ruff format --check .`: PASS; 218 files already formatted.
+- `mypy src/pseudoroute`: PASS; no issues in 112 source files.
+
+Earlier route-analysis checks recorded 2026-08-02 UTC on Python 3.14.6, PyTorch
 2.13.0+cu130, Transformers 5.14.1, and 2 × A100-SXM4-80GB.
 
 - `ruff format --check .`: PASS; 210 files already formatted.

@@ -1062,3 +1062,67 @@ not tune matching rules or thresholds on them. Any held-out evaluation needs a
 new frozen disjoint manifest and gate; task accuracy, expanded samples, learned
 parameters, offline calibration, or downloads still require explicit
 authorization.
+
+## D-20260803-045 — Narrow one-forward accuracy evidence with one allowed loss
+
+**Status:** accepted
+
+**Context:** After the current-context continuation development route signal,
+the user authorized a small actual GSM8K accuracy test. Before any new accuracy
+generation, the project committed an eight-row manifest, three policies,
+512-token cap, one-question allowed-drop rule, strong 8/8 preservation signal,
+paired bootstrap, execution order, and measured-versus-simulated boundary. All
+rows use Qwen3-30B-A3B at `H=8,B=32` with true outside-subset logit masking and
+the policy's own closed-loop context. Recent-sequence and sampled-unigram are
+deployable one-pseudo-traversal policies. Future-exact content obtains seven
+full-expert greedy successors from a copy-on-write current-policy cache before
+the same pseudo traversal, so it is explicitly nondeployable and is not a
+routing oracle.
+
+Recent-sequence and sampled-unigram each preserved 7/8 frozen vanilla-correct
+answers. Their paired comparison was one gain, one loss, and six ties, with
+mean accuracy difference zero. Sampled-unigram improved aggregate route hit and
+selected mass from 0.730267/0.745076 to 0.757617/0.772934, but the route gain
+did not become an accuracy gain. It fixed `test-1311` relative to recent-
+sequence and lost `test-1264`. Future-exact content reached still higher
+0.783271/0.803592 route coverage but only 6/8 accuracy. Its paired accuracy
+difference from frozen vanilla was -0.25 with a small-sample bootstrap interval
+of [-0.625, 0.0].
+
+**Decision:** Record **PILOT_NARROW_WITH_ONE_ALLOWED_LOSS**, capped at
+`PILOT_NARROW`. Both deployable policies pass the frozen 7/8 allowed-drop rule,
+but neither provides strong 8/8 preservation, neither dominates the other, and
+`N=8` cannot support a full-dataset GO. Do not select sampled-unigram solely
+from its higher aggregate route coverage. Do not describe future-exact content
+as deployable, a perfect routing oracle, or a ceiling on answer accuracy.
+
+**Alternatives considered:** Promote sampled-unigram because it has higher
+route hit/mass, combine policies after inspecting their two discordant samples,
+treat future token content as a perfect oracle, extend the sample set after
+observing accuracy, rerun vanilla, change token caps, or infer offloading
+speedup from the research runner.
+
+**Consequences:** All 24 sample/policy rows are actual hard closed-loop
+generation; zero rows are identity-materialized. Production cache/RNG, shadow
+discard, information boundary, native top-k/normalization, hard masking,
+atomic-row checksums, resume, row counts, and the 50-artifact manifest validate
+with zero failure markers. The two deployable policy losses illustrate why
+route coverage is not an accuracy surrogate: each losing trajectory eventually
+reported route hit above 0.94 after diverging, while a lower-coverage paired
+policy answered correctly. Accuracy, token identity, NLL/perplexity, route
+coverage, probe cost, memory, and research-runner runtime are measured;
+transfer reduction is simulated and production offloading speedup is not
+measured. Artifact-manifest SHA-256 is
+`12e9d371485b7375561f8f194fbdb6e3f1ea57fda02cddabfd12a17a408eef67`.
+
+**Experiments affected:** Only `pseudo_one_forward_accuracy_pilot_v1` gains
+actual accuracy evidence. The context-continuation development route signal,
+earlier one-forward `STOP/PIVOT` results, executed-pseudo route `NARROW`,
+focused pseudo `STOP/PIVOT`, GPT hard-only `NARROW`, trained-model
+`STOP/PIVOT`, and M11 conclusions remain unchanged.
+
+**Migration required:** Preserve the eight IDs, raw rows, one gain/one loss
+pairing, and nondeployable diagnostic as pilot evidence. Any combined selector,
+additional rows, different cap, learned/calibrated value, model/dataset change,
+or production offloading benchmark requires a separately frozen protocol and
+appropriate authorization.

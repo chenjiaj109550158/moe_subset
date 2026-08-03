@@ -108,3 +108,26 @@ coverage, probe and total generation time, and peak CUDA memory. Planned
 transfer bytes and transfer reduction remain simulation. The report must not
 claim production offloading speedup, full-dataset accuracy preservation, or
 future-exact deployability.
+
+## Final observed result
+
+The frozen execution completed all 24 actual sample/policy rows. Recent-
+sequence and sampled-unigram each scored 7/8; sampled-unigram versus recent was
+one paired gain, one paired loss, and six ties. Their aggregate route hit and
+selected routing mass were 0.730267/0.745076 and 0.757617/0.772934. Thus both
+deployable policies passed the predeclared one-question allowed-drop gate, but
+neither met the strong 8/8 preservation signal and sampled-unigram did not
+improve paired accuracy.
+
+Future-exact content scored 6/8 at 0.783271 route hit and 0.803592 selected mass.
+It made 1,960 natural autoregressive lookahead calls and remains nondeployable.
+Its higher route coverage but lower accuracy also confirms that this content
+diagnostic is not a perfect routing oracle and that aggregate route coverage is
+not an accuracy surrogate after closed-loop trajectory divergence.
+
+All hard-mask, native-top-k, cache/RNG/shadow, information-boundary, atomic-row,
+payload-checksum, resume, row-count, and artifact-manifest audits pass. There
+are zero failure markers and zero identity-materialized rows. The terminal
+decision is `PILOT_NARROW_WITH_ONE_ALLOWED_LOSS`, with conclusion ceiling
+`PILOT_NARROW`. The artifact-manifest SHA-256 is
+`12e9d371485b7375561f8f194fbdb6e3f1ea57fda02cddabfd12a17a408eef67`.

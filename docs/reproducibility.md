@@ -482,3 +482,48 @@ accuracy even after a positive result. Route evidence is teacher-forced on each
 current policy's own state; lookup/probe cost is measured, transfer is
 simulated, and free generation, exact-token identity, NLL/perplexity, closed-
 loop runtime, and speedup were not measured.
+
+## One-forward Qwen/GSM8K accuracy pilot v1
+
+The separately frozen actual-generation config and sample manifest are
+`configs/benchmark/pseudo_one_forward_accuracy_pilot_v1.yaml` and
+`configs/benchmark/pseudo_one_forward_accuracy_pilot_v1_samples.json`, with
+SHA-256 values
+`d9515855b897189fde9f36fba151af5467ebc93e46bbf09bb79ad5b39e5f10af` and
+`fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046`.
+The artifact root is `artifacts/pseudo_one_forward_accuracy_pilot_v1`.
+
+Run or resume a logical shard from the pinned offline cache, then aggregate and
+validate:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot run \
+  --gpu 0 --shard-index 0 --shard-count 2
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot run \
+  --gpu 0 --shard-index 1 --shard-count 2
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot aggregate
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot finalize
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_one_forward_accuracy_pilot validate
+```
+
+Logical shard assignment remains the frozen two-shard modulo mapping even when
+one physical GPU executes the shards serially. Each completed JSON row is
+written atomically and reused only after config, manifest, schema, state, cap,
+and payload checksum validation. A missing row is regenerated without deleting
+valid rows or provenance. The completed root validates 24 actual rows, three
+smoke rows, 50 manifest artifacts, checksum resume, and zero failure markers.
+The artifact-manifest SHA-256 is
+`12e9d371485b7375561f8f194fbdb6e3f1ea57fda02cddabfd12a17a408eef67`.
+
+The final execution environment was Linux 6.8.0-100-generic, Python 3.14.6,
+PyTorch 2.13.0+cu130, CUDA runtime 13.0, driver 580.126.09, Transformers 5.14.1,
+and one A100-SXM4-80GB. Frozen vanilla is reused. Accuracy, generated tokens,
+token agreement, route/mass coverage, NLL/perplexity, probe latency, total
+generation time, and peak CUDA memory are measured. Transfer is simulated.
+Future-exact content additionally performs natural autoregressive lookahead and
+is excluded from deployable one-forward and speedup claims.

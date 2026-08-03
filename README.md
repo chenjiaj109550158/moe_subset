@@ -150,6 +150,24 @@ held-out route or accuracy execution regardless of outcome. See the
 [context-continuation protocol](docs/pseudo_one_forward_context_continuation_v1.md)
 and [report](artifacts/pseudo_one_forward_context_continuation_v1/report.md).
 
+A separately committed eight-row accuracy pilot then tested that unigram
+continuation, the uncorrected recent-sequence policy, and a nondeployable exact-
+future-content diagnostic with actual Qwen/GSM8K hard closed-loop generation.
+Recent-sequence and sampled-unigram each preserved 7/8 frozen vanilla-correct
+answers; their paired comparison was one gain, one loss, and six ties. Their
+route hit/selected mass were 0.730267/0.745076 and 0.757617/0.772934,
+respectively. Exact-future content reached 0.783271/0.803592 but only 6/8
+answers, demonstrating that aggregate route coverage does not determine
+closed-loop accuracy. It performs up to seven full-expert autoregressive
+lookahead calls per boundary and is a content oracle, not a routing oracle or a
+deployable one-forward method. All 24 policy/sample rows are true hard-mask
+generation and none is identity-materialized. The scoped decision is
+**PILOT_NARROW_WITH_ONE_ALLOWED_LOSS**: both deployable policies meet the frozen
+7/8 small-pilot gate, neither provides strong 8/8 preservation, and no full-
+dataset GO or runtime-speedup claim is allowed. See the
+[accuracy protocol](docs/pseudo_one_forward_accuracy_pilot_v1.md) and
+[report](artifacts/pseudo_one_forward_accuracy_pilot_v1/report.md).
+
 ## Trained-model oracle gate
 
 The checksum-valid final suite is `artifacts/trained_gate/suite_v2_final/` and is
