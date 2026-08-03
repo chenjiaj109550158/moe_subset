@@ -71,9 +71,9 @@ behavior, or the benefit of transfer/compute overlap.
 
 ## Frozen fingerprints
 
-The immutable config SHA-256 is
-`874ac3aef1802ffbb2274e2aeeb2bdb655a2350e348b09673d32354225a014d0`.
-The immutable sample-manifest SHA-256 is
-`2a10f7d065a028e0ca52e6fa44757f40d8f9cc23f9a59004f87482b8b1bbf3df`.
+The amended frozen config SHA-256 is
+`9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec`.
+The amended frozen sample-manifest SHA-256 is
+`aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819`.
 Both are tested and committed before any model smoke or measured offload row.
 

@@ -20,7 +20,8 @@
       "source_v17_generated_tokens": 314,
       "source_v17_correct": true,
       "mask_only_candidate_generated_tokens": 331,
-      "mask_only_candidate_correct": true
+      "mask_only_candidate_correct": true,
+      "mask_only_candidate_row_payload_sha256": "7b3017fb0ac73667e6048c4eb6f7062c366ee16a34f3b2de22c13c7b5972b9fd"
     },
     {
       "partition": "closed_loop_wave_1",
@@ -32,7 +33,8 @@
       "source_v17_generated_tokens": 176,
       "source_v17_correct": true,
       "mask_only_candidate_generated_tokens": 187,
-      "mask_only_candidate_correct": true
+      "mask_only_candidate_correct": true,
+      "mask_only_candidate_row_payload_sha256": "3cb411a336426e488a38288b4d4470d9018cfeb61e8dcbbf4ebd543d1cfa8dd4"
     }
   ]
 }

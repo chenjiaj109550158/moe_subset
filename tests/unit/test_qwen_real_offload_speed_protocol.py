@@ -16,8 +16,8 @@ def _sha256(path: Path) -> str:
 
 
 def test_real_offload_protocol_fingerprints_are_frozen() -> None:
-    assert _sha256(CONFIG) == "874ac3aef1802ffbb2274e2aeeb2bdb655a2350e348b09673d32354225a014d0"
-    assert _sha256(SAMPLES) == "2a10f7d065a028e0ca52e6fa44757f40d8f9cc23f9a59004f87482b8b1bbf3df"
+    assert _sha256(CONFIG) == "9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec"
+    assert _sha256(SAMPLES) == "aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819"
 
 
 def test_real_offload_protocol_has_equal_resident_budget_and_true_copies() -> None:

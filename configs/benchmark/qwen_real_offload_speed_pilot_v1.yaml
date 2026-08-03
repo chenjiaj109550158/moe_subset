@@ -12,6 +12,8 @@ authorization:
   network_downloads: forbidden
 
 source:
+  accuracy_config: configs/benchmark/speculating_experts_accuracy_v17.yaml
+  accuracy_config_sha256: 23687248a85a52cb60b09a337c691fb0c95df018dc195794ddf7775e10015092
   model_id: Qwen/Qwen3-30B-A3B-Instruct-2507
   model_revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
   precision: bfloat16
@@ -24,6 +26,10 @@ source:
   frozen_vanilla_rows: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl
   frozen_vanilla_rows_sha256: 4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae
   frozen_mask_only_candidate_root: artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual
+  frozen_mask_only_candidate_config: configs/benchmark/pseudo_mass_preserving_residual_accuracy_pilot_v1.yaml
+  frozen_mask_only_candidate_config_sha256: 7370d4c3208fcd32ab7b0f903409a7132c14cd784b7360cc7cf7863720f0d46b
+  frozen_mask_only_candidate_manifest: configs/benchmark/pseudo_mass_preserving_residual_accuracy_pilot_v1_samples.json
+  frozen_mask_only_candidate_manifest_sha256: ac1aeb3da4778d09628c2e3188fd524392ce253b9fc04b8c795c0312f82dadfe
 
 model:
   routed_layers: 48
