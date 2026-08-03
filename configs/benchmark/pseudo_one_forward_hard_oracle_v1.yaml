@@ -1,0 +1,133 @@
+schema_version: 1
+pilot_id: pseudo_one_forward_hard_oracle_v1
+status: posthoc_protocol_frozen_before_hard_oracle_generation
+artifact_root: artifacts/pseudo_one_forward_hard_oracle_v1
+protocol_document: docs/pseudo_one_forward_hard_oracle_v1.md
+
+source:
+  parent_pilot_id: pseudo_one_forward_accuracy_pilot_v1
+  parent_config: configs/benchmark/pseudo_one_forward_accuracy_pilot_v1.yaml
+  parent_config_sha256: d9515855b897189fde9f36fba151af5467ebc93e46bbf09bb79ad5b39e5f10af
+  resolved_sample_manifest: configs/benchmark/pseudo_one_forward_accuracy_pilot_v1_samples.json
+  resolved_sample_manifest_sha256: fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046
+  parent_artifact_manifest: artifacts/pseudo_one_forward_accuracy_pilot_v1/artifact_manifest.json
+  parent_artifact_manifest_sha256: 12e9d371485b7375561f8f194fbdb6e3f1ea57fda02cddabfd12a17a408eef67
+  subset_oracle_config: configs/benchmark/benchmark_subset_oracle_v1.yaml
+  subset_oracle_config_sha256: 45a9314417629db39ef21aa920806127465eb630097be5fc0a53370461236e0d
+  subset_oracle_config_fingerprint: b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2
+  accuracy_config: configs/benchmark/speculating_experts_accuracy_v17.yaml
+  accuracy_config_sha256: 23687248a85a52cb60b09a337c691fb0c95df018dc195794ddf7775e10015092
+  frozen_vanilla_rows: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl
+  frozen_vanilla_rows_sha256: 4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae
+
+model:
+  key: qwen3_30b_a3b
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+
+dataset:
+  key: gsm8k
+  split: test
+  partition: closed_loop_wave_1
+  sample_count: 8
+  sample_ids:
+    - test-44
+    - test-632
+    - test-444
+    - test-519
+    - test-1311
+    - test-1264
+    - test-825
+    - test-252
+  selection: exact_reuse_of_parent_resolved_manifest_in_original_order
+  new_rows_or_traces: false
+  original_v17_max_new_tokens: 512
+  frozen_vanilla_successes: 8
+
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+  prompt_rendering: exact_saved_v17_rendered_prompt
+  answer_parser: exact_v17_gsm8k_parser
+  stop_strings: exact_v17
+
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  routed_experts_per_layer: 128
+  resident_fraction: 0.25
+  native_top_k: 8
+  subset_selection: future_selected_routing_mass
+  oracle_lookahead: natural_full_expert_greedy_from_current_hard_policy_boundary_state
+  oracle_lookahead_cache: copy_on_write_or_exact_rewind
+  actual_execution: hard_mask_outside_subset_before_native_topk_and_normalization
+
+policy:
+  name: hard_oracle_commitment
+  role: nondeployable_routing_information_oracle_ceiling
+  context: current_hard_policy_prompt_and_already_realized_tokens_only
+  future_route_source: current_boundary_natural_full_expert_lookahead
+  future_route_horizon: 8
+  aggregate_utility: sum_natural_selected_routing_weight_over_future_window
+  layer_subset_size: 32
+  deterministic_tie_break: ascending_layer_scoped_expert_id
+  label_or_ground_truth_used: false
+  frozen_v17_future_trajectory_used: false
+  identity_materialized: false
+
+execution:
+  sample_count: 8
+  expected_sample_policy_rows: 8
+  max_new_tokens: original_v17_cap_512
+  physical_gpu: 0
+  shard_count: 1
+  maximum_workers_per_physical_gpu: 1
+  model_loads: one
+  atomic_json_rows: true
+  checksum_resume: true
+  retain_failed_markers: true
+  network_downloads: false
+
+audits:
+  require_actual_hard_mask_execution: true
+  require_identity_materialized_false: true
+  require_policy_own_closed_loop_context: true
+  require_lookahead_cache_and_rng_rewind: true
+  require_future_v17_tokens_unused: true
+  require_label_correctness_unused: true
+
+accuracy_reporting:
+  frozen_before_generation: true
+  paired_reference: frozen_v17_vanilla_same_eight_rows
+  frozen_reference_successes: 8
+  report_success_count_and_accuracy: true
+  report_paired_gains_losses_ties: true
+  paired_bootstrap_samples: 10000
+  paired_bootstrap_seed: 20260803
+  accuracy_selects_policy_or_samples: false
+  does_not_modify_parent_pilot_decision: true
+  conclusion_ceiling: PILOT_NARROW
+
+reporting:
+  measured:
+    - actual_closed_loop_gsm8k_accuracy
+    - exact_token_agreement_and_first_divergence
+    - v17_token_nll_on_policy_context_and_perplexity
+    - route_hit_and_selected_mass_on_policy_context
+    - total_generation_runtime
+    - peak_cuda_memory
+  simulated:
+    - transfer_bytes_and_reduction
+  prohibited_claims:
+    - deployable_oracle
+    - production_runtime_speedup
+    - full_dataset_accuracy_preservation
+    - statistical_GO_from_eight_rows
+    - modification_of_parent_pilot_decision
