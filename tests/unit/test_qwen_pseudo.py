@@ -7,6 +7,7 @@ from transformers import Qwen3MoeConfig, Qwen3MoeForCausalLM
 from pseudoroute.benchmark.prefetch import (
     DefaultVectorArtifact,
     MoeOutputCaptureContext,
+    NativeRoute,
     NativeRouteCaptureContext,
     Qwen3MoePrefetchOps,
     SubsetExecutionContext,
@@ -17,6 +18,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
     QwenPseudoVariant,
     capture_natural_qwen_components,
+    mass_preserving_subset_route,
 )
 from pseudoroute.benchmark.subset_closed_loop import (
     _cache_mutation_signature,
@@ -664,3 +666,72 @@ def test_diagnostic_component_patch_uses_declared_native_state(
     assert result.audit["diagnostic_state_patch"] == patch
     assert result.audit["production_cache_signature_unchanged"] is True
     assert result.audit["production_rng_unchanged"] is True
+
+
+def test_mass_preserving_subset_route_semantics_and_tie_break() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    route = NativeRoute(
+        logits=torch.tensor([[4.0, 1.0, 3.0, 1.0]]),
+        weights=torch.tensor([[0.7, 0.3]]),
+        ids=torch.tensor([[0, 2]]),
+    )
+    subset = (0, 1, 3)
+    intersection = mass_preserving_subset_route(
+        ops,
+        route,
+        subset,
+        "natural_top8_intersection_zero_missing",
+    )
+    assert intersection.ids.tolist() == [[0, 0]]
+    assert torch.allclose(intersection.weights, torch.tensor([[0.7, 0.0]]))
+    scaled = mass_preserving_subset_route(
+        ops,
+        route,
+        subset,
+        "rerouted_top8_scaled_by_captured_natural_mass",
+    )
+    assert set(scaled.ids.reshape(-1).tolist()) <= set(subset)
+    assert torch.allclose(scaled.weights.sum(dim=-1), torch.tensor([0.7]))
+    substituted = mass_preserving_subset_route(
+        ops,
+        route,
+        subset,
+        "captured_natural_plus_substitute_missing_mass",
+    )
+    assert substituted.ids.tolist() == [[0, 1]]
+    assert torch.allclose(substituted.weights, torch.tensor([[0.7, 0.3]]))
+    assert torch.allclose(substituted.weights.sum(dim=-1), torch.ones(1))
+
+
+def test_mass_preserving_causal_probe_audits_resident_weights() -> None:
+    model = _model()
+    ops = Qwen3MoePrefetchOps(model)
+    result = QwenPseudoEmbeddingProbe(
+        model,
+        ops,
+        None,
+        QwenPseudoVariant(
+            "mass_preserving_intersection",
+            "provided_sequence",
+            "causal",
+            "native_expert_execution",
+            subset_residual_execution="natural_top8_intersection_zero_missing",
+        ),
+        anchors=(1, 2),
+        budget=3,
+    ).predict(
+        _prefill(model),
+        sampled_next_token_id=4,
+        current_token_id=3,
+        anchor_token_ids=(4, 5),
+        execution_subsets={0: (0, 1, 2), 1: (0, 1, 2)},
+        execution_subset_source="current_policy_previous_realized_window_subset",
+    )
+    assert result.audit["subset_residual_execution"] == ("natural_top8_intersection_zero_missing")
+    assert result.audit["execution_weights_finite_nonnegative"] is True
+    assert 0 <= result.audit["execution_weight_sum_min"] <= 1  # type: ignore[operator]
+    assert result.audit["execution_weight_sum_max"] <= 1  # type: ignore[operator]
+    assert result.audit["executed_ids_within_supplied_subset"] is True
+    assert set(result.shadow_executed_topk_weights) == {0, 1}
+    assert set(result.shadow_captured_natural_mass) == {0, 1}

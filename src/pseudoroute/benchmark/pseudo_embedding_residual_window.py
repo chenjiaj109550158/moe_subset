@@ -56,6 +56,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
     StateCorrection,
     StateRetrievalMix,
     StateRetrievalTarget,
+    SubsetResidualExecution,
     _restore_rng,
     _rng_equal,
     _rng_snapshot,
@@ -511,6 +512,7 @@ def _probe_for_spec(
     midlayer_max_relative_embedding_delta_norm: float | None = None,
     diagnostic_state_patch: DiagnosticStatePatch = "none",
     diagnostic_hidden_after_layer: int | None = None,
+    subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
 ) -> QwenPseudoEmbeddingProbe | None:
     if spec.role != "pseudo":
         return None
@@ -572,6 +574,7 @@ def _probe_for_spec(
             midlayer_max_relative_embedding_delta_norm,
             diagnostic_state_patch,
             diagnostic_hidden_after_layer,
+            subset_residual_execution,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -861,6 +864,7 @@ def run_policy_sample(
     capture_natural_component_state: bool = False,
     diagnostic_state_patch: DiagnosticStatePatch = "none",
     diagnostic_hidden_after_layer: int | None = None,
+    subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
 ) -> tuple[dict[str, object], dict[str, Tensor]]:
     started = time.time()
     model_config = _source_model(accuracy, physical_gpu)
@@ -970,6 +974,7 @@ def run_policy_sample(
         midlayer_max_relative_embedding_delta_norm=(midlayer_max_relative_embedding_delta_norm),
         diagnostic_state_patch=diagnostic_state_patch,
         diagnostic_hidden_after_layer=diagnostic_hidden_after_layer,
+        subset_residual_execution=subset_residual_execution,
     )
     resident: dict[int, tuple[int, ...]] = {layer: () for layer in range(ops.num_layers)}
     metrics: list[dict[str, object]] = []
@@ -993,6 +998,8 @@ def run_policy_sample(
     residual_digests: list[str] = []
     planning_residuals: list[Tensor] = []
     shadow_executed_ids: list[Tensor] = []
+    shadow_executed_weights: list[Tensor] = []
+    shadow_captured_mass: list[Tensor] = []
     natural_logits: list[Tensor] = []
     natural_ids: list[Tensor] = []
     natural_weights: list[Tensor] = []
@@ -1207,6 +1214,25 @@ def run_policy_sample(
                         dim=1,
                     )
                 )
+                if result.shadow_executed_topk_weights:
+                    shadow_executed_weights.append(
+                        torch.stack(
+                            [
+                                result.shadow_executed_topk_weights[layer]
+                                for layer in range(ops.num_layers)
+                            ],
+                            dim=1,
+                        )
+                    )
+                    shadow_captured_mass.append(
+                        torch.stack(
+                            [
+                                result.shadow_captured_natural_mass[layer]
+                                for layer in range(ops.num_layers)
+                            ],
+                            dim=1,
+                        )
+                    )
             probe_costs.append({"boundary": boundary, **asdict(result.cost)})
             audits.append(
                 {
@@ -1345,6 +1371,9 @@ def run_policy_sample(
         tensors["pseudo_pre_topk_probabilities"] = torch.stack(pseudo_probabilities)
     if shadow_executed_ids:
         tensors["shadow_executed_topk_ids"] = torch.stack(shadow_executed_ids)
+    if shadow_executed_weights:
+        tensors["shadow_executed_topk_weights"] = torch.stack(shadow_executed_weights)
+        tensors["shadow_captured_natural_mass"] = torch.stack(shadow_captured_mass)
     if oracle_component_router_logits:
         tensors.update(
             {
@@ -1415,6 +1444,7 @@ def run_policy_sample(
         "capture_natural_component_state": capture_natural_component_state,
         "diagnostic_state_patch": diagnostic_state_patch,
         "diagnostic_hidden_after_layer": diagnostic_hidden_after_layer,
+        "subset_residual_execution": subset_residual_execution,
         "component_state_metric_order": [
             "attention_output_cosine",
             "router_input_cosine",

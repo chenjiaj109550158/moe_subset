@@ -56,6 +56,12 @@ DiagnosticStatePatch = Literal[
     "oracle_attention_and_moe",
     "oracle_hidden_after_layer",
 ]
+SubsetResidualExecution = Literal[
+    "renormalized_reroute",
+    "natural_top8_intersection_zero_missing",
+    "rerouted_top8_scaled_by_captured_natural_mass",
+    "captured_natural_plus_substitute_missing_mass",
+]
 
 
 @dataclass(frozen=True)
@@ -77,6 +83,7 @@ class QwenPseudoVariant:
     midlayer_max_relative_embedding_delta_norm: float | None = None
     diagnostic_state_patch: DiagnosticStatePatch = "none"
     diagnostic_hidden_after_layer: int | None = None
+    subset_residual_execution: SubsetResidualExecution = "renormalized_reroute"
 
 
 @dataclass(frozen=True)
@@ -129,6 +136,8 @@ class QwenPseudoProbeResult:
     cost: QwenProbeCost
     audit: dict[str, object]
     shadow_executed_topk_ids: dict[int, Tensor] = field(default_factory=dict)
+    shadow_executed_topk_weights: dict[int, Tensor] = field(default_factory=dict)
+    shadow_captured_natural_mass: dict[int, Tensor] = field(default_factory=dict)
     shadow_moe_residuals: dict[int, Tensor] = field(default_factory=dict)
     shadow_attention_outputs: dict[int, Tensor] = field(default_factory=dict)
     shadow_router_inputs: dict[int, Tensor] = field(default_factory=dict)
@@ -141,6 +150,86 @@ def _top_b(scores: Tensor, budget: int) -> tuple[int, ...]:
         key=lambda expert: (-float(scores[expert]), expert),
     )
     return tuple(sorted(ranking[:budget]))
+
+
+def mass_preserving_subset_route(
+    ops: Qwen3MoePrefetchOps,
+    route: NativeRoute,
+    subset: tuple[int, ...],
+    strategy: SubsetResidualExecution,
+) -> NativeRoute:
+    """Construct an analytic resident-only execution route from the native route."""
+    if strategy == "renormalized_reroute":
+        return masked_route_from_natural(ops, route, subset)
+    if (
+        len(subset) < ops.top_k
+        or len(subset) > ops.num_experts
+        or len(set(subset)) != len(subset)
+        or min(subset) < 0
+        or max(subset) >= ops.num_experts
+    ):
+        raise ValueError("mass-preserving execution received an invalid resident subset")
+    if route.ids.ndim != 2 or route.weights.shape != route.ids.shape:
+        raise ValueError("mass-preserving execution requires flat native top-k routes")
+    allowed = torch.zeros(ops.num_experts, dtype=torch.bool, device=route.ids.device)
+    allowed[list(subset)] = True
+    captured = allowed[route.ids]
+    captured_weights = torch.where(captured, route.weights, torch.zeros_like(route.weights))
+    captured_mass = captured_weights.sum(dim=-1, keepdim=True)
+    if strategy == "natural_top8_intersection_zero_missing":
+        fallback = torch.full_like(route.ids, min(subset))
+        return NativeRoute(
+            route.logits,
+            captured_weights,
+            torch.where(captured, route.ids, fallback),
+        )
+    rerouted = masked_route_from_natural(ops, route, subset)
+    if strategy == "rerouted_top8_scaled_by_captured_natural_mass":
+        return NativeRoute(
+            route.logits,
+            rerouted.weights * captured_mass.to(rerouted.weights.dtype),
+            rerouted.ids,
+        )
+    if strategy != "captured_natural_plus_substitute_missing_mass":
+        raise ValueError(f"unknown subset residual execution strategy: {strategy}")
+    output_ids: list[Tensor] = []
+    output_weights: list[Tensor] = []
+    for token in range(route.ids.shape[0]):
+        captured_ids = route.ids[token][captured[token]]
+        kept_weights = route.weights[token][captured[token]]
+        missing_count = ops.top_k - int(captured_ids.numel())
+        if missing_count:
+            blocked = set(int(value) for value in captured_ids.tolist())
+            candidates = sorted(
+                (expert for expert in subset if expert not in blocked),
+                key=lambda expert: (-float(route.logits[token, expert]), expert),
+            )[:missing_count]
+            if len(candidates) != missing_count:
+                raise RuntimeError("resident subset cannot supply deterministic substitutes")
+            substitute_ids = torch.tensor(
+                candidates,
+                dtype=route.ids.dtype,
+                device=route.ids.device,
+            )
+            substitute_logits = route.logits[token, substitute_ids].float()
+            substitute_weights = substitute_logits.softmax(dim=-1).to(route.weights.dtype)
+            missing_mass = (route.weights[token] * ~captured[token]).sum()
+            substitute_weights = substitute_weights * missing_mass
+            token_ids = torch.cat((captured_ids, substitute_ids))
+            token_weights = torch.cat((kept_weights, substitute_weights))
+        else:
+            token_ids = captured_ids
+            token_weights = kept_weights
+        output_ids.append(token_ids)
+        output_weights.append(token_weights)
+    executed = NativeRoute(
+        route.logits,
+        torch.stack(output_weights),
+        torch.stack(output_ids),
+    )
+    if not bool(torch.isfinite(executed.weights).all()) or bool((executed.weights < 0).any()):
+        raise RuntimeError("mass-preserving execution produced invalid weights")
+    return executed
 
 
 def _tensor_bytes(tensors: dict[int, Tensor]) -> int:
@@ -552,6 +641,15 @@ class QwenPseudoEmbeddingProbe:
                 raise ValueError("diagnostic hidden checkpoint must precede the final layer")
         elif variant.diagnostic_hidden_after_layer is not None:
             raise ValueError("diagnostic hidden checkpoint requires the hidden patch variant")
+        if variant.subset_residual_execution != "renormalized_reroute" and (
+            variant.attention != "causal"
+            or variant.expert_contribution != "native_expert_execution"
+            or variant.content != "provided_sequence"
+        ):
+            raise ValueError(
+                "mass-preserving subset residuals require causal provided content and native "
+                "expert execution"
+            )
         self.model = model
         self.ops = ops
         self.variant = variant
@@ -833,7 +931,12 @@ class QwenPseudoEmbeddingProbe:
             executed_route = (
                 route
                 if execution_subset is None
-                else masked_route_from_natural(self.ops, route, execution_subset)
+                else mass_preserving_subset_route(
+                    self.ops,
+                    route,
+                    execution_subset,
+                    self.variant.subset_residual_execution,
+                )
             )
             contribution = self.ops.experts(layer_idx, flat, executed_route).reshape_as(
                 router_input
@@ -987,6 +1090,8 @@ class QwenPseudoEmbeddingProbe:
         dict[int, Tensor],
         dict[int, Tensor],
         dict[int, Tensor],
+        dict[int, Tensor],
+        dict[int, Tensor],
         dict[str, object],
     ]:
         cache = _fork_cache_copy_on_write(production_cache)
@@ -1008,6 +1113,8 @@ class QwenPseudoEmbeddingProbe:
         topk_ids: dict[int, Tensor] = {}
         topk_weights: dict[int, Tensor] = {}
         executed_ids: dict[int, Tensor] = {}
+        executed_weights: dict[int, Tensor] = {}
+        captured_natural_mass: dict[int, Tensor] = {}
         moe_residuals: dict[int, Tensor] = {}
         shadow_state_sink: dict[str, dict[int, Tensor]] | None = (
             {
@@ -1075,6 +1182,29 @@ class QwenPseudoEmbeddingProbe:
             topk_weights[layer_idx] = route.weights.detach().float().cpu()
             if executed_route is not None:
                 executed_ids[layer_idx] = executed_route.ids.detach().cpu()
+                executed_weights[layer_idx] = executed_route.weights.detach().float().cpu()
+                if execution_subsets is None:
+                    captured_natural_mass[layer_idx] = torch.ones(
+                        route.ids.shape[0], dtype=torch.float32
+                    )
+                else:
+                    allowed = torch.tensor(
+                        execution_subsets[layer_idx],
+                        dtype=route.ids.dtype,
+                        device=route.ids.device,
+                    )
+                    captured_natural_mass[layer_idx] = (
+                        (
+                            route.weights
+                            * (route.ids.unsqueeze(-1) == allowed)
+                            .any(dim=-1)
+                            .to(route.weights.dtype)
+                        )
+                        .sum(dim=-1)
+                        .detach()
+                        .float()
+                        .cpu()
+                    )
                 moe_residuals[layer_idx] = moe_residual[0].detach().cpu()
             if (
                 oracle_component_state is not None
@@ -1102,6 +1232,8 @@ class QwenPseudoEmbeddingProbe:
             topk_ids,
             topk_weights,
             executed_ids,
+            executed_weights,
+            captured_natural_mass,
             moe_residuals,
             (shadow_state_sink["attention_outputs"] if shadow_state_sink is not None else {}),
             shadow_state_sink["router_inputs"] if shadow_state_sink is not None else {},
@@ -1604,6 +1736,8 @@ class QwenPseudoEmbeddingProbe:
                 shadow_attention_outputs: dict[int, Tensor] = {}
                 shadow_router_inputs: dict[int, Tensor] = {}
                 shadow_layer_outputs: dict[int, Tensor] = {}
+                shadow_executed_topk_weights: dict[int, Tensor] = {}
+                shadow_captured_natural_mass: dict[int, Tensor] = {}
                 if next_token_logits is not None:
                     expected_embedding = self._expected_embedding(
                         next_token_logits.to(device),
@@ -1664,6 +1798,8 @@ class QwenPseudoEmbeddingProbe:
                         topk_ids,
                         topk_weights,
                         shadow_executed_topk_ids,
+                        shadow_executed_topk_weights,
+                        shadow_captured_natural_mass,
                         shadow_moe_residuals,
                         shadow_attention_outputs,
                         shadow_router_inputs,
@@ -1714,6 +1850,25 @@ class QwenPseudoEmbeddingProbe:
             if native_execution
             else None
         )
+        execution_weight_values = tuple(shadow_executed_topk_weights.values())
+        execution_weights_finite_nonnegative = (
+            all(
+                bool(torch.isfinite(value).all()) and not bool((value < 0).any())
+                for value in execution_weight_values
+            )
+            if execution_weight_values
+            else None
+        )
+        execution_weight_sums = (
+            torch.cat([value.sum(dim=-1).reshape(-1) for value in execution_weight_values])
+            if execution_weight_values
+            else None
+        )
+        captured_mass_values = (
+            torch.cat([value.reshape(-1) for value in shadow_captured_natural_mass.values()])
+            if shadow_captured_natural_mass
+            else None
+        )
         escape_counts = (
             {
                 layer: len(set(subsets[layer]) - set(execution_subsets[layer]))
@@ -1739,6 +1894,8 @@ class QwenPseudoEmbeddingProbe:
                 topk_ids,
                 topk_weights,
                 shadow_executed_topk_ids,
+                shadow_executed_topk_weights,
+                shadow_captured_natural_mass,
                 shadow_moe_residuals,
                 shadow_attention_outputs,
                 shadow_router_inputs,
@@ -1958,6 +2115,32 @@ class QwenPseudoEmbeddingProbe:
                 ),
                 "shadow_residual_finite": shadow_residual_finite,
                 "shadow_residual_nonzero": shadow_residual_nonzero,
+                "subset_residual_execution": self.variant.subset_residual_execution,
+                "execution_weights_finite_nonnegative": (execution_weights_finite_nonnegative),
+                "execution_weight_sum_mean": (
+                    float(execution_weight_sums.mean())
+                    if execution_weight_sums is not None
+                    else None
+                ),
+                "execution_weight_sum_min": (
+                    float(execution_weight_sums.min())
+                    if execution_weight_sums is not None
+                    else None
+                ),
+                "execution_weight_sum_max": (
+                    float(execution_weight_sums.max())
+                    if execution_weight_sums is not None
+                    else None
+                ),
+                "captured_natural_mass_mean": (
+                    float(captured_mass_values.mean()) if captured_mass_values is not None else None
+                ),
+                "captured_natural_mass_min": (
+                    float(captured_mass_values.min()) if captured_mass_values is not None else None
+                ),
+                "captured_natural_mass_max": (
+                    float(captured_mass_values.max()) if captured_mass_values is not None else None
+                ),
                 "executed_ids_within_supplied_subset": executed_ids_within_subset,
                 "next_subset_escape_by_layer": escape_counts,
                 "next_subset_escape_expert_slots": (
@@ -1998,6 +2181,8 @@ class QwenPseudoEmbeddingProbe:
                 ),
             },
             shadow_executed_topk_ids=shadow_executed_topk_ids,
+            shadow_executed_topk_weights=shadow_executed_topk_weights,
+            shadow_captured_natural_mass=shadow_captured_natural_mass,
             shadow_moe_residuals=shadow_moe_residuals,
             shadow_attention_outputs=shadow_attention_outputs,
             shadow_router_inputs=shadow_router_inputs,
