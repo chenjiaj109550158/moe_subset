@@ -638,6 +638,12 @@ def run_policy_sample(
             else "online_previous_route"
         ),
         "evaluation_mode": "actual_closed_loop_generation",
+        "hard_mask_executed": policy != "lossless_oracle_residency",
+        "identity_materialized": False,
+        "outside_subset_router_logits_masked": policy != "lossless_oracle_residency",
+        "native_topk_and_normalization_after_mask": policy != "lossless_oracle_residency",
+        "oracle_lookahead_cache_and_rng_restored": policy
+        in {"lossless_oracle_residency", "hard_oracle_commitment"},
         "cache_replay_semantics": cache_replay_semantics,
         "horizon": horizon,
         "budget": budget,
@@ -656,9 +662,13 @@ def run_policy_sample(
         "natural_route_ids_sha256": natural_route_digest.hexdigest(),
         "executed_route_ids_sha256": executed_route_digest.hexdigest(),
         "subset_trajectory_sha256": subset_digest.hexdigest(),
+        "route_hits": accounting.route_hits,
+        "route_slots": accounting.route_slots,
         "route_hit_rate": (
             accounting.route_hits / accounting.route_slots if accounting.route_slots else 1.0
         ),
+        "selected_mass_hit": accounting.selected_mass_hit,
+        "selected_mass_total": accounting.selected_mass_total,
         "selected_routing_mass_coverage": (
             accounting.selected_mass_hit / accounting.selected_mass_total
             if accounting.selected_mass_total
