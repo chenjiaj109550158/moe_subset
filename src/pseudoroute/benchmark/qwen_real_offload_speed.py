@@ -221,6 +221,144 @@ def _load_checksummed(
     return payload
 
 
+def _recover_candidate_diagnostic(
+    config: dict[str, Any],
+    reference: dict[str, Any],
+    *,
+    max_new_tokens: int,
+) -> dict[str, Any] | None:
+    row_index = int(reference["row_index"])
+    path = _sample_path("actual", row_index, CANDIDATE)
+    existing = _load_checksummed(
+        path,
+        stage="actual",
+        row_index=row_index,
+        sample_id=str(reference["sample_id"]),
+        policy=CANDIDATE,
+        max_new_tokens=max_new_tokens,
+    )
+    if existing is not None:
+        return existing
+    diagnostic_paths = sorted(
+        path.parent.glob(f"{CANDIDATE}.*.DIAGNOSTIC.json"),
+        key=lambda item: item.stat().st_mtime_ns,
+        reverse=True,
+    )
+    if not diagnostic_paths:
+        return None
+    diagnostic = _json(diagnostic_paths[0])
+    checksum = diagnostic.pop("failure_payload_sha256", None)
+    if (
+        checksum != sha256_json(diagnostic)
+        or diagnostic.get("state") != "failed_identity_diagnostic"
+        or diagnostic.get("pilot_id") != PILOT_ID
+        or diagnostic.get("config_sha256") != CONFIG_SHA256
+        or diagnostic.get("sample_manifest_sha256") != SAMPLES_SHA256
+        or int(diagnostic.get("row_index", -1)) != row_index
+        or diagnostic.get("sample_id") != reference["sample_id"]
+        or diagnostic.get("policy") != CANDIDATE
+    ):
+        raise ValueError(f"incompatible candidate identity diagnostic: {diagnostic_paths[0]}")
+    diagnostic["failure_payload_sha256"] = checksum
+    setup_rows = [_json(item) for item in sorted((OUTPUT / "setup").glob("*.json"))]
+    setup = next(
+        (item for item in setup_rows if int(item.get("pid", -1)) == int(diagnostic["pid"])),
+        None,
+    )
+    if setup is None:
+        raise ValueError("candidate diagnostic has no matching setup audit")
+    metrics = cast(dict[str, Any], diagnostic["actual_offload_metrics"])
+    production = cast(dict[str, Any], metrics["phase_metrics"]["production"])
+    if int(production["cache_misses"]) != 0:
+        raise ValueError("candidate diagnostic contains a production expert miss")
+    generated = [int(value) for value in diagnostic["generated_token_ids"]]
+    reference_tokens = [int(value) for value in diagnostic["reference_token_ids"]]
+    agreement, first = _token_agreement(generated, reference_tokens)
+    prefill_wall = float(diagnostic["prefill_wall_seconds_measured"])
+    decode_wall = float(diagnostic["decode_wall_seconds_measured"])
+    decode_forwards = max(0, len(generated) - 1)
+    row: dict[str, object] = {
+        "schema_version": 1,
+        "state": "complete",
+        "pilot_id": PILOT_ID,
+        "config_sha256": CONFIG_SHA256,
+        "sample_manifest_sha256": SAMPLES_SHA256,
+        "stage": "actual",
+        "model": "qwen3_30b_a3b",
+        "model_id": config["source"]["model_id"],
+        "model_revision": config["source"]["model_revision"],
+        "precision": config["source"]["precision"],
+        "task": "gsm8k",
+        "row_index": row_index,
+        "sample_id": reference["sample_id"],
+        "policy": CANDIDATE,
+        "policy_role": "deployable_calibration_free_pseudoroute_real_offload",
+        "evaluation_mode": "actual_hard_closed_loop_real_expert_offload",
+        "hard_mask_executed": True,
+        "identity_materialized": False,
+        "horizon": HORIZON,
+        "budget": BUDGET,
+        "resident_fraction": BUDGET / EXPERTS,
+        "max_new_tokens": max_new_tokens,
+        "do_sample": False,
+        "generated_token_ids": generated,
+        "generated_text": None,
+        "generated_tokens": len(generated),
+        "required_reference": "frozen_mask_only_candidate_exact_tokens",
+        "reference_token_ids": reference_tokens,
+        "exact_token_agreement_with_required_reference": agreement,
+        "first_token_divergence_from_required_reference": first,
+        "required_reference_exact_token_identity": False,
+        "candidate_reference_identity_gate_pass": False,
+        "correct": bool(diagnostic["correct"]),
+        "parsed_answer": None,
+        "score_detail": "measured_before_identity_gate; recovered_from_atomic_diagnostic",
+        "subset_trajectory_sha256": diagnostic.get("subset_trajectory_sha256"),
+        "first_route_divergence": diagnostic.get("first_route_divergence"),
+        "prefill_wall_seconds_measured": prefill_wall,
+        "decode_wall_seconds_measured": decode_wall,
+        "post_prefill_decode_forwards": decode_forwards,
+        "decode_forwards_per_second_measured": (
+            decode_forwards / decode_wall if decode_wall else None
+        ),
+        "planning_wall_seconds_measured": diagnostic["planning_wall_seconds_measured"],
+        "prefetch_wall_seconds_measured": diagnostic["prefetch_wall_seconds_measured"],
+        "production_wall_seconds_measured": diagnostic["production_wall_seconds_measured"],
+        "end_to_end_inference_wall_seconds_measured": prefill_wall + decode_wall,
+        "end_to_end_tokens_per_second_measured": (
+            len(generated) / (prefill_wall + decode_wall) if prefill_wall + decode_wall else None
+        ),
+        "actual_offload_metrics": metrics,
+        "offload_engine_audit": setup["engine_audit"],
+        "actual_h2d_copy_executed": int(metrics["h2d_bytes"]) > 0,
+        "production_expert_miss_forbidden": True,
+        "label_or_correctness_used_during_execution": False,
+        "future_tokens_used_during_execution": False,
+        "runtime_kind": "measured_actual_hard_closed_loop_real_h2d_offload",
+        "physical_gpu": int(setup["physical_gpu"]),
+        "pid": int(diagnostic["pid"]),
+        "ppid": int(diagnostic["ppid"]),
+        "execution_git_head": diagnostic["execution_git_head"],
+        "recovered_from_identity_failure_diagnostic": str(diagnostic_paths[0].relative_to(OUTPUT)),
+        "measurement_completeness": {
+            "generated_tokens": "measured",
+            "task_correctness": "measured_before_identity_gate",
+            "runtime": "measured",
+            "h2d_and_cuda_events": "measured",
+            "generated_text_and_parsed_answer": "not_retained_in_v1_diagnostic",
+        },
+    }
+    _write_checksummed(path, row)
+    return _load_checksummed(
+        path,
+        stage="actual",
+        row_index=row_index,
+        sample_id=str(reference["sample_id"]),
+        policy=CANDIDATE,
+        max_new_tokens=max_new_tokens,
+    )
+
+
 def _metrics_payload(engine: QwenExpertOffloadEngine) -> dict[str, object]:
     payload = cast(dict[str, object], asdict(engine.finish_metrics()))
     payload.pop("transfer_records", None)
@@ -510,6 +648,12 @@ def _run_stages(
                 policy=policy,
                 max_new_tokens=cap,
             )
+            if existing is None and stage == "actual" and policy == CANDIDATE:
+                existing = _recover_candidate_diagnostic(
+                    config,
+                    reference,
+                    max_new_tokens=cap,
+                )
             if existing is None:
                 missing.append((stage, reference, policy))
     if not missing:
@@ -600,6 +744,9 @@ def _run_stages(
                     physical_gpu=physical_gpu,
                     execution_git_head=revision,
                 )
+            row[f"{policy}_reference_identity_gate_pass"] = bool(
+                row["required_reference_exact_token_identity"]
+            )
             if not bool(row["required_reference_exact_token_identity"]):
                 failure_diagnostic: dict[str, object] = {
                     "schema_version": 1,
@@ -635,9 +782,10 @@ def _run_stages(
                     f"{policy}.{os.getpid()}.DIAGNOSTIC.json"
                 )
                 write_json_atomic(diagnostic_path, failure_diagnostic)
-                raise RuntimeError(
-                    f"real-offload output identity failed for {reference['sample_id']} {policy}"
-                )
+                if policy == LOSSLESS:
+                    raise RuntimeError(
+                        f"lossless offload identity failed for {reference['sample_id']}"
+                    )
             _write_checksummed(path, row)
             completed += 1
             print(
@@ -758,6 +906,9 @@ def _policy_summary(rows: list[dict[str, Any]]) -> dict[str, object]:
         "required_reference_exact_identity_rows": sum(
             bool(row["required_reference_exact_token_identity"]) for row in rows
         ),
+        "recovered_identity_diagnostic_rows": sum(
+            row.get("recovered_from_identity_failure_diagnostic") is not None for row in rows
+        ),
         "total_generated_tokens": tokens,
         "post_prefill_decode_forwards": decode_forwards,
         "decode_wall_seconds_measured": decode_wall,
@@ -809,13 +960,21 @@ def aggregate() -> dict[str, object]:
         summaries[CANDIDATE]["aggregate_post_prefill_decode_forwards_per_second_measured"],
     )
     speedup = candidate_rate / lossless_rate
-    all_identity = all(bool(row["required_reference_exact_token_identity"]) for row in rows)
+    lossless_identity = all(
+        bool(row["required_reference_exact_token_identity"]) for row in grouped[LOSSLESS]
+    )
+    candidate_identity = all(
+        bool(row["required_reference_exact_token_identity"]) for row in grouped[CANDIDATE]
+    )
+    all_identity = lossless_identity and candidate_identity
     decision = (
-        "NARROW_ENGINEERING_SPEEDUP"
-        if speedup > 1 and all_identity
+        "STOP_ENGINE_CORRECTNESS_FAILURE"
+        if not lossless_identity
+        else "STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE"
+        if not candidate_identity
+        else "NARROW_ENGINEERING_SPEEDUP"
+        if speedup > 1
         else "NARROW_ENGINEERING_NO_SPEEDUP"
-        if all_identity
-        else "STOP_CORRECTNESS_FAILURE"
     )
     result: dict[str, object] = {
         "schema_version": 1,
@@ -828,6 +987,8 @@ def aggregate() -> dict[str, object]:
         "policy_rows": len(rows),
         "policy_summaries": summaries,
         "candidate_vs_lossless_decode_throughput_ratio_measured": speedup,
+        "lossless_reference_exact_identity_gate_pass": lossless_identity,
+        "candidate_reference_exact_identity_gate_pass": candidate_identity,
         "candidate_vs_lossless_decode_speedup_percent_measured": (speedup - 1) * 100,
         "all_required_reference_exact_identity": all_identity,
         "all_actual_h2d_copy": all(bool(row["actual_h2d_copy_executed"]) for row in rows),
@@ -855,6 +1016,8 @@ def aggregate() -> dict[str, object]:
             "scope": "Qwen/GSM8K H=8 B=32 two-row real-offload engineering pilot",
             "speedup_ratio_measured": speedup,
             "all_required_reference_exact_identity": all_identity,
+            "lossless_reference_exact_identity_gate_pass": lossless_identity,
+            "candidate_reference_exact_identity_gate_pass": candidate_identity,
             "claim_limit": "not a full-dataset or production serving speedup claim",
         },
     )
@@ -865,7 +1028,8 @@ def aggregate() -> dict[str, object]:
         f"- H=8/B=32 pseudo-subset decode rate: {candidate_rate:.6f} forwards/s.\n"
         f"- Candidate / traditional measured ratio: {speedup:.6f}x "
         f"({(speedup - 1) * 100:.3f}%).\n"
-        f"- Required-reference exact identity: {all_identity}.\n"
+        f"- Traditional exact-reference identity gate: {lossless_identity}.\n"
+        f"- Pseudo mask-only exact-reference identity gate: {candidate_identity}.\n"
         f"- Actual closed-loop rows: {len(rows)}; identity-materialized rows: 0.\n\n"
         "Runtime, task outputs, H2D bytes, and CUDA-event transfer/stall are measured. "
         "The candidate's legacy route/transfer estimates remain simulated diagnostics. "
@@ -921,8 +1085,25 @@ def validate() -> dict[str, object]:
         "row_count": len(rows) == 4,
         "two_samples": len({row["sample_id"] for row in rows}) == 2,
         "both_policies": {row["policy"] for row in rows} == set(POLICIES),
-        "all_reference_identity": all(
-            bool(row["required_reference_exact_token_identity"]) for row in rows
+        "lossless_reference_identity": all(
+            bool(row["required_reference_exact_token_identity"])
+            for row in rows
+            if row["policy"] == LOSSLESS
+        ),
+        "candidate_reference_identity_audited": all(
+            isinstance(row["required_reference_exact_token_identity"], bool)
+            for row in rows
+            if row["policy"] == CANDIDATE
+        ),
+        "candidate_production_zero_miss": all(
+            int(
+                cast(dict[str, Any], row["actual_offload_metrics"])["phase_metrics"]["production"][
+                    "cache_misses"
+                ]
+            )
+            == 0
+            for row in rows
+            if row["policy"] == CANDIDATE
         ),
         "all_actual_h2d": all(bool(row["actual_h2d_copy_executed"]) for row in rows),
         "no_identity_materialized": all(not bool(row["identity_materialized"]) for row in rows),
