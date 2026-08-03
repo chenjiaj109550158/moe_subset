@@ -10,6 +10,7 @@ import os
 import subprocess
 import time
 import traceback
+from contextlib import nullcontext
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -69,6 +70,7 @@ from pseudoroute.benchmark.subset_trace import (
     write_json_atomic,
 )
 from pseudoroute.benchmark.tasks import BenchmarkExample, load_examples
+from pseudoroute.runtime.qwen_offload import QwenExpertOffloadEngine
 from pseudoroute.utils.determinism import seed_everything
 
 PilotPolicy = Literal[
@@ -406,6 +408,7 @@ def run_policy_sample(
     stage: Stage,
     max_new_tokens: int,
     physical_gpu: int,
+    offload_engine: QwenExpertOffloadEngine | None = None,
     execution_git_head: str,
     subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
 ) -> dict[str, object]:
@@ -417,11 +420,21 @@ def run_policy_sample(
     source_tokens = [int(value) for value in source["generated_token_ids"]][:max_new_tokens]
     seed_everything(int(config["decode"]["seed"]))
     device = torch.device(model_config.device)
+    if offload_engine is not None:
+        offload_engine.reset_cache()
+        offload_engine.reset_metrics()
+        torch.cuda.synchronize(device)
     torch.cuda.reset_peak_memory_stats(device)
     started = time.time()
-    with NativeRouteCaptureContext(ops) as prompt_capture, torch.inference_mode():
+    inference_started = time.perf_counter()
+    prefill_started = time.perf_counter()
+    prefill_phase = offload_engine.phase("prefill") if offload_engine is not None else nullcontext()
+    with prefill_phase, NativeRouteCaptureContext(ops) as prompt_capture, torch.inference_mode():
         prefill = cast(Any, model)(**inputs, use_cache=True, return_dict=True)
         prompt_records = prompt_capture.drain()
+    if offload_engine is not None:
+        torch.cuda.synchronize(device)
+    prefill_wall = time.perf_counter() - prefill_started
     if tuple(record.layer for record in prompt_records) != tuple(range(LAYERS)):
         raise RuntimeError("accuracy prefill did not capture all routed layers")
     cache = prefill.past_key_values
@@ -464,6 +477,9 @@ def run_policy_sample(
     probe_peak_temporary = 0
     continuation_matches = 0
     continuation_fallbacks = 0
+    planning_wall = 0.0
+    prefetch_wall = 0.0
+    production_wall = 0.0
     boundary_count = 0
     decode_step = 0
     finished = _finished(
@@ -475,10 +491,12 @@ def run_policy_sample(
         generated,
         prefill_scores,
     )
+    decode_started = time.perf_counter()
     while len(generated) < max_new_tokens and not finished:
         if decode_step % HORIZON == 0:
             previous_execution_subset = active
             current_window = []
+            planning_started = time.perf_counter()
             anchors, content = _anchor_plan(
                 policy,
                 model=model,
@@ -487,20 +505,30 @@ def run_policy_sample(
                 current=current,
                 cache=cache,
             )
-            result = probe.predict(
-                cache,
-                sampled_next_token_id=int(current.item()),
-                current_token_id=last_cached_token_id,
-                anchor_token_ids=anchors,
-                execution_subsets=previous_execution_subset,
-                execution_subset_source=(
-                    "full_native_top8_prefill_access"
-                    if previous_execution_subset is None
-                    else "current_policy_previous_realized_window_subset"
-                ),
+            probe_phase = (
+                offload_engine.phase("planning") if offload_engine is not None else nullcontext()
             )
+            probe_resident_guard = (
+                offload_engine.resident_only()
+                if offload_engine is not None and previous_execution_subset is not None
+                else nullcontext()
+            )
+            with probe_phase, probe_resident_guard:
+                result = probe.predict(
+                    cache,
+                    sampled_next_token_id=int(current.item()),
+                    current_token_id=last_cached_token_id,
+                    anchor_token_ids=anchors,
+                    execution_subsets=previous_execution_subset,
+                    execution_subset_source=(
+                        "full_native_top8_prefill_access"
+                        if previous_execution_subset is None
+                        else "current_policy_previous_realized_window_subset"
+                    ),
+                )
             active = candidate_subsets(result, history, SELECTOR, budget=BUDGET)
             passed = _planning_audit_pass(policy, result, content)
+            planning_wall += time.perf_counter() - planning_started
             if not passed:
                 raise RuntimeError(f"planning audit failed at boundary {boundary_count}")
             planning_rows.append(
@@ -542,18 +570,30 @@ def run_policy_sample(
                 subset_digest.update(
                     torch.tensor(active[layer], dtype=torch.int64).numpy().tobytes()
                 )
+            if offload_engine is not None:
+                prefetch_started = time.perf_counter()
+                with offload_engine.phase("prefetch"):
+                    offload_engine.preload_subsets(active)
+                torch.cuda.synchronize(device)
+                prefetch_wall += time.perf_counter() - prefetch_started
             boundary_count += 1
         if active is None:
             raise AssertionError("accuracy subset planning did not run")
         processed_token_id = int(current.item())
-        output, records = _forward_capture(
-            model,
-            ops,
-            current,
-            cache,
-            policy="hard",
-            allowed=active,
+        production_started = time.perf_counter()
+        production_phase = (
+            offload_engine.phase("production") if offload_engine is not None else nullcontext()
         )
+        production_guard = (
+            offload_engine.resident_only() if offload_engine is not None else nullcontext()
+        )
+        with production_phase, production_guard:
+            output, records = _forward_capture(
+                model, ops, current, cache, policy="hard", allowed=active
+            )
+        if offload_engine is not None:
+            torch.cuda.synchronize(device)
+        production_wall += time.perf_counter() - production_started
         current_window.append(records)
         _account_hard_records(
             accounting,
@@ -584,6 +624,12 @@ def run_policy_sample(
             generated,
             scores,
         )
+    offload_metrics: dict[str, object] | None = None
+    if offload_engine is not None:
+        offload_metrics = cast(dict[str, object], asdict(offload_engine.finish_metrics()))
+        offload_metrics.pop("transfer_records", None)
+    decode_wall = time.perf_counter() - decode_started
+    inference_wall = time.perf_counter() - inference_started
     elapsed = time.time() - started
     generated_text = tokenizer.decode(generated, skip_special_tokens=True)
     score = score_response(example, generated_text)
@@ -688,6 +734,18 @@ def run_policy_sample(
         "single_extra_forward_deployable_constraint_satisfied": deployable,
         "future_v17_tokens_used_by_policy": False,
         "label_or_correctness_used_during_policy_execution": False,
+        "prefill_wall_seconds_measured": prefill_wall,
+        "decode_wall_seconds_measured": decode_wall,
+        "post_prefill_decode_forwards": decode_step,
+        "decode_forwards_per_second_measured": (decode_step / decode_wall if decode_wall else None),
+        "planning_wall_seconds_measured": planning_wall,
+        "prefetch_wall_seconds_measured": prefetch_wall,
+        "production_wall_seconds_measured": production_wall,
+        "end_to_end_inference_wall_seconds_measured": inference_wall,
+        "end_to_end_tokens_per_second_measured": (
+            len(generated) / inference_wall if inference_wall else None
+        ),
+        "actual_offload_metrics": offload_metrics,
         "elapsed_seconds_measured": elapsed,
         "tokens_per_second_measured": len(generated) / elapsed if elapsed else None,
         "runtime_kind": "measured_actual_closed_loop_including_policy_planning",

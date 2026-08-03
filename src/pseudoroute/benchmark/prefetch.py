@@ -358,6 +358,9 @@ def masked_route(
 def physical_expert_bytes(ops: PrefetchModelOps, layer: int) -> int:
     """Return checkpoint-physical bytes for one routed expert in a layer."""
     experts = cast(Any, ops.mlp(layer)).experts
+    offloaded = getattr(experts, "_pseudoroute_expert_bytes", None)
+    if offloaded is not None:
+        return int(offloaded)
     if isinstance(ops, Qwen3MoePrefetchOps):
         gate_up = cast(Tensor, experts.gate_up_proj)
         down = cast(Tensor, experts.down_proj)

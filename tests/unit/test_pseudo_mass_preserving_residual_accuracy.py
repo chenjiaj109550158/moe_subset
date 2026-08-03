@@ -97,8 +97,12 @@ def test_optional_evaluator_injection_points_preserve_legacy_defaults() -> None:
     pseudo_parameter = inspect.signature(legacy_pseudo.run_policy_sample).parameters[
         "subset_residual_execution"
     ]
+    offload_parameter = inspect.signature(legacy_pseudo.run_policy_sample).parameters[
+        "offload_engine"
+    ]
     static_parameter = inspect.signature(subset_closed_loop.run_policy_sample).parameters[
         "static_subsets"
     ]
     assert pseudo_parameter.default == "renormalized_reroute"
+    assert offload_parameter.default is None
     assert static_parameter.default is None
