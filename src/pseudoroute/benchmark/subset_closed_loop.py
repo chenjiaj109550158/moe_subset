@@ -502,6 +502,7 @@ def run_policy_sample(
     horizon: int,
     budget: int,
     max_new_tokens: int,
+    static_subsets: dict[int, tuple[int, ...]] | None = None,
 ) -> dict[str, object]:
     rendered = str(source["rendered_prompt"])
     inputs = _encode_saved_rendered_prompt(tokenizer, model_config, rendered)
@@ -530,7 +531,13 @@ def run_policy_sample(
     current = first[:, None].to(prompt_ids.device)
     accounting = RouteAccounting()
     expert_bytes = {layer: physical_expert_bytes(ops, layer) for layer in range(ops.num_layers)}
-    static = _static_subsets(suite, model_subset, budget)
+    static = (
+        _static_subsets(suite, model_subset, budget) if static_subsets is None else static_subsets
+    )
+    if set(static) != set(range(ops.num_layers)) or any(
+        len(subset) != budget or len(set(subset)) != budget for subset in static.values()
+    ):
+        raise ValueError("closed-loop static subsets do not match the layer-local budget")
     natural_route_digest = hashlib.sha256()
     executed_route_digest = hashlib.sha256()
     subset_digest = hashlib.sha256()

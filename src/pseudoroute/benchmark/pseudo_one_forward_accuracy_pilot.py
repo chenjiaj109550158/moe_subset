@@ -44,6 +44,7 @@ from pseudoroute.benchmark.qwen_pseudo import (
     QwenPseudoEmbeddingProbe,
     QwenPseudoProbeResult,
     QwenPseudoVariant,
+    SubsetResidualExecution,
 )
 from pseudoroute.benchmark.runner import (
     _encode_saved_rendered_prompt,
@@ -238,7 +239,13 @@ def _load_checksummed(
     return payload
 
 
-def _probe(model: nn.Module, ops: Qwen3MoePrefetchOps, policy: PilotPolicy) -> Any:
+def _probe(
+    model: nn.Module,
+    ops: Qwen3MoePrefetchOps,
+    policy: PilotPolicy,
+    *,
+    subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
+) -> Any:
     return QwenPseudoEmbeddingProbe(
         model,
         ops,
@@ -248,6 +255,7 @@ def _probe(model: nn.Module, ops: Qwen3MoePrefetchOps, policy: PilotPolicy) -> A
             "provided_sequence",
             "causal",
             "native_expert_execution",
+            subset_residual_execution=subset_residual_execution,
         ),
         anchors=tuple(range(1, HORIZON + 1)),
         budget=BUDGET,
@@ -399,6 +407,7 @@ def run_policy_sample(
     max_new_tokens: int,
     physical_gpu: int,
     execution_git_head: str,
+    subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
 ) -> dict[str, object]:
     if accuracy.do_sample_for(model_config, example.task):
         raise ValueError("frozen Qwen/GSM8K accuracy pilot must be greedy")
@@ -436,7 +445,12 @@ def run_policy_sample(
     natural_digest = hashlib.sha256()
     executed_digest = hashlib.sha256()
     subset_digest = hashlib.sha256()
-    probe = _probe(model, ops, policy)
+    probe = _probe(
+        model,
+        ops,
+        policy,
+        subset_residual_execution=subset_residual_execution,
+    )
     planning_rows: list[dict[str, object]] = []
     probe_latency = 0.0
     content_latency = 0.0
@@ -670,6 +684,7 @@ def run_policy_sample(
         "continuation_matched_boundaries": continuation_matches,
         "continuation_fallback_boundaries": continuation_fallbacks,
         "one_extra_pseudo_forward_per_boundary": True,
+        "subset_residual_execution": subset_residual_execution,
         "single_extra_forward_deployable_constraint_satisfied": deployable,
         "future_v17_tokens_used_by_policy": False,
         "label_or_correctness_used_during_policy_execution": False,
