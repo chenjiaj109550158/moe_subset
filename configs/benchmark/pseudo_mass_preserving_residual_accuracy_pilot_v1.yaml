@@ -1,0 +1,220 @@
+schema_version: 1
+pilot_id: pseudo_mass_preserving_residual_accuracy_pilot_v1
+status: protocol_frozen_before_any_new_accuracy_generation
+artifact_root: artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1
+protocol_document: docs/pseudo_mass_preserving_residual_accuracy_pilot_v1.md
+sample_manifest: configs/benchmark/pseudo_mass_preserving_residual_accuracy_pilot_v1_samples.json
+
+authorization:
+  user_approved_actual_accuracy: true
+  approved_at_utc: "2026-08-03"
+  scope: fixed_predeclared_sixteen_rows_three_policies
+  dataset_expansion_beyond_manifest: forbidden
+  token_cap_expansion: forbidden
+
+source_gate:
+  analysis_id: pseudo_mass_preserving_residual_held_out_v1
+  config: configs/analysis/pseudo_mass_preserving_residual_held_out_v1.yaml
+  config_sha256: 2effc6808f2637f64f60836a90175f664305f5874460a458922da26bfd96416f
+  sample_manifest: configs/analysis/pseudo_mass_preserving_residual_held_out_v1_samples.json
+  sample_manifest_sha256: c83dbce41acb7bce2b0cf399c2632965d784ae289f0ca81bb6a6f105aa1762f3
+  artifact_manifest: artifacts/pseudo_mass_preserving_residual_held_out_v1/artifact_manifest.json
+  artifact_manifest_sha256: 7b599ff248d8756612c4de99a7e97f598bf0c3e14ce31e6b41ca4ae80dd84d54
+  decision: NARROW
+  strong_candidate_gate_pass: true
+  selected_candidate: natural_top8_intersection_zero_missing
+
+source_suite:
+  config: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml
+  config_sha256: 41b902ac392b777bce0c0eb4efc97e47e4b31376a64605752cf03ea2b9ce6dba
+  original_sample_manifest: configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json
+  original_sample_manifest_sha256: 21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93
+  accuracy_artifact_root: artifacts/speculating_experts_accuracy_v17
+  frozen_vanilla_rows: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl
+  frozen_vanilla_rows_sha256: 4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae
+  static_count_tensor: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/default_vectors/default_vectors.safetensors
+  static_count_tensor_sha256: 2a315f6f3dc65ff62b656d0eb92b6781267e5dd13cbcaf4c09a5b5806060fd30
+  static_count_manifest: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/default_vectors/manifest.json
+  static_count_manifest_sha256: 3c5e645666e12eb96e6d693ca8251d81a8a04200cb5a2abab043226e32077f87
+  static_values_used: count_tensor_only_for_previous_first_window
+  default_mean_vectors_used: false
+  unobserved_default_layer_expert_pairs: 444
+
+hard_oracle_reuse:
+  source_pilot: pseudo_one_forward_hard_oracle_v1
+  source_config: configs/benchmark/pseudo_one_forward_hard_oracle_v1.yaml
+  source_config_sha256: 60e03148a24ad16859ca21631a3644d4db6930b0bdaddc482060646b77e902b6
+  source_artifact_manifest: artifacts/pseudo_one_forward_hard_oracle_v1/artifact_manifest.json
+  source_artifact_manifest_sha256: 336d97c416aba6a80ad205228667bbbde570378a872c5cf7bd707544ce98cc28
+  source_partition: closed_loop_wave_1
+  source_rows: 8
+  reuse_mode: checksum_pinned_external_measured_rows_no_rerun
+  required_evaluation_mode: actual_hard_closed_loop_generation
+  required_identity_materialized: false
+  newly_execute_partition: closed_loop_wave_2
+
+model:
+  key: qwen3_30b_a3b
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+
+dataset:
+  key: gsm8k
+  id: openai/gsm8k
+  config: main
+  split: test
+  revision: 740312add88f781978c0658806c59bc2815b9866
+  partitions: [closed_loop_wave_1, closed_loop_wave_2]
+  sample_count: 16
+  original_v17_max_new_tokens: 512
+  source_v17_total_generated_tokens: 4112
+  source_v17_vanilla_successes: 16
+  selection_used_accuracy_correctness_or_answer: false
+
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+  prompt_rendering: exact_saved_v17_rendered_prompt
+  answer_parser: exact_v17_gsm8k_parser
+  stop_strings: exact_v17
+
+operating_point:
+  horizon: 8
+  budget_per_layer: 32
+  routed_experts_per_layer: 128
+  resident_fraction: 0.25
+  native_top_k: 8
+  actual_execution: hard_mask_outside_subset_before_native_topk_and_normalization
+  identity_materialization: forbidden
+
+policies:
+  order:
+    - hard_oracle_commitment
+    - previous_route_commitment
+    - natural_top8_intersection_zero_missing
+  hard_oracle_commitment:
+    role: nondeployable_routing_information_oracle_ceiling
+    lookahead: natural_full_expert_greedy_from_current_hard_policy_context
+    utility: sum_future_natural_selected_routing_mass_per_layer
+    subset_selection: deterministic_top32
+    label_or_answer_used: false
+  previous_route_commitment:
+    role: deployable_calibration_free_reference
+    boundary_zero: frozen_static_frequency_top32_from_pinned_count_tensor
+    later_boundaries: own_previous_realized_window_pre_mask_natural_route_records
+    subset_selection: deterministic_top32
+    label_or_answer_used: false
+  natural_top8_intersection_zero_missing:
+    role: deployable_calibration_free_candidate
+    content: sampled_unigram_full_continuation
+    content_fallback: recent_sequence_causal
+    attention: native_causal_single_batched_h8_traversal
+    subset_selection: first_four_anchor_core_plus_history_fill
+    boundary_zero_shadow_expert_access: full_native_top8
+    later_shadow_expert_access: current_policy_previous_realized_layer_local_b32_subset
+    captured_natural_ids: preserve
+    captured_natural_weights: preserve
+    missing_natural_mass: zero
+    substitute_experts: none
+    extra_pseudo_traversals_per_boundary: 1
+    learned_or_fitted_parameters: false
+    label_or_answer_used: false
+
+information_boundary:
+  common_allowed:
+    - sampled_next_token
+    - current_policy_prompt_and_already_realized_tokens
+    - current_policy_production_cache_read_only_copy_on_write
+    - current_policy_previous_realized_layer_local_b32_subset
+    - current_policy_previous_window_pre_mask_natural_routes
+    - native_router_scores_and_model_parameters
+  candidate_forbidden:
+    - future_true_tokens_after_sampled_next
+    - v17_vanilla_future_trajectory
+    - benchmark_answer
+    - correctness_or_task_accuracy_during_execution
+    - learned_or_fitted_parameters
+    - offline_route_or_continuation_tables
+    - offline_expert_priors
+    - default_vector_values
+    - retrieved_hidden_states
+  hard_oracle_only:
+    - fresh_natural_future_route_lookahead_from_own_policy_context
+
+execution:
+  mechanism_smoke:
+    row_index: 44
+    sample_id: test-44
+    policies: [previous_route_commitment, natural_top8_intersection_zero_missing]
+    max_new_tokens: 16
+    result_selects_policy_ids_or_gate: false
+  actual:
+    sample_count: 16
+    policies_per_sample: 3
+    total_sample_policy_rows: 48
+    checksum_pinned_reused_rows: 8
+    expected_new_rows: 40
+    max_new_tokens: original_v17_cap_512
+  new_work_order: row_order_then_policy_order_skipping_reused_rows
+  physical_gpu: 0
+  shard_count: 1
+  maximum_workers_per_physical_gpu: 1
+  model_loads_per_worker: 1
+  atomic_json_rows: true
+  checksum_resume: true
+  retain_failed_markers: true
+  network_downloads: false
+  eta_checkpoint_after_first_eight_candidate_and_previous_rows: true
+  ask_before_continuing_if_projected_total_hours_exceeds: 24.0
+
+audits:
+  require_actual_hard_mask_execution: true
+  require_identity_materialized_false: true
+  require_policy_own_closed_loop_context: true
+  require_cache_signature_unchanged_by_planning: true
+  require_rng_unchanged_by_planning: true
+  require_shadow_cache_discarded: true
+  require_candidate_one_batched_causal_h8_traversal_per_boundary: true
+  require_candidate_executed_ids_within_previous_subset: true
+  require_candidate_finite_nonnegative_mass_preserving_weights: true
+  require_previous_static_first_window: true
+  require_future_v17_tokens_unused: true
+  require_label_correctness_unused_during_execution: true
+
+accuracy_gate:
+  frozen_before_generation: true
+  sample_count: 16
+  frozen_vanilla_successes: 16
+  frozen_vanilla_accuracy: 1.0
+  allowed_drop_formula: max_1_ceil_2_sqrt_n_p_one_minus_p
+  allowed_drop_questions: 1
+  minimum_policy_successes: 15
+  strong_preservation_successes: 16
+  paired_bootstrap_samples: 10000
+  paired_bootstrap_seed: 20260803
+  accuracy_selects_variant_or_samples: false
+  conclusion_ceiling: NARROW
+
+reporting:
+  measured:
+    - actual_closed_loop_gsm8k_accuracy
+    - exact_token_agreement_and_first_token_divergence
+    - first_route_divergence
+    - v17_token_nll_and_perplexity_on_policy_context
+    - route_hit_and_selected_routing_mass_on_policy_context
+    - probe_and_total_generation_runtime
+    - peak_cuda_memory
+  simulated:
+    - expert_transfer_bytes_stall_and_reduction
+  prohibited_claims:
+    - production_offloading_runtime_speedup
+    - full_dataset_accuracy_preservation
+    - hard_oracle_deployability
+    - statistical_GO_from_sixteen_rows
