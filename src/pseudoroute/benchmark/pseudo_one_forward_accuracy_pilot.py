@@ -11,7 +11,7 @@ import subprocess
 import time
 import traceback
 from contextlib import nullcontext
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -57,9 +57,14 @@ from pseudoroute.benchmark.runner import (
 from pseudoroute.benchmark.scoring import score_response
 from pseudoroute.benchmark.subset_closed_loop import (
     RouteAccounting,
+    _cache_length,
+    _cache_mutation_signature,
     _finished,
+    _fork_cache_copy_on_write,
     _forward_capture,
     _perplexity,
+    _restore_rng,
+    _rng_state,
     _sample_token,
     _token_agreement,
     natural_token_lookahead_copy_on_write,
@@ -80,6 +85,7 @@ PilotPolicy = Literal[
 ]
 Stage = Literal["smoke", "actual"]
 
+PlanningTiming = Literal["online_post_sample", "penultimate_joint_equivalent"]
 PILOT_ID = "pseudo_one_forward_accuracy_pilot_v1"
 CONFIG = Path("configs/benchmark/pseudo_one_forward_accuracy_pilot_v1.yaml")
 SAMPLES = Path("configs/benchmark/pseudo_one_forward_accuracy_pilot_v1_samples.json")
@@ -394,6 +400,202 @@ def _exact_matches(generated: list[int], reference: list[int]) -> tuple[int, int
     )
 
 
+def _rng_states_equal(
+    left: tuple[Tensor, Tensor],
+    right: tuple[Tensor, Tensor],
+) -> bool:
+    return torch.equal(left[0], right[0]) and torch.equal(left[1], right[1])
+
+
+def _penultimate_joint_trigger(decode_step: int, *, horizon: int = HORIZON) -> bool:
+    """Return whether this production call is the last call of a realized window."""
+    if decode_step < 0 or horizon < 1:
+        raise ValueError("penultimate trigger requires nonnegative step and positive horizon")
+    return decode_step % horizon == horizon - 1
+
+
+@dataclass(frozen=True)
+class PenultimateShadowPlan:
+    anchors: tuple[int, ...]
+    content: dict[str, object]
+    result: QwenPseudoProbeResult
+    bridge_records: tuple[SubsetRouteRecord, ...]
+    bridge_logits: Tensor
+    bridge_latency_seconds_measured: float
+    bridge_cache_length_before: int
+    bridge_cache_length_after: int
+    production_cache_signature_unchanged: bool
+    production_rng_unchanged: bool
+    shadow_cache_discarded: bool
+
+
+def _penultimate_shadow_plan(
+    model: nn.Module,
+    ops: Qwen3MoePrefetchOps,
+    probe: QwenPseudoEmbeddingProbe,
+    *,
+    policy: PilotPolicy,
+    prompt_token_ids: tuple[int, ...],
+    generated_token_ids: tuple[int, ...],
+    current: Tensor,
+    production_cache: object,
+    active: dict[int, tuple[int, ...]],
+) -> PenultimateShadowPlan:
+    """Simulate the future fused dependency without committing shadow state.
+
+    The disposable bridge uses exact hard production semantics. The existing H=8
+    pseudo probe then starts from the bridge-advanced shadow cache. This deliberately
+    duplicates the bridge in the accuracy simulator; it is not a runtime benchmark.
+    """
+    if policy != "sampled_unigram_full_continuation":
+        raise ValueError("penultimate joint simulation requires sampled-unigram content")
+    if set(active) != set(range(ops.num_layers)) or any(
+        len(subset) != BUDGET or len(set(subset)) != BUDGET for subset in active.values()
+    ):
+        raise ValueError("penultimate bridge requires one valid layer-local B32 subset")
+    bridge_token_id = int(current.item())
+    if not generated_token_ids or generated_token_ids[-1] != bridge_token_id:
+        raise ValueError("penultimate bridge token is not the latest realized token")
+    anchors, raw_content = _anchor_plan(
+        policy,
+        model=model,
+        prompt_token_ids=prompt_token_ids,
+        generated_token_ids=generated_token_ids,
+        current=current,
+        cache=production_cache,
+    )
+    if len(anchors) != HORIZON or anchors[0] != bridge_token_id:
+        raise RuntimeError("penultimate content is not anchored on the bridge token")
+    device = current.device
+    cache_length_before = _cache_length(production_cache)
+    cache_signature_before = _cache_mutation_signature(production_cache)
+    initial_rng = _rng_state(device)
+    rng_before = (initial_rng[0].clone(), initial_rng[1].clone())
+    shadow_cache = _fork_cache_copy_on_write(production_cache)
+    torch.cuda.synchronize(device)
+    bridge_started = time.perf_counter()
+    rng_unchanged = False
+    cache_unchanged = False
+    shadow_cache_discarded = False
+    try:
+        bridge_output, bridge_records = _forward_capture(
+            model,
+            ops,
+            current,
+            shadow_cache,
+            policy="hard",
+            allowed=active,
+        )
+        torch.cuda.synchronize(device)
+        bridge_latency = time.perf_counter() - bridge_started
+        cache_length_after = _cache_length(shadow_cache)
+        if cache_length_after != cache_length_before + 1:
+            raise RuntimeError("penultimate shadow bridge did not append exactly one KV position")
+        bridge_logits = cast(Tensor, bridge_output.logits[:, -1]).detach().clone()
+        result = probe.predict(
+            shadow_cache,
+            sampled_next_token_id=bridge_token_id,
+            current_token_id=bridge_token_id,
+            anchor_token_ids=anchors,
+            execution_subsets=active,
+            execution_subset_source="current_policy_current_realized_window_subset",
+        )
+        cache_unchanged = (
+            _cache_length(production_cache) == cache_length_before
+            and _cache_mutation_signature(production_cache) == cache_signature_before
+        )
+        rng_unchanged = _rng_states_equal(rng_before, _rng_state(device))
+        shadow_cache_discarded = True
+    finally:
+        _restore_rng(device, rng_before)
+    if not cache_unchanged:
+        raise RuntimeError("penultimate shadow planning mutated the production cache")
+    if not rng_unchanged:
+        raise RuntimeError("penultimate shadow planning changed generation RNG")
+    content = dict(raw_content)
+    content.update(
+        {
+            "planning_timing": "before_current_window_last_production_forward",
+            "content_seed_role": "penultimate_sampled_token_after_bridge_forward",
+            "bridge_token_id": bridge_token_id,
+            "last_sampled_token_available_to_planner": False,
+            "disposable_hard_bridge_executed": True,
+            "bridge_cache_length_before": cache_length_before,
+            "bridge_cache_length_after": cache_length_after,
+            "production_cache_signature_unchanged": cache_unchanged,
+            "production_rng_unchanged": rng_unchanged,
+            "shadow_cache_discarded": shadow_cache_discarded,
+        }
+    )
+    return PenultimateShadowPlan(
+        anchors=anchors,
+        content=content,
+        result=result,
+        bridge_records=bridge_records,
+        bridge_logits=bridge_logits,
+        bridge_latency_seconds_measured=bridge_latency,
+        bridge_cache_length_before=cache_length_before,
+        bridge_cache_length_after=cache_length_after,
+        production_cache_signature_unchanged=cache_unchanged,
+        production_rng_unchanged=rng_unchanged,
+        shadow_cache_discarded=shadow_cache_discarded,
+    )
+
+
+def _bridge_parity(
+    shadow: tuple[SubsetRouteRecord, ...],
+    production: tuple[SubsetRouteRecord, ...],
+    shadow_logits: Tensor,
+    production_logits: Tensor,
+) -> dict[str, object]:
+    layer_order_equal = (
+        tuple(row.layer for row in shadow)
+        == tuple(row.layer for row in production)
+        == tuple(range(len(shadow)))
+    )
+    allowed_equal = layer_order_equal and all(
+        left.allowed == right.allowed for left, right in zip(shadow, production, strict=True)
+    )
+    natural_ids_equal = layer_order_equal and all(
+        torch.equal(left.natural.ids, right.natural.ids)
+        for left, right in zip(shadow, production, strict=True)
+    )
+    natural_weights_equal = layer_order_equal and all(
+        torch.equal(left.natural.weights, right.natural.weights)
+        for left, right in zip(shadow, production, strict=True)
+    )
+    executed_ids_equal = layer_order_equal and all(
+        torch.equal(left.executed.ids, right.executed.ids)
+        for left, right in zip(shadow, production, strict=True)
+    )
+    executed_weights_equal = layer_order_equal and all(
+        torch.equal(left.executed.weights, right.executed.weights)
+        for left, right in zip(shadow, production, strict=True)
+    )
+    logits_equal = torch.equal(shadow_logits, production_logits)
+    passed = all(
+        (
+            layer_order_equal,
+            allowed_equal,
+            natural_ids_equal,
+            natural_weights_equal,
+            executed_ids_equal,
+            executed_weights_equal,
+            logits_equal,
+        )
+    )
+    return {
+        "pass": passed,
+        "layer_order_equal": layer_order_equal,
+        "allowed_subsets_equal": allowed_equal,
+        "natural_ids_bitwise_equal": natural_ids_equal,
+        "natural_weights_bitwise_equal": natural_weights_equal,
+        "executed_ids_bitwise_equal": executed_ids_equal,
+        "executed_weights_bitwise_equal": executed_weights_equal,
+        "output_logits_bitwise_equal": logits_equal,
+    }
+
+
 def run_policy_sample(
     config: dict[str, Any],
     accuracy: AccuracySuiteConfig,
@@ -411,10 +613,20 @@ def run_policy_sample(
     offload_engine: QwenExpertOffloadEngine | None = None,
     execution_git_head: str,
     subset_residual_execution: SubsetResidualExecution = "renormalized_reroute",
+    planning_timing: PlanningTiming = "online_post_sample",
 ) -> dict[str, object]:
     if accuracy.do_sample_for(model_config, example.task):
         raise ValueError("frozen Qwen/GSM8K accuracy pilot must be greedy")
     rendered = str(source["rendered_prompt"])
+    if planning_timing == "penultimate_joint_equivalent" and (
+        policy != "sampled_unigram_full_continuation"
+        or subset_residual_execution != "natural_top8_intersection_zero_missing"
+        or offload_engine is not None
+    ):
+        raise ValueError(
+            "penultimate joint accuracy simulation requires sampled-unigram, "
+            "intersection-zero residuals, and no offload engine"
+        )
     inputs = _encode_saved_rendered_prompt(tokenizer, model_config, rendered)
     prompt_token_ids = tuple(int(value) for value in inputs["input_ids"][0].tolist())
     source_tokens = [int(value) for value in source["generated_token_ids"]][:max_new_tokens]
@@ -481,6 +693,10 @@ def run_policy_sample(
     prefetch_wall = 0.0
     production_wall = 0.0
     boundary_count = 0
+    bridge_latency = 0.0
+    bridge_calls = 0
+    bridge_parity_passes = 0
+    penultimate_boundaries = 0
     decode_step = 0
     finished = _finished(
         model,
@@ -493,7 +709,9 @@ def run_policy_sample(
     )
     decode_started = time.perf_counter()
     while len(generated) < max_new_tokens and not finished:
-        if decode_step % HORIZON == 0:
+        if (planning_timing == "online_post_sample" and decode_step % HORIZON == 0) or (
+            planning_timing == "penultimate_joint_equivalent" and decode_step == 0
+        ):
             previous_execution_subset = active
             current_window = []
             planning_started = time.perf_counter()
@@ -505,6 +723,14 @@ def run_policy_sample(
                 current=current,
                 cache=cache,
             )
+            if planning_timing == "penultimate_joint_equivalent":
+                content = dict(content)
+                content.update(
+                    {
+                        "planning_timing": "online_post_sample_bootstrap",
+                        "last_sampled_token_available_to_planner": True,
+                    }
+                )
             probe_phase = (
                 offload_engine.phase("planning") if offload_engine is not None else nullcontext()
             )
@@ -539,6 +765,7 @@ def run_policy_sample(
                     "previous_execution_subset_supplied": (previous_execution_subset is not None),
                     "planning_audit_pass": passed,
                     "content": content,
+                    "planning_timing": content.get("planning_timing", planning_timing),
                     "probe_cost": asdict(result.cost),
                     "probe_audit": result.audit,
                 }
@@ -580,6 +807,25 @@ def run_policy_sample(
         if active is None:
             raise AssertionError("accuracy subset planning did not run")
         processed_token_id = int(current.item())
+        pending_plan: PenultimateShadowPlan | None = None
+        if planning_timing == "penultimate_joint_equivalent" and _penultimate_joint_trigger(
+            decode_step
+        ):
+            if active is None:
+                raise AssertionError("penultimate bridge requires an active subset")
+            planning_started = time.perf_counter()
+            pending_plan = _penultimate_shadow_plan(
+                model,
+                ops,
+                probe,
+                policy=policy,
+                prompt_token_ids=prompt_token_ids,
+                generated_token_ids=tuple(generated),
+                current=current,
+                production_cache=cache,
+                active=active,
+            )
+            planning_wall += time.perf_counter() - planning_started
         production_started = time.perf_counter()
         production_phase = (
             offload_engine.phase("production") if offload_engine is not None else nullcontext()
@@ -605,6 +851,84 @@ def run_policy_sample(
             executed_digest=executed_digest,
         )
         scores = cast(Tensor, output.logits[:, -1])
+        if pending_plan is not None:
+            parity = _bridge_parity(
+                pending_plan.bridge_records,
+                records,
+                pending_plan.bridge_logits,
+                cast(Tensor, output.logits[:, -1]),
+            )
+            history = route_scores(current_window, experts=EXPERTS)
+            next_active = candidate_subsets(
+                pending_plan.result,
+                history,
+                SELECTOR,
+                budget=BUDGET,
+            )
+            passed = (
+                _planning_audit_pass(policy, pending_plan.result, pending_plan.content)
+                and pending_plan.production_cache_signature_unchanged
+                and pending_plan.production_rng_unchanged
+                and pending_plan.shadow_cache_discarded
+                and bool(parity["pass"])
+                and pending_plan.content["last_sampled_token_available_to_planner"] is False
+            )
+            if not passed:
+                raise RuntimeError(
+                    f"penultimate planning audit failed at boundary {boundary_count}"
+                )
+            planning_rows.append(
+                {
+                    "boundary": boundary_count,
+                    "generated_token_index": len(generated) - 1,
+                    "target_window_first_generated_token_index": len(generated),
+                    "anchor_token_ids": list(pending_plan.anchors),
+                    "previous_execution_subset_supplied": True,
+                    "planning_timing": "before_current_window_last_production_forward",
+                    "planning_audit_pass": passed,
+                    "content": pending_plan.content,
+                    "probe_cost": asdict(pending_plan.result.cost),
+                    "probe_audit": pending_plan.result.audit,
+                    "bridge_parity": parity,
+                    "bridge_latency_seconds_measured": (
+                        pending_plan.bridge_latency_seconds_measured
+                    ),
+                }
+            )
+            result = pending_plan.result
+            content = pending_plan.content
+            probe_latency += result.cost.latency_seconds_measured
+            content_latency += cast(float, content["content_planning_latency_seconds_measured"])
+            probe_attention_queries += result.cost.attention_queries
+            probe_attention_calls += result.cost.attention_calls
+            probe_router_calls += result.cost.router_calls
+            probe_expert_calls += result.cost.expert_calls
+            probe_syncs += result.cost.cpu_gpu_synchronizations
+            probe_peak_temporary = max(
+                probe_peak_temporary,
+                result.cost.temporary_cuda_bytes_measured,
+            )
+            continuation_matches += int(bool(content["continuation_match"]))
+            continuation_fallbacks += int(bool(content["continuation_fallback"]))
+            bridge_latency += pending_plan.bridge_latency_seconds_measured
+            bridge_calls += 1
+            bridge_parity_passes += int(bool(parity["pass"]))
+            penultimate_boundaries += 1
+            active = next_active
+            for layer in range(LAYERS):
+                old = set(resident[layer])
+                new = set(active[layer])
+                loads = len(new - old)
+                accounting.prefetch_loads += loads
+                accounting.subset_churn += len(new.symmetric_difference(old))
+                accounting.planned_transfer_bytes += loads * expert_bytes[layer]
+                resident[layer] = active[layer]
+                subset_digest.update(layer.to_bytes(4, "little"))
+                subset_digest.update(
+                    torch.tensor(active[layer], dtype=torch.int64).numpy().tobytes()
+                )
+            current_window = []
+            boundary_count += 1
         source_index = len(generated)
         if source_index < len(source_tokens):
             nlls.append(float(-scores.float().log_softmax(dim=-1)[0, source_tokens[source_index]]))
@@ -613,7 +937,7 @@ def run_policy_sample(
         current = token[:, None].to(device)
         last_cached_token_id = processed_token_id
         decode_step += 1
-        if decode_step % HORIZON == 0:
+        if planning_timing == "online_post_sample" and decode_step % HORIZON == 0:
             history = route_scores(current_window, experts=EXPERTS)
         finished = _finished(
             model,
@@ -658,7 +982,9 @@ def run_policy_sample(
             "deployable_calibration_free" if deployable else "nondeployable_content_oracle"
         ),
         "information_regime": (
-            "online_post_sample_current_policy_known_context_only"
+            "pre_sample_penultimate_current_policy_known_context_only"
+            if planning_timing == "penultimate_joint_equivalent"
+            else "online_post_sample_current_policy_known_context_only"
             if deployable
             else "current_policy_full_expert_future_content_oracle"
         ),
@@ -715,6 +1041,17 @@ def run_policy_sample(
         "parsed_answer": score.parsed_answer,
         "score_detail": score.detail,
         "boundary_count": boundary_count,
+        "planning_timing": planning_timing,
+        "initial_online_bootstrap_boundaries": (
+            1 if planning_timing == "penultimate_joint_equivalent" else 0
+        ),
+        "penultimate_joint_boundaries": penultimate_boundaries,
+        "logical_simulator_disposable_bridge_calls": bridge_calls,
+        "logical_simulator_bridge_latency_seconds_measured": bridge_latency,
+        "bridge_parity_passes": bridge_parity_passes,
+        "all_bridge_parity_audits_pass": bridge_calls == bridge_parity_passes,
+        "last_sampled_token_used_for_penultimate_planning": False,
+        "intended_fused_runtime_implemented": False,
         "planning_rows": planning_rows,
         "all_planning_audits_pass": all_planning_audits_pass,
         "probe_latency_seconds_measured": probe_latency,
@@ -732,6 +1069,9 @@ def run_policy_sample(
         "one_extra_pseudo_forward_per_boundary": True,
         "subset_residual_execution": subset_residual_execution,
         "single_extra_forward_deployable_constraint_satisfied": deployable,
+        "simulator_executes_duplicate_bridge": (planning_timing == "penultimate_joint_equivalent"),
+        "simulator_bridge_latency_is_joint_runtime": False,
+        "actual_offload_engine_used": offload_engine is not None,
         "future_v17_tokens_used_by_policy": False,
         "label_or_correctness_used_during_policy_execution": False,
         "prefill_wall_seconds_measured": prefill_wall,
@@ -748,7 +1088,11 @@ def run_policy_sample(
         "actual_offload_metrics": offload_metrics,
         "elapsed_seconds_measured": elapsed,
         "tokens_per_second_measured": len(generated) / elapsed if elapsed else None,
-        "runtime_kind": "measured_actual_closed_loop_including_policy_planning",
+        "runtime_kind": (
+            "measured_accuracy_only_penultimate_joint_logical_simulation"
+            if planning_timing == "penultimate_joint_equivalent"
+            else "measured_actual_closed_loop_including_policy_planning"
+        ),
         "peak_cuda_allocated_bytes_measured": int(torch.cuda.max_memory_allocated(device)),
         "physical_gpu": physical_gpu,
         "pid": os.getpid(),
