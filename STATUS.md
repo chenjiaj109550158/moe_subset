@@ -21,12 +21,54 @@ The separately frozen penultimate-token joint-planning wave-one accuracy
 checkpoint is now complete. Its no-offload logical-equivalence candidate scored
 7/8 versus 8/8 for the checksum-pinned online-post-sample baseline, with one
 paired loss and no gain. It passed only the predeclared one-question allowed
-drop, not the strong 8/8 preservation signal. Its scoped decision is
-**PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION**; actual joint/fused
-execution, offloading, prefetch overlap, and speedup remain unimplemented and
-unmeasured pending human review.
+drop, not the strong 8/8 preservation signal. After explicit human
+authorization, the separately frozen real joint-offload v1/v2 engineering
+pilot implemented the proposed execution and actual asynchronous CPU-to-GPU
+prefetch. Under the same B=32 CUDA expert capacity for both policies, v2 reduced
+actual H2D by 26.867% and exposed transfer stall by 83.911%, but measured only
+0.986523x traditional decode throughput (-1.348%). Its two-row scoped decision
+is **NARROW_NO_SPEEDUP**.
 Earlier M11, trained-model, and subset-oracle artifacts remain complete and
 unchanged.
+
+## Penultimate-token real joint-offload speed pilot v2
+
+`qwen_penultimate_joint_offload_speed_v2` froze config SHA-256
+`7820f904ee547ae99b4b2a3ad5fabe47db410ffe2ae3f4da03653df1f4ecb1f1` and
+sample-manifest SHA-256
+`a8c8569cb42db51206d843123e4b5aab5b627347e423b0861b19e2b13d1ec68d` before
+its model output. It used exactly `test-44` and `test-632`, their existing
+512-token caps, fixed AB/BA order, Qwen3-30B-A3B BF16, and one A100-SXM4-80GB.
+
+- Both traditional and joint policies use the same real offload engine with
+  exactly 32 CUDA expert slots in every routed layer (25% of 128 experts). The
+  complete 57,982,058,496-byte expert store is pinned on CPU; CUDA expert-slot
+  capacity is 14,495,514,624 bytes. No full expert parameter remains on CUDA,
+  and the engine cache is reset for each sample/policy row.
+- Traditional dynamically loads each token's exact natural top-8 into its B=32
+  cache. The joint policy executes production only from its current B=32 and
+  asynchronously prefetches the next B=32 selected by each H=8 joint boundary.
+- Traditional measured 0.520364 decode forwards/s; joint measured 0.513351,
+  giving 0.986523x (-1.348%). End-to-end generated-token rate was 0.988785x.
+- Actual H2D fell from 584,558,051,328 to 427,504,435,200 bytes (-26.867%),
+  CUDA-event transfer time fell 27.064%, and exposed stall fell 83.911%.
+- Joint used 458 native post-prefill calls versus traditional's 488, but
+  processed 920 native input positions versus 488 because 464 disposable
+  pseudo positions remained. Their compute/runtime cost outweighed the hidden
+  transfer time in this native Python implementation.
+- Both policies scored 2/2. Traditional preserved its frozen vanilla token
+  stream 2/2. Joint had zero production expert misses and preserved its
+  no-offload logical reference 0/2; the latter is report-only under v2 because
+  BF16 q_len=1/q_len=9 batching is not bitwise route invariant.
+- Every runtime, H2D, transfer, stall, output, cache, and call-count value is
+  measured; none is a transfer simulation. The result is only a two-row,
+  one-A100 engineering **NARROW_NO_SPEEDUP**, not a production or full-dataset
+  claim.
+
+The frozen v1 smoke and its failed exact internal route-ID gate remain intact as
+provenance. V2 changed only that invalid batching-sensitive validation rule;
+model, IDs, caps, policies, work order, B/H, and accuracy gates were unchanged.
+Artifacts: `artifacts/qwen_penultimate_joint_offload_speed_v2/`.
 
 ## Penultimate-token joint-planning wave-one checkpoint
 
@@ -608,24 +650,19 @@ None.
 
 ## Next exact tasks
 
-The original focused pseudo-embedding v1 stage, calibration-free prompt-route
-follow-up, previous-window residual-bank experiment, and one-forward state
-experiments, including protected-anchor v2 and token-aligned retrieval v1,
-and mid-layer shifted self-conditioning v1 remain terminal at **STOP/PIVOT**.
-Token identity and a single midpoint embedding shift are not useful enough at
-this point. The executed-pseudo composition analysis is terminal at a route-only
-**NARROW**: preserve its positive held-out route evidence, but do not run
-actual accuracy from that analysis protocol because held-out oracle-gap recovery
-and a paired allowed-drop rule were not frozen there. A generation stage
-requires a new committed execution amendment using fixed existing IDs and gates
-before any accuracy is observed. No predictor training, expanded dataset scope,
-default-vector recalibration, or production runtime work is authorized; new
-sample rows require explicit human authorization.
+The authorized penultimate joint/offload implementation and two-row speed pilot
+are complete at **NARROW_NO_SPEEDUP**. The next useful engineering question is
+whether a fused/custom implementation can avoid processing or materializing the
+464 extra pseudo positions while preserving the asynchronous B=32 prefetch
+benefit. That is outside this frozen pilot. More samples, different token caps,
+B/H changes, quantization, NVMe/NVLink, multi-GPU execution, custom kernels,
+predictor training, or expanded dataset scope require a new predeclared scope
+and explicit authorization.
 
 ## Decisions needing human review
 
-- Whether the 7/8 penultimate-joint wave-one result is sufficient to proceed to
-  the separately scoped actual joint/fused offload implementation.
+- None for the completed v2 scope. Any next optimization or scope expansion
+  requires a new user decision.
 
 ## Real Qwen expert-offload speed pilot v1
 
@@ -689,3 +726,22 @@ Transformers 5.14.1, and one A100-SXM4-80GB.
 - `ruff check .`: PASS.
 - `ruff format --check .`: PASS; 247 files already formatted.
 - `mypy src/pseudoroute`: PASS; no issues in 120 source files.
+
+## Penultimate-joint real-offload exact checks
+
+Recorded 2026-08-04 UTC on Python 3.14.6, PyTorch 2.13.0+cu130,
+Transformers 5.14.1, and one A100-SXM4-80GB.
+
+- V2 artifact validator: PASS; four actual rows, one smoke row, two samples,
+  both policies, exact B=32 CUDA slots, pinned CPU sources, no full CUDA expert
+  parameters, actual H2D, async consumption, zero joint production misses,
+  traditional identity, joint accuracy, cache/call audits, checksums, resume,
+  measured-only partition, 18 manifest entries, and terminal
+  `NARROW_NO_SPEEDUP`.
+- V1 provenance audit remains failed only at its frozen q_len=1/q_len=9 exact
+  internal route/subset checks; every physical offload/cache/RNG/sampled-token
+  smoke check passed and its artifacts were not deleted or rerun.
+- `python -m pytest -ra`: PASS; 291 passed, 3 expected skips in 12.78s.
+- `ruff check .`: PASS.
+- `ruff format --check .`: PASS; 255 files already formatted.
+- `mypy src/pseudoroute`: PASS; no issues in 122 source files.

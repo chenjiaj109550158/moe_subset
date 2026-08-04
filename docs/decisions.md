@@ -1327,3 +1327,74 @@ audits, checksums, and measured/simulated partition. Actual joint/fused/offload
 implementation requires the pending user confirmation and a separately frozen
 engineering amendment; any additional rows, different timing, B/H, model,
 dataset, or speed claim requires new scope.
+
+## D-20260804-050 — Narrow real penultimate joint offloading after transfer savings fail to speed decode
+
+**Status:** accepted
+
+**Context:** After D-20260804-049, the user explicitly authorized actual
+joint/fused offload implementation and a speed measurement. The pre-output v1
+protocol froze the same existing `test-44` and `test-632` IDs, 512-token
+caps, AB/BA order, Qwen revision, BF16 precision, H=8, and B=32. Both policies
+must use one real offload engine with 32 CUDA expert slots per routed layer;
+complete routed-expert tensors must reside in pinned CPU memory.
+
+V1's real joint smoke passed sampled-token, cache, H2D, async-prefetch, B=32,
+pinned-source, no-full-CUDA-expert, and zero-production-miss checks, but stopped
+at an exact q_len=1 versus q_len=9 internal route-ID gate. Native BF16 batch
+shapes can choose different attention/GEMM kernels, making that internal
+bitwise comparison invalid even when the bridge sampled token and causal
+semantics agree. Before any timed output, v2 froze the same experiment and
+changed only those comparisons to layer-wise report-only overlap diagnostics.
+The v1 failed smoke remains provenance.
+
+**Decision:** Record **NARROW_NO_SPEEDUP** for only the two-row, one-A100
+Qwen/GSM8K H=8,B=32 engineering scope. Traditional exact natural-top-8 B32
+measured 0.520364 post-prefill decode forwards/s. Penultimate joint H8/B32
+measured 0.513351, or 0.986523x (-1.348%). End-to-end generated-token rate was
+0.988785x. Both policies answered 2/2; traditional retained frozen vanilla
+identity 2/2 and joint had zero production expert misses.
+
+The joint policy reduced actual H2D bytes from 584,558,051,328 to
+427,504,435,200 (-26.867%), CUDA-event transfer time by 27.064%, and exposed
+stall by 83.911%. It made 458 post-prefill native calls including bootstrap
+versus traditional's 488, but its 56 nine-position joint calls raised total
+native input positions from 488 to 920, including 464 disposable pseudo
+positions. In this native Python implementation, that extra compute/runtime
+work outweighed the transfer and stall savings.
+
+**Alternatives considered:** Give traditional only eight CUDA slots, let either
+policy keep all 128 experts on GPU, preserve a warm cache across policy rows,
+compare simulated transfers, normalize by different work after observing
+outputs, discard the failed v1 smoke, force q_len=1/q_len=9 internal router IDs
+to be bitwise equal, change IDs/caps/B/H, or claim a production speedup from
+lower H2D alone.
+
+**Consequences:** The comparison is physically capacity-matched. Both policies
+reset and use the same B=32 engine. The complete 57,982,058,496-byte expert
+store is pinned on CPU, CUDA expert-slot capacity is 14,495,514,624 bytes, and
+validation confirms no full expert parameter remains on CUDA. Traditional
+dynamically loads exact per-token natural top-8; joint production remains
+inside its current B=32 and asynchronously prefetches its next B=32. All
+runtime, H2D, transfer/stall, output, cache, and call-count metrics are measured,
+with no simulated metric in v2.
+
+The final validator passes four actual rows, both policies and samples, B=32
+capacity, pinned CPU sources, absence of full CUDA experts, traditional token
+identity, joint task accuracy, zero joint production misses, real async H2D,
+cache/call invariants, checksum resume, measured partition, and the 18-file
+manifest. Joint exact identity with its no-offload reference is report-only and
+was 0/2, consistent with the frozen v2 batching semantics.
+
+**Experiments affected:** Only
+`qwen_penultimate_joint_offload_speed_v1` and v2. The wave-one 7/8 accuracy
+checkpoint, online-post-sample 8/8 baseline, hard-oracle result, earlier
+unoverlapped offload pilot, route analyses, and all broader project conclusions
+remain unchanged.
+
+**Migration required:** Preserve v1 failed provenance, v2 IDs/order/caps,
+fingerprints, raw rows, B=32 fairness, setup exclusion, measured/simulated
+partition, and **NARROW_NO_SPEEDUP**. More rows, custom/fused kernels, a
+different pseudo representation, B/H changes, quantization, NVMe/NVLink,
+multi-GPU, model/dataset revisions, or production-serving claims require a new
+predeclared scope and explicit authorization.

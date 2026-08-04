@@ -98,3 +98,36 @@ metric in this pilot is simulated. The result remains a two-row, one-A100,
 Python-runtime engineering measurement; it cannot establish full-dataset
 accuracy, NVMe/NVLink behavior, multi-GPU behavior, a CUDA-graph/custom-kernel
 speedup, or production-serving speedup.
+
+## Observed result
+
+The v2 smoke passed every hard invariant. The q_len=1/q_len=9 sampled bridge
+token was exact; natural-route slot agreement was 81.771%, executed-route slot
+agreement was 85.938%, and next-B32 mean/minimum overlap was 98.112%/93.750%.
+It performed 96 asynchronous prefetch batches and 57,076,088,832 bytes of
+actual H2D.
+
+Both timed policies used exactly 32 CUDA expert slots per routed layer. The
+full 57,982,058,496-byte routed-expert store remained pinned on CPU and CUDA
+expert-slot capacity was 14,495,514,624 bytes. Validation found no full expert
+parameter on CUDA. Each sample/policy row began from an empty B=32 engine cache.
+
+Traditional exact-top-8 B32 measured 0.520364 decode forwards/s (488 forwards
+in 937.805799 s). Joint H8/B32 measured 0.513351 (456 forwards in 888.281337 s),
+for a 0.986523x ratio (-1.348%). End-to-end generated-token rate was 0.988785x.
+Actual H2D fell from 584,558,051,328 to 427,504,435,200 bytes (-26.867%),
+CUDA-event transfer time fell 27.064%, and exposed transfer stall fell 83.911%.
+
+The joint policy made 458 post-prefill native model calls including bootstrap
+versus traditional's 488, but processed 920 native input positions versus 488.
+Its 56 joint calls carried 464 extra disposable pseudo positions. Measured
+joint planning and joint-call host components were 2.261733 s and 33.054422 s
+inside total decode time. The extra pseudo-position work outweighed the
+transfer/stall savings in this implementation.
+
+Both policies answered 2/2. Traditional preserved frozen vanilla tokens 2/2;
+joint had zero production misses and differed from its no-offload logical
+reference 2/2, which is report-only under the v2 batching semantics. All
+artifact, row-count, checksum, resume, B=32, pinned-source, no-full-CUDA-expert,
+cache/call, actual-H2D, and measured-partition checks pass. The focused decision
+is **NARROW_NO_SPEEDUP**.

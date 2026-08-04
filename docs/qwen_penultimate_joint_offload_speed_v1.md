@@ -86,3 +86,17 @@ metric in this pilot is simulated. The result remains a two-row, one-A100,
 Python-runtime engineering measurement; it cannot establish full-dataset
 accuracy, NVMe/NVLink behavior, multi-GPU behavior, a CUDA-graph/custom-kernel
 speedup, or production-serving speedup.
+
+## Observed v1 smoke result
+
+The true joint/offload smoke executed and passed sampled bridge-token, cache
+advance/discard, actual H2D, asynchronous scheduling/consumption, pinned CPU
+source, B=32 capacity, no-full-CUDA-expert, and zero-production-miss checks. It
+failed the predeclared exact q_len=1 versus q_len=9 natural/executed route-ID
+and next-B32 checks. The v1 smoke row and failed audit are retained unchanged.
+
+The failure exposed that BF16 q_len=1 and q_len=9 batching can choose different
+native attention/GEMM kernels, so internal router IDs are not bitwise invariant
+even though the sampled bridge token is exact. V1 stopped before timed rows.
+The separately frozen v2 preserves the same experiment but records layer-wise
+route/subset overlap instead of treating batch-shape bitwise equality as a gate.

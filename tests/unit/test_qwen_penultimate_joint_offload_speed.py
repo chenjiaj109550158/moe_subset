@@ -52,6 +52,8 @@ def _summary_row(
             "deferred_ready_wait_ms": h2d_bytes / 200,
             "peak_allocated_bytes": h2d_bytes * 10,
             "peak_reserved_bytes": h2d_bytes * 20,
+            "pinned_cpu_expert_bytes": 4000,
+            "gpu_expert_slot_capacity_bytes": 1000,
         },
     }
 
@@ -84,6 +86,10 @@ def test_policy_summary_uses_aggregate_forward_time_and_measured_transfer() -> N
     assert summary["async_prefetch_batches"] == 6
     assert summary["deferred_ready_waits"] == 8
     assert summary["production_expert_misses"] == 0
+    assert summary["native_model_calls_post_prefill_including_bootstrap"] == 4
+    assert summary["native_input_positions_post_prefill_including_pseudo"] == 36
+    assert summary["extra_pseudo_input_positions"] == 6
+    assert summary["gpu_expert_slot_capacity_bytes"] == 1000
 
 
 @pytest.mark.parametrize(

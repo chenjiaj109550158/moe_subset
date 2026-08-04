@@ -78,9 +78,7 @@ def test_v2_changes_only_the_batching_sensitive_internal_identity_gate() -> None
     gate = config["smoke_gate"]
     source = config["source"]
 
-    assert source["failed_v1_execution_commit"] == (
-        "c5d1935e53a6874a9ed1ff29e4807bed4628771c"
-    )
+    assert source["failed_v1_execution_commit"] == ("c5d1935e53a6874a9ed1ff29e4807bed4628771c")
     assert source["failed_v1_smoke_row_sha256"] == (
         "b8912762ae14e5b83ca109595fc4681f853ba89e2342c91445b22d52cc0841a6"
     )

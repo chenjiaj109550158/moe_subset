@@ -280,9 +280,41 @@ On the same eight frozen wave-one GSM8K rows, the penultimate candidate scored
 route hit/selected mass were 0.685858/0.706211 versus 0.713199/0.734273, and all
 288 bridge parity checks passed. This meets only the predeclared one-question
 allowed drop, not strong 8/8 preservation. The decision is
-**PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION**. No actual joint
-execution, expert offloading, overlap, or speedup has been implemented or
-measured. See the
+**PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION**. That checkpoint
+itself measured no real offloading or speed; the subsequently authorized
+engineering pilot below did. See the
 [protocol](docs/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1.md),
 [report](artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/report.md), and
 [decision](artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/decision.json).
+
+## Penultimate-token real joint offloading
+
+The separately frozen `qwen_penultimate_joint_offload_speed_v2` implements a
+native causal 9-position call at each H=8 boundary: one real bridge position
+plus eight disposable pseudo anchors. Only the bridge KV is committed. As soon
+as a routed layer selects its next B=32, actual CPU-to-GPU copies are scheduled
+on a dedicated CUDA stream and later production forwards consume those copied
+slots.
+
+The speed comparison gives both policies the same physical capacity: exactly
+32 CUDA expert slots per routed layer, or 25% of Qwen's 128 routed experts. The
+full 57,982,058,496-byte expert store is pinned on CPU and no complete expert
+parameter remains on CUDA. Traditional dynamically loads the exact natural
+top-8 each token through this same B=32 engine; the joint policy executes only
+its current B=32 and asynchronously prefetches its next B=32.
+
+On the two frozen GSM8K rows, traditional measured 0.520364 decode forwards/s
+and the joint policy measured 0.513351, a ratio of 0.986523x (-1.348%).
+Measured H2D bytes fell 26.867%, CUDA-event transfer time fell 27.064%, and
+exposed transfer stall fell 83.911%, but the joint calls processed 920 native
+input positions versus 488 for traditional because they included 464 extra
+pseudo positions. That extra work outweighed the transfer benefit. Both scored
+2/2 and joint production had zero expert misses.
+
+The focused decision is **NARROW_NO_SPEEDUP**. This is a two-row,
+single-A100, native-Python engineering measurement—not full-dataset accuracy or
+production-serving speedup evidence. All reported runtime/transfer/stall values
+are measured, not simulated. See the
+[v2 protocol](docs/qwen_penultimate_joint_offload_speed_v2.md),
+[report](artifacts/qwen_penultimate_joint_offload_speed_v2/report.md), and
+[decision](artifacts/qwen_penultimate_joint_offload_speed_v2/decision.json).

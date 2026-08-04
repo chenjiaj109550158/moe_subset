@@ -649,3 +649,69 @@ simulated. All experts remain resident, and the disposable duplicate bridge
 exists only to reproduce the intended state dependency. Actual offload runtime,
 prefetch overlap, joint/fused runtime, speedup, and full-dataset accuracy are not
 measured.
+
+## Penultimate-token real joint-offload speed pilot v1/v2
+
+The v1 immutable config and sample manifest have SHA-256 values
+`6ba8a77f9a749d7baab2b9d784825c7b835fb32538d843cb7d32ea8c1eb27f6d` and
+`202486d1591fc46c21ac298c0ff953ccb3245441a6961c7279826db4ec1d62d4`.
+Its true joint/offload smoke passed sampled-token, cache, real-H2D,
+asynchronous-prefetch, B=32, pinned-source, and zero-production-miss checks, but
+failed the predeclared exact q_len=1 versus q_len=9 internal route-ID gate. The
+v1 smoke row and failed audit remain immutable provenance.
+
+V2 changes only that batching-sensitive route comparison from a correctness
+gate to measured overlap diagnostics. Its config and sample-manifest SHA-256
+values are
+`7820f904ee547ae99b4b2a3ad5fabe47db410ffe2ae3f4da03653df1f4ecb1f1` and
+`a8c8569cb42db51206d843123e4b5aab5b627347e423b0861b19e2b13d1ec68d`.
+It preserves the same model, revision, BF16 precision, `test-44`/`test-632`
+IDs, 512-token caps, policies, AB/BA order, H=8, B=32, and task gates.
+
+Run or resume exactly one GPU worker from the pinned offline cache:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 CUDA_VISIBLE_DEVICES=0 \
+python -m pseudoroute.benchmark.qwen_penultimate_joint_offload_speed \
+  --pilot-version v2 run --stage smoke --physical-gpu 0
+python -m pseudoroute.benchmark.qwen_penultimate_joint_offload_speed \
+  --pilot-version v2 audit-smoke
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 CUDA_VISIBLE_DEVICES=0 \
+python -m pseudoroute.benchmark.qwen_penultimate_joint_offload_speed \
+  --pilot-version v2 run --stage actual --physical-gpu 0
+python -m pseudoroute.benchmark.qwen_penultimate_joint_offload_speed \
+  --pilot-version v2 finalize
+python -m pseudoroute.benchmark.qwen_penultimate_joint_offload_speed \
+  --pilot-version v2 validate
+```
+
+Rows are atomically written and skipped only after identity, scope, and payload
+checksum validation. The final root contains four actual rows, one smoke row,
+two setup records, aggregate/decision/measured-partition files, and a complete
+18-file manifest. Its manifest payload SHA-256 is
+`8d5e9b70904d976171cee8b4ba66dcd4841acbb2c953576b8d3ce012593cdcb6`.
+
+Both policies instantiate the same offload engine with exactly 32 CUDA slots
+per routed layer. Each actual sample/policy row resets that cache. The complete
+57,982,058,496 expert bytes are pinned on CPU, CUDA slot capacity is
+14,495,514,624 bytes, and validation requires no full expert parameters on
+CUDA. Traditional dynamically loads exact natural top-8 into B=32; joint
+production is resident-only inside B=32 and asynchronously prefetches its next
+B=32.
+
+Traditional measured 0.520364 post-prefill decode forwards/s over 488 forwards;
+joint measured 0.513351 over 456 forwards, or 0.986523x (-1.348%). Actual H2D
+fell 26.867%, CUDA-event transfer time fell 27.064%, and exposed stall fell
+83.911%. Joint made 458 post-prefill native model calls including bootstrap
+versus 488, but processed 920 input positions versus 488 because 464 pseudo
+positions were disposable planner work. Accuracy was 2/2 for each policy,
+traditional exact identity was 2/2, and joint production misses were zero.
+
+Task outputs, token identity, wall time, H2D bytes, transfer/stall CUDA events,
+cache positions, native call/input counts, peak CUDA memory, and accuracy are
+measured. No metric in this pilot is simulated. Setup extraction is measured
+separately and excluded from decode throughput. Timed actual rows never execute
+the duplicate sequential smoke reference. The result is
+`NARROW_NO_SPEEDUP` at two-row, one-A100 engineering scope and does not
+establish full-dataset accuracy, NVMe/NVLink, multi-GPU, custom-kernel, or
+production-serving behavior.

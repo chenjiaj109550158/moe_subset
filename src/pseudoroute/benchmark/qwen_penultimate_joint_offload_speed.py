@@ -1144,6 +1144,16 @@ def _policy_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     decode_wall = sum(float(row["decode_wall_seconds_measured"]) for row in rows)
     inference_wall = sum(float(row["end_to_end_inference_wall_seconds_measured"]) for row in rows)
     generated = sum(int(row["generated_tokens"]) for row in rows)
+    joint_calls = sum(int(row.get("joint_calls", 0)) for row in rows)
+    joint_input_tokens = sum(int(row.get("joint_input_tokens", 0)) for row in rows)
+    regular_calls = sum(int(row.get("regular_one_token_production_calls", 0)) for row in rows)
+    bootstrap_calls = sum(int(row.get("initial_online_bootstrap_calls", 0)) for row in rows)
+    if joint_calls or regular_calls or bootstrap_calls:
+        native_calls = regular_calls + joint_calls + bootstrap_calls
+        native_input_positions = regular_calls + joint_input_tokens + bootstrap_calls * HORIZON
+    else:
+        native_calls = forwards
+        native_input_positions = forwards
     metrics = [cast(dict[str, Any], row["actual_offload_metrics"]) for row in rows]
     return {
         "rows": len(rows),
@@ -1161,6 +1171,18 @@ def _policy_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "aggregate_end_to_end_tokens_per_second_measured": (
             generated / inference_wall if inference_wall else None
         ),
+        "planning_wall_seconds_measured": sum(
+            float(row.get("planning_wall_seconds_measured", 0.0)) for row in rows
+        ),
+        "initial_prefetch_wall_seconds_measured": sum(
+            float(row.get("initial_prefetch_wall_seconds_measured", 0.0)) for row in rows
+        ),
+        "joint_host_wall_seconds_measured": sum(
+            float(row.get("joint_host_wall_seconds_measured", 0.0)) for row in rows
+        ),
+        "native_model_calls_post_prefill_including_bootstrap": native_calls,
+        "native_input_positions_post_prefill_including_pseudo": native_input_positions,
+        "extra_pseudo_input_positions": native_input_positions - forwards,
         "actual_h2d_bytes": sum(int(item["h2d_bytes"]) for item in metrics),
         "cuda_event_transfer_seconds": (sum(float(item["transfer_ms"]) for item in metrics) / 1000),
         "cuda_event_exposed_stall_seconds": (
@@ -1177,10 +1199,15 @@ def _policy_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "production_expert_misses": sum(
             int(row.get("production_expert_misses", 0)) for row in rows
         ),
-        "joint_calls": sum(int(row.get("joint_calls", 0)) for row in rows),
-        "joint_input_tokens": sum(int(row.get("joint_input_tokens", 0)) for row in rows),
+        "joint_calls": joint_calls,
+        "joint_input_tokens": joint_input_tokens,
+        "regular_one_token_production_calls": regular_calls,
         "peak_cuda_allocated_bytes": max(int(item["peak_allocated_bytes"]) for item in metrics),
         "peak_cuda_reserved_bytes": max(int(item["peak_reserved_bytes"]) for item in metrics),
+        "pinned_cpu_expert_bytes": max(int(item["pinned_cpu_expert_bytes"]) for item in metrics),
+        "gpu_expert_slot_capacity_bytes": max(
+            int(item["gpu_expert_slot_capacity_bytes"]) for item in metrics
+        ),
     }
 
 
@@ -1224,6 +1251,14 @@ def aggregate() -> dict[str, object]:
     traditional_transfer = float(summaries[TRADITIONAL]["cuda_event_transfer_seconds"])
     joint_transfer = float(summaries[JOINT]["cuda_event_transfer_seconds"])
     transfer_reduction = 1 - joint_transfer / traditional_transfer
+    traditional_stall = float(summaries[TRADITIONAL]["cuda_event_exposed_stall_seconds"])
+    joint_stall = float(summaries[JOINT]["cuda_event_exposed_stall_seconds"])
+    stall_reduction = 1 - joint_stall / traditional_stall
+    traditional_token_rate = float(
+        summaries[TRADITIONAL]["aggregate_end_to_end_tokens_per_second_measured"]
+    )
+    joint_token_rate = float(summaries[JOINT]["aggregate_end_to_end_tokens_per_second_measured"])
+    token_rate_ratio = joint_token_rate / traditional_token_rate
     traditional_identity = (
         int(summaries[TRADITIONAL]["required_reference_exact_identity_rows"]) == 2
     )
@@ -1281,8 +1316,10 @@ def aggregate() -> dict[str, object]:
         "per_sample": per_sample,
         "joint_vs_traditional_decode_throughput_ratio_measured": speedup,
         "joint_vs_traditional_decode_speedup_percent_measured": (speedup - 1) * 100,
+        "joint_vs_traditional_end_to_end_token_rate_ratio_measured": token_rate_ratio,
         "joint_vs_traditional_actual_h2d_reduction_measured": h2d_reduction,
         "joint_vs_traditional_cuda_event_transfer_time_reduction_measured": (transfer_reduction),
+        "joint_vs_traditional_cuda_event_exposed_stall_reduction_measured": stall_reduction,
         "traditional_reference_exact_identity_gate_pass": traditional_identity,
         "joint_task_accuracy_gate_pass": joint_correct,
         "joint_zero_production_miss_gate_pass": joint_zero_miss,
@@ -1334,6 +1371,15 @@ def aggregate() -> dict[str, object]:
 def _report(aggregate_row: dict[str, Any]) -> str:
     traditional = aggregate_row["policy_summaries"][TRADITIONAL]
     joint = aggregate_row["policy_summaries"][JOINT]
+    smoke_parity = aggregate_row["smoke_audit"]["batching_route_parity"]
+    transfer_reduction_percent = (
+        aggregate_row["joint_vs_traditional_cuda_event_transfer_time_reduction_measured"] * 100
+    )
+    stall_reduction_percent = (
+        aggregate_row["joint_vs_traditional_cuda_event_exposed_stall_reduction_measured"] * 100
+    )
+    natural_agreement_percent = smoke_parity["sequential_bridge_natural_slot_agreement"] * 100
+    next_subset_overlap_percent = smoke_parity["sequential_next_b32_mean_overlap_fraction"] * 100
     return "\n".join(
         [
             f"# {PILOT_ID} report",
@@ -1343,33 +1389,71 @@ def _report(aggregate_row: dict[str, Any]) -> str:
             "",
             "## Measured speed",
             "",
-            f"- Traditional exact-top-8: "
+            f"- Traditional exact-top-8 B32: "
             f"{traditional['aggregate_post_prefill_decode_forwards_per_second_measured']:.6f} "
-            "decode forwards/s.",
-            f"- Penultimate joint H=8/B=32: "
+            f"decode forwards/s ({traditional['post_prefill_decode_forwards']} forwards / "
+            f"{traditional['decode_wall_seconds_measured']:.6f} s).",
+            f"- Penultimate joint H8/B32: "
             f"{joint['aggregate_post_prefill_decode_forwards_per_second_measured']:.6f} "
-            "decode forwards/s.",
+            f"decode forwards/s ({joint['post_prefill_decode_forwards']} forwards / "
+            f"{joint['decode_wall_seconds_measured']:.6f} s).",
             f"- Joint / traditional: "
             f"{aggregate_row['joint_vs_traditional_decode_throughput_ratio_measured']:.6f}x "
             f"({aggregate_row['joint_vs_traditional_decode_speedup_percent_measured']:+.3f}%).",
+            f"- End-to-end generated-token rate ratio: "
+            f"{aggregate_row['joint_vs_traditional_end_to_end_token_rate_ratio_measured']:.6f}x.",
             "",
-            "## Measured transfer and outputs",
+            "## Why transfer savings did not become speedup",
             "",
-            f"- Actual H2D bytes: traditional {traditional['actual_h2d_bytes']:,}; "
+            f"- Native post-prefill model calls including bootstrap: traditional "
+            f"{traditional['native_model_calls_post_prefill_including_bootstrap']}; joint "
+            f"{joint['native_model_calls_post_prefill_including_bootstrap']}.",
+            f"- Native input positions including disposable pseudo positions: traditional "
+            f"{traditional['native_input_positions_post_prefill_including_pseudo']}; joint "
+            f"{joint['native_input_positions_post_prefill_including_pseudo']} "
+            f"({joint['extra_pseudo_input_positions']} extra pseudo positions).",
+            f"- Joint planning wall time was {joint['planning_wall_seconds_measured']:.6f} s; "
+            f"joint-call host wall time was {joint['joint_host_wall_seconds_measured']:.6f} s. "
+            "These are measured components inside the decode wall time, not additive costs.",
+            "- The candidate made fewer outer model calls and hid most transfer waiting, but "
+            "processed substantially more token positions in its 9-position joint calls. In "
+            "this native Python runtime, that compute/runtime cost outweighed the transfer gain.",
+            "",
+            "## Measured transfer",
+            "",
+            f"- Row-total actual H2D bytes (prefill + decode): traditional "
+            f"{traditional['actual_h2d_bytes']:,}; "
             f"joint {joint['actual_h2d_bytes']:,}; reduction "
             f"{aggregate_row['joint_vs_traditional_actual_h2d_reduction_measured'] * 100:.3f}%.",
             f"- CUDA-event transfer seconds: traditional "
             f"{traditional['cuda_event_transfer_seconds']:.6f}; joint "
-            f"{joint['cuda_event_transfer_seconds']:.6f}.",
+            f"{joint['cuda_event_transfer_seconds']:.6f}; reduction "
+            f"{transfer_reduction_percent:.3f}%.",
             f"- CUDA-event exposed stall seconds: traditional "
             f"{traditional['cuda_event_exposed_stall_seconds']:.6f}; joint "
-            f"{joint['cuda_event_exposed_stall_seconds']:.6f}.",
+            f"{joint['cuda_event_exposed_stall_seconds']:.6f}; reduction "
+            f"{stall_reduction_percent:.3f}%.",
             f"- Joint async prefetch: {joint['async_prefetch_batches']} batches, "
             f"{joint['async_prefetch_bytes']:,} bytes; deferred ready waits "
-            f"{joint['deferred_ready_waits']}.",
+            f"{joint['deferred_ready_waits']} ({joint['deferred_ready_wait_seconds']:.6f} s).",
+            "",
+            "## Fairness and outputs",
+            "",
+            f"- Both policies used exactly 32 CUDA expert slots per routed layer. Full pinned "
+            f"CPU expert bytes were {joint['pinned_cpu_expert_bytes']:,}; B32 CUDA expert-slot "
+            f"capacity was {joint['gpu_expert_slot_capacity_bytes']:,} bytes.",
+            "- Traditional dynamically loaded exact per-token natural top-8 into B32. Joint "
+            "production was resident-only B32 and asynchronously prefetched its next B32.",
             f"- GSM8K accuracy: traditional {traditional['correct_rows']}/2; "
             f"joint {joint['correct_rows']}/2.",
+            f"- Exact-token identity with each policy's frozen reference: traditional "
+            f"{traditional['required_reference_exact_identity_rows']}/2; joint "
+            f"{joint['required_reference_exact_identity_rows']}/2 (report-only for joint).",
             f"- Joint production expert misses: {joint['production_expert_misses']}.",
+            f"- V2 smoke q_len1/q_len9 natural-route slot agreement was "
+            f"{natural_agreement_percent:.3f}%; next-B32 mean overlap was "
+            f"{next_subset_overlap_percent:.3f}%. "
+            "The bridge sampled token matched exactly.",
             "",
             "## Boundary",
             "",
