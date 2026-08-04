@@ -1,0 +1,203 @@
+schema_version: 1
+pilot_id: qwen_penultimate_joint_offload_speed_v1
+status: protocol_frozen_before_any_joint_offload_model_output
+artifact_root: artifacts/qwen_penultimate_joint_offload_speed_v1
+protocol_document: docs/qwen_penultimate_joint_offload_speed_v1.md
+sample_manifest: configs/benchmark/qwen_penultimate_joint_offload_speed_v1_samples.json
+
+authorization:
+  user_approved_actual_joint_offload_implementation_and_speed_measurement: true
+  approved_at_utc: "2026-08-04"
+  dataset_expansion_beyond_manifest: forbidden
+  token_cap_change: forbidden
+  network_downloads: forbidden
+  model_or_precision_change: forbidden
+
+source:
+  accuracy_config: configs/benchmark/speculating_experts_accuracy_v17.yaml
+  accuracy_config_sha256: 23687248a85a52cb60b09a337c691fb0c95df018dc195794ddf7775e10015092
+  frozen_vanilla_rows: artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl
+  frozen_vanilla_rows_sha256: 4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae
+  logical_penultimate_config: configs/benchmark/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1.yaml
+  logical_penultimate_config_sha256: 57242f91f204c4e765d893dd754e4e523f8fdce62c303827d2e375cec4cc654c
+  logical_penultimate_samples: configs/benchmark/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1_samples.json
+  logical_penultimate_samples_sha256: 0f4fd75760390fb8ea468af888c8dcd0b22483cdb2af0f96f51a9833c6614d10
+  prior_real_offload_config: configs/benchmark/qwen_real_offload_speed_pilot_v1.yaml
+  prior_real_offload_config_sha256: 9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec
+  prior_real_offload_samples: configs/benchmark/qwen_real_offload_speed_pilot_v1_samples.json
+  prior_real_offload_samples_sha256: aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819
+  prior_real_offload_aggregate: artifacts/qwen_real_offload_speed_pilot_v1/aggregate.json
+  prior_real_offload_aggregate_sha256: c95c280b855afe4205bcb9f3a356b5f01631fc71960a9fcdc5cdc8b7312b417b
+  prior_real_offload_manifest: artifacts/qwen_real_offload_speed_pilot_v1/artifact_manifest.json
+  prior_real_offload_manifest_sha256: 3704e8d3bbb7c4a8f7c8eebe39ea7275214668365c4c9547548a2bfbacfd8ccf
+
+model:
+  key: qwen3_30b_a3b
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  precision: bfloat16
+  routed_layers: 48
+  routed_experts_per_layer: 128
+  native_top_k: 8
+  shared_experts_per_layer: 0
+  hidden_size: 2048
+  moe_intermediate_size: 768
+  sliding_window: null
+
+dataset:
+  key: gsm8k
+  split: test
+  source_partition: closed_loop_wave_1
+  exact_sample_ids: [test-44, test-632]
+  sample_count: 2
+  max_new_tokens: 512
+  prompt_rendering: exact_saved_v17_rendered_prompt
+  answer_parser: exact_v17_gsm8k_parser
+  stop_strings: exact_v17
+
+decode:
+  batch_size: 1
+  do_sample: false
+  seed: 20260727
+  use_cache: true
+
+offload:
+  host_store: pinned_cpu_bfloat16
+  pinned_memory_required: true
+  gpu_slots_per_layer: 32
+  resident_fraction: 0.25
+  transfer_direction: cpu_to_cuda
+  transfer_stream: dedicated_cuda_stream
+  cache_replacement: deterministic_lru_ascending_expert_id_tie_break
+  reset_cache_before_each_sample_policy: true
+  setup_extraction_excluded_from_inference_throughput: true
+  setup_extraction_measured_separately: true
+
+policies:
+  lossless_dynamic_top8_lru_b32:
+    role: traditional_exact_per_token_offload_baseline
+    router_scope: all_128_experts
+    executed_route: exact_native_top8
+    on_cache_miss: synchronous_exact_selected_expert_load
+    resident_cache_budget_per_layer: 32
+    required_reference: frozen_v17_vanilla_exact_tokens
+  penultimate_unigram_joint_h8_b32_async_prefetch:
+    role: actual_joint_penultimate_pseudoroute_offload_candidate
+    horizon: 8
+    subset_budget_per_layer: 32
+    first_window:
+      planning: online_post_sample_sampled_unigram_bootstrap
+      expert_access: dynamic_lossless_native_top8
+      prefetch: synchronous_exact_b32
+    later_windows:
+      trigger: current_window_eighth_production_forward
+      native_joint_input: one_real_bridge_token_then_eight_pseudo_anchors
+      joint_sequence_tokens: 9
+      native_attention_calls_per_layer: 1
+      native_router_calls_per_layer: 1
+      native_expert_calls_per_layer: 1
+      bridge_route: hard_mask_current_b32_before_native_top8_and_normalization
+      pseudo_route: natural_top8_intersection_current_b32_preserve_weights_zero_missing
+      pseudo_content: sampled_unigram_full_continuation
+      pseudo_content_fallback: recent_sequence_causal
+      subset_selection: first_four_anchor_core_plus_completed_current_window_history_fill
+      production_cache_commit: bridge_kv_only_exactly_one_position
+      pseudo_kv_commit: forbidden
+      next_subset_prefetch: layer_local_async_after_joint_layer_expert_compute
+      transfer_compute_overlap: enabled_across_later_layers_and_next_decode
+      just_sampled_last_token_used_for_planning: false
+    production_expert_miss: forbidden
+    learned_or_fitted_parameters: false
+    required_logical_reference: frozen_no_offload_penultimate_rows
+
+execution:
+  mechanism_smoke:
+    row_index: 44
+    sample_id: test-44
+    max_new_tokens: 17
+    policy: penultimate_unigram_joint_h8_b32_async_prefetch
+    minimum_joint_calls: 2
+    sequential_reference_enabled: true
+    sequential_reference_excluded_from_speed: true
+    result_selects_ids_policy_or_gates: false
+  measured:
+    sample_count: 2
+    policy_rows: 4
+    row_order:
+      - [test-44, lossless_dynamic_top8_lru_b32]
+      - [test-44, penultimate_unigram_joint_h8_b32_async_prefetch]
+      - [test-632, penultimate_unigram_joint_h8_b32_async_prefetch]
+      - [test-632, lossless_dynamic_top8_lru_b32]
+    repetitions_per_sample_policy: 1
+    atomic_json_rows: true
+    checksum_resume: true
+    retain_failed_markers: true
+    maximum_workers_per_physical_gpu: 1
+    model_loads_per_worker: 1
+    network_downloads: false
+
+smoke_gate:
+  require_joint_sequence_tokens: 9
+  require_joint_calls_at_least: 2
+  require_one_native_attention_router_expert_call_per_layer_per_joint: true
+  require_production_cache_advance_per_joint: 1
+  require_pseudo_kv_not_committed: true
+  require_sequential_bridge_sampled_token_exact: true
+  require_sequential_bridge_natural_route_ids_exact: true
+  require_sequential_bridge_executed_route_ids_exact: true
+  require_sequential_next_b32_exact: true
+  require_generation_rng_unchanged_by_planning: true
+  require_actual_h2d: true
+  require_async_prefetch_scheduled_and_consumed: true
+  require_zero_production_expert_misses: true
+  require_pinned_cpu_sources_and_b32_cuda_slots: true
+  require_no_full_expert_parameters_on_cuda: true
+
+decision_gate:
+  traditional_reference_exact_identity_required: 2
+  candidate_correct_required: 2
+  candidate_zero_production_expert_misses_required: true
+  minimum_speedup_ratio_for_positive_engineering_signal: 1.00
+  strong_speedup_ratio: 1.05
+  candidate_logical_reference_exact_token_identity: report_only_not_gate
+  if_invariant_or_accuracy_fails: STOP_PIVOT
+  if_correct_and_speedup_below_1: NARROW_NO_SPEEDUP
+  if_correct_and_speedup_at_least_1_below_strong: NARROW_POSITIVE_ENGINEERING_SIGNAL
+  if_correct_and_speedup_at_least_strong: NARROW_STRONG_ENGINEERING_SIGNAL
+  conclusion_ceiling: TWO_ROW_ENGINEERING_NARROW
+
+measurements:
+  primary_speed_metric: aggregate_post_prefill_decode_forwards_per_second_including_planning_h2d_and_exposed_wait
+  measured:
+    - setup_wall_seconds
+    - pinned_cpu_expert_bytes
+    - gpu_expert_slot_capacity_bytes
+    - actual_h2d_expert_bytes
+    - cache_hits_misses_and_transfer_batches_by_phase
+    - cuda_event_transfer_seconds
+    - cuda_event_exposed_stall_seconds
+    - async_prefetch_batches_and_bytes
+    - prefill_and_decode_wall_seconds
+    - joint_calls_and_joint_input_tokens
+    - logical_production_cache_positions_committed
+    - generated_tokens_and_decode_forwards_per_second
+    - gsm8k_accuracy_and_exact_token_references
+    - peak_cuda_allocated_and_reserved_bytes
+  external_context_only:
+    - prior_unoverlapped_online_candidate_speed_and_h2d
+  not_measured:
+    - nvme_offload
+    - multi_gpu_nvlink_offload
+    - cuda_graph_or_custom_fused_kernel
+    - full_dataset_accuracy
+    - production_serving_speedup
+
+reporting:
+  measured_vs_simulated_partition_required: true
+  identity_materialized_rows: 0
+  prohibit_claims:
+    - full_dataset_accuracy_preservation
+    - speedup_beyond_two_rows_one_a100_and_this_python_runtime
+    - nvme_or_multi_gpu_behavior
+    - custom_kernel_or_cuda_graph_speedup
+    - simulator_timing_as_runtime
