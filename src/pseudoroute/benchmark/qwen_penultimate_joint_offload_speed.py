@@ -78,6 +78,8 @@ SAMPLES = Path("configs/benchmark/qwen_penultimate_joint_offload_speed_v1_sample
 CONFIG_SHA256 = "6ba8a77f9a749d7baab2b9d784825c7b835fb32538d843cb7d32ea8c1eb27f6d"
 SAMPLES_SHA256 = "202486d1591fc46c21ac298c0ff953ccb3245441a6961c7279826db4ec1d62d4"
 OUTPUT = Path("artifacts/qwen_penultimate_joint_offload_speed_v1")
+PILOT_VERSION = "v1"
+PROTOCOL_COMMIT = "00c12f3"
 TRADITIONAL: Policy = "lossless_dynamic_top8_lru_b32"
 JOINT: Policy = "penultimate_unigram_joint_h8_b32_async_prefetch"
 POLICIES: tuple[Policy, ...] = (TRADITIONAL, JOINT)
@@ -87,6 +89,30 @@ TOP_K = 8
 BUDGET = 32
 HORIZON = 8
 SELECTOR = "first_four_anchor_core_plus_history_fill"
+
+
+def _select_pilot(version: str) -> None:
+    global PILOT_ID, CONFIG, SAMPLES, CONFIG_SHA256, SAMPLES_SHA256
+    global OUTPUT, PILOT_VERSION, PROTOCOL_COMMIT
+    if version == "v1":
+        PILOT_ID = "qwen_penultimate_joint_offload_speed_v1"
+        CONFIG = Path("configs/benchmark/qwen_penultimate_joint_offload_speed_v1.yaml")
+        SAMPLES = Path("configs/benchmark/qwen_penultimate_joint_offload_speed_v1_samples.json")
+        CONFIG_SHA256 = "6ba8a77f9a749d7baab2b9d784825c7b835fb32538d843cb7d32ea8c1eb27f6d"
+        SAMPLES_SHA256 = "202486d1591fc46c21ac298c0ff953ccb3245441a6961c7279826db4ec1d62d4"
+        OUTPUT = Path("artifacts/qwen_penultimate_joint_offload_speed_v1")
+        PROTOCOL_COMMIT = "00c12f3"
+    elif version == "v2":
+        PILOT_ID = "qwen_penultimate_joint_offload_speed_v2"
+        CONFIG = Path("configs/benchmark/qwen_penultimate_joint_offload_speed_v2.yaml")
+        SAMPLES = Path("configs/benchmark/qwen_penultimate_joint_offload_speed_v2_samples.json")
+        CONFIG_SHA256 = "7820f904ee547ae99b4b2a3ad5fabe47db410ffe2ae3f4da03653df1f4ecb1f1"
+        SAMPLES_SHA256 = "a8c8569cb42db51206d843123e4b5aab5b627347e423b0861b19e2b13d1ec68d"
+        OUTPUT = Path("artifacts/qwen_penultimate_joint_offload_speed_v2")
+        PROTOCOL_COMMIT = "b648f82"
+    else:
+        raise ValueError(f"unknown joint-offload pilot version: {version}")
+    PILOT_VERSION = version
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -147,6 +173,22 @@ def _protocol() -> tuple[dict[str, Any], dict[str, Any]]:
             checksum = payload.pop("row_payload_sha256", None)
             if checksum != pinned["row_payload_sha256"] or checksum != sha256_json(payload):
                 raise ValueError(f"joint-offload row payload changed: {path}")
+    if PILOT_VERSION == "v2":
+        failed_row_path = Path(source["failed_v1_smoke_row"])
+        failed_audit_path = Path(source["failed_v1_smoke_audit"])
+        if sha256_file(failed_row_path) != source["failed_v1_smoke_row_sha256"]:
+            raise ValueError("joint-offload v1 failed smoke row changed")
+        failed_row = _json(failed_row_path)
+        checksum = failed_row.pop("row_payload_sha256", None)
+        if checksum != source["failed_v1_smoke_row_payload_sha256"] or checksum != sha256_json(
+            failed_row
+        ):
+            raise ValueError("joint-offload v1 failed smoke payload changed")
+        if sha256_file(failed_audit_path) != source["failed_v1_smoke_audit_sha256"]:
+            raise ValueError("joint-offload v1 failed smoke audit changed")
+        failed_audit = _json(failed_audit_path)
+        if failed_audit.get("state") != "failed" or failed_audit.get("all_pass") is not False:
+            raise ValueError("joint-offload v1 failed smoke provenance is not failed")
     return config, samples
 
 
@@ -259,6 +301,54 @@ def _exact_reference(
 ) -> tuple[float, int | None, bool]:
     agreement, first = _token_agreement(generated, reference)
     return agreement, first, generated == reference
+
+
+def _batching_route_parity(
+    sequential: tuple[SubsetRouteRecord, ...],
+    joint: tuple[SubsetRouteRecord, ...],
+    sequential_next: dict[int, tuple[int, ...]],
+    joint_next: dict[int, tuple[int, ...]],
+) -> dict[str, object]:
+    if (
+        len(sequential) != LAYERS
+        or len(joint) != LAYERS
+        or set(sequential_next) != set(range(LAYERS))
+        or set(joint_next) != set(range(LAYERS))
+    ):
+        raise ValueError("batching route parity is missing routed layers")
+    natural_exact_layers = 0
+    executed_exact_layers = 0
+    natural_equal_slots = 0
+    executed_equal_slots = 0
+    route_slots = 0
+    subset_exact_layers = 0
+    subset_overlaps: list[float] = []
+    for layer, (left, right) in enumerate(zip(sequential, joint, strict=True)):
+        if left.layer != layer or right.layer != layer:
+            raise ValueError("batching route parity layer order changed")
+        natural_equal = left.natural.ids.eq(right.natural.ids)
+        executed_equal = left.executed.ids.eq(right.executed.ids)
+        natural_exact_layers += int(bool(natural_equal.all()))
+        executed_exact_layers += int(bool(executed_equal.all()))
+        natural_equal_slots += int(natural_equal.sum())
+        executed_equal_slots += int(executed_equal.sum())
+        route_slots += natural_equal.numel()
+        left_subset = set(sequential_next[layer])
+        right_subset = set(joint_next[layer])
+        if len(left_subset) != BUDGET or len(right_subset) != BUDGET:
+            raise ValueError("batching route parity received a non-B32 subset")
+        subset_exact_layers += int(left_subset == right_subset)
+        subset_overlaps.append(len(left_subset & right_subset) / BUDGET)
+    return {
+        "batching_difference_metrics_recorded": True,
+        "sequential_bridge_natural_exact_layers": natural_exact_layers,
+        "sequential_bridge_executed_exact_layers": executed_exact_layers,
+        "sequential_bridge_natural_slot_agreement": natural_equal_slots / route_slots,
+        "sequential_bridge_executed_slot_agreement": executed_equal_slots / route_slots,
+        "sequential_next_b32_exact_layers": subset_exact_layers,
+        "sequential_next_b32_mean_overlap_fraction": sum(subset_overlaps) / LAYERS,
+        "sequential_next_b32_min_overlap_fraction": min(subset_overlaps),
+    }
 
 
 def _traditional_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -539,8 +629,18 @@ def _run_joint(
                     scores.argmax(dim=-1).item()
                 )
                 next_b32_exact = sequential_next == next_active
+                batching = _batching_route_parity(
+                    sequential.bridge_records,
+                    records,
+                    sequential_next,
+                    next_active,
+                )
                 parity = {
                     **full_parity,
+                    **batching,
+                    "sequential_bridge_logits_max_abs_difference": float(
+                        (sequential.bridge_logits.float() - scores.float()).abs().max().item()
+                    ),
                     "sequential_bridge_sampled_token_exact": sampled_token_exact,
                     "sequential_bridge_natural_route_ids_exact": natural_ids_exact,
                     "sequential_bridge_executed_route_ids_exact": executed_ids_exact,
@@ -848,7 +948,7 @@ def _run_stages(
         OUTPUT / "resolved_execution_revision.json",
         {
             "execution_git_head": revision,
-            "protocol_commit": "00c12f3",
+            "protocol_commit": PROTOCOL_COMMIT,
             "config_sha256": CONFIG_SHA256,
             "sample_manifest_sha256": SAMPLES_SHA256,
         },
@@ -976,11 +1076,6 @@ def audit_smoke() -> dict[str, object]:
         "joint_cache_and_calls": bool(row["all_joint_cache_and_call_audits_pass"]),
         "bridge_sampled_token": parity is not None
         and bool(parity["sequential_bridge_sampled_token_exact"]),
-        "bridge_natural_ids": parity is not None
-        and bool(parity["sequential_bridge_natural_route_ids_exact"]),
-        "bridge_executed_ids": parity is not None
-        and bool(parity["sequential_bridge_executed_route_ids_exact"]),
-        "next_b32": parity is not None and bool(parity["sequential_next_b32_exact"]),
         "actual_h2d": bool(row["actual_h2d_copy_executed"]),
         "async_scheduled": int(metrics["async_prefetch_batches"]) > 0,
         "async_consumed": int(metrics["deferred_ready_waits"]) > 0,
@@ -990,6 +1085,20 @@ def audit_smoke() -> dict[str, object]:
         "no_full_cuda_experts": bool(engine["no_full_expert_parameter_on_cuda"]),
         "no_identity_materialization": not bool(row["identity_materialized"]),
     }
+    if PILOT_VERSION == "v1":
+        checks.update(
+            {
+                "bridge_natural_ids": parity is not None
+                and bool(parity["sequential_bridge_natural_route_ids_exact"]),
+                "bridge_executed_ids": parity is not None
+                and bool(parity["sequential_bridge_executed_route_ids_exact"]),
+                "next_b32": parity is not None and bool(parity["sequential_next_b32_exact"]),
+            }
+        )
+    else:
+        checks["batching_difference_metrics_recorded"] = parity is not None and bool(
+            parity.get("batching_difference_metrics_recorded")
+        )
     result = {
         "schema_version": 1,
         "state": "valid" if all(checks.values()) else "failed",
@@ -1002,6 +1111,7 @@ def audit_smoke() -> dict[str, object]:
         "actual_h2d_bytes": metrics["h2d_bytes"],
         "async_prefetch_batches": metrics["async_prefetch_batches"],
         "deferred_ready_waits": metrics["deferred_ready_waits"],
+        "batching_route_parity": parity,
     }
     write_json_atomic(OUTPUT / "smoke" / "audit.json", result)
     if not bool(result["all_pass"]):
@@ -1226,7 +1336,7 @@ def _report(aggregate_row: dict[str, Any]) -> str:
     joint = aggregate_row["policy_summaries"][JOINT]
     return "\n".join(
         [
-            "# Qwen penultimate-token joint real-offload speed report",
+            f"# {PILOT_ID} report",
             "",
             f"Decision: **{aggregate_row['focused_decision']}**. "
             "This is a two-row, one-A100 engineering measurement.",
@@ -1411,6 +1521,11 @@ def validate() -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--pilot-version",
+        choices=("v1", "v2"),
+        default="v1",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command in ("run", "all"):
         child = subparsers.add_parser(command)
@@ -1423,6 +1538,7 @@ def main() -> None:
     subparsers.add_parser("finalize")
     subparsers.add_parser("validate")
     args = parser.parse_args()
+    _select_pilot(args.pilot_version)
     if args.command == "protocol":
         config, samples = _protocol()
         result: object = {

@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 
 import pytest
+import torch
 
+from pseudoroute.benchmark import qwen_penultimate_joint_offload_speed as speed
+from pseudoroute.benchmark.prefetch import NativeRoute, SubsetRouteRecord
 from pseudoroute.benchmark.qwen_penultimate_joint_offload_speed import (
     CONFIG_SHA256,
     JOINT,
@@ -175,3 +178,63 @@ def test_atomic_row_checksum_round_trip_and_tamper_detection(tmp_path: Path) -> 
             policy=JOINT,
             max_new_tokens=17,
         )
+
+
+def test_runtime_protocol_selector_reads_frozen_v2_and_restores_v1() -> None:
+    try:
+        speed._select_pilot("v2")
+        config, samples = speed._protocol()
+        assert config["pilot_id"] == "qwen_penultimate_joint_offload_speed_v2"
+        assert [row["sample_id"] for row in samples["samples"]] == ["test-44", "test-632"]
+    finally:
+        speed._select_pilot("v1")
+
+
+def test_batching_route_parity_records_layer_slot_and_subset_overlap() -> None:
+    sequential: list[SubsetRouteRecord] = []
+    joint: list[SubsetRouteRecord] = []
+    logits = torch.zeros(1, speed.EXPERTS)
+    weights = torch.full((1, speed.TOP_K), 1 / speed.TOP_K)
+    base_ids = torch.arange(speed.TOP_K).reshape(1, -1)
+    allowed = tuple(range(speed.BUDGET))
+    for layer in range(speed.LAYERS):
+        left_route = NativeRoute(logits, weights, base_ids)
+        right_ids = base_ids.clone()
+        if layer == 0:
+            right_ids[0, -1] = speed.TOP_K
+        right_route = NativeRoute(logits, weights, right_ids)
+        sequential.append(
+            SubsetRouteRecord(
+                layer=layer,
+                natural=left_route,
+                executed=left_route,
+                allowed=allowed,
+            )
+        )
+        joint.append(
+            SubsetRouteRecord(
+                layer=layer,
+                natural=right_route,
+                executed=right_route,
+                allowed=allowed,
+            )
+        )
+    sequential_next = {layer: allowed for layer in range(speed.LAYERS)}
+    joint_next = dict(sequential_next)
+    joint_next[0] = tuple((*range(speed.BUDGET - 1), speed.BUDGET))
+
+    result = speed._batching_route_parity(
+        tuple(sequential),
+        tuple(joint),
+        sequential_next,
+        joint_next,
+    )
+
+    assert result["batching_difference_metrics_recorded"] is True
+    assert result["sequential_bridge_natural_exact_layers"] == speed.LAYERS - 1
+    assert result["sequential_bridge_executed_exact_layers"] == speed.LAYERS - 1
+    assert result["sequential_bridge_natural_slot_agreement"] == (
+        speed.LAYERS * speed.TOP_K - 1
+    ) / (speed.LAYERS * speed.TOP_K)
+    assert result["sequential_next_b32_exact_layers"] == speed.LAYERS - 1
+    assert result["sequential_next_b32_min_overlap_fraction"] == 31 / 32
