@@ -131,3 +131,47 @@ def test_qwen_resident_only_guard_and_exact_subset_preload() -> None:
         output = experts(hidden, ids, weights)
     assert torch.isfinite(output).all()
     assert engine.resident_experts(0) == frozenset({0, 1})
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is required")
+def test_qwen_async_subset_prefetch_waits_at_first_expert_use() -> None:
+    model = _FakeQwen(device="cuda")
+    experts = model.model.layers[0].mlp.experts
+    hidden = torch.tensor(
+        [[0.5, -0.25, 1.0], [-0.5, 0.75, 0.125]],
+        device="cuda",
+        dtype=torch.bfloat16,
+    )
+    ids = torch.tensor([[2, 3], [3, 2]], device="cuda")
+    weights = torch.tensor(
+        [[0.6, 0.4], [0.55, 0.45]],
+        device="cuda",
+        dtype=torch.bfloat16,
+    )
+    expected = experts(hidden, ids, weights)
+
+    engine = QwenExpertOffloadEngine(model, slots_per_layer=2)
+    engine.reset_cache()
+    with engine.phase("initial_prefetch"):
+        engine.preload_subsets({0: (0, 1)})
+    engine.reset_metrics()
+
+    with engine.phase("joint_prefetch"):
+        engine.preload_layer_subset_async(0, (2, 3))
+    assert engine.resident_experts(0) == frozenset({2, 3})
+    assert engine.pending_ready_experts(0) == frozenset({2, 3})
+
+    with engine.resident_only(), engine.phase("production"):
+        actual = experts(hidden, ids, weights)
+    metrics = engine.finish_metrics()
+
+    assert torch.equal(expected, actual)
+    assert engine.pending_ready_experts(0) == frozenset()
+    assert metrics.async_prefetch_batches == 1
+    assert metrics.async_prefetch_experts == 2
+    assert metrics.async_prefetch_bytes > 0
+    assert metrics.deferred_ready_waits == 2
+    assert metrics.phase_metrics["joint_prefetch"].async_transfer_batches == 1
+    assert metrics.phase_metrics["joint_prefetch"].cache_misses == 2
+    assert metrics.phase_metrics["production"].cache_misses == 0
+    assert metrics.phase_metrics["production"].deferred_ready_waits == 2

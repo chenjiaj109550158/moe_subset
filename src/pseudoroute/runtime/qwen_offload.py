@@ -35,6 +35,8 @@ class QwenOffloadPhaseMetrics:
     transfer_batches: int
     transfer_ms: float
     exposed_stall_ms: float
+    async_transfer_batches: int
+    deferred_ready_waits: int
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,11 @@ class QwenOffloadMetrics:
     gpu_expert_slot_capacity_bytes: int
     phase_metrics: dict[str, QwenOffloadPhaseMetrics]
     transfer_records: tuple[QwenTransferBatch, ...]
+    async_prefetch_batches: int
+    async_prefetch_experts: int
+    async_prefetch_bytes: int
+    deferred_ready_waits: int
+    deferred_ready_wait_ms: float
 
 
 @dataclass
@@ -70,6 +77,8 @@ class _CudaLayerSlots:
     expert_to_slot: dict[int, int]
     compute_complete: list[torch.cuda.Event | None]
 
+    transfer_ready: list[torch.cuda.Event | None]
+
 
 @dataclass
 class _PendingTransfer:
@@ -78,6 +87,15 @@ class _PendingTransfer:
     bytes: int
     transfer_start: torch.cuda.Event
     transfer_end: torch.cuda.Event
+    stall_start: torch.cuda.Event | None
+    stall_end: torch.cuda.Event | None
+    asynchronous: bool
+
+
+@dataclass
+class _PendingStall:
+    phase: str
+    ready_slots: int
     stall_start: torch.cuda.Event
     stall_end: torch.cuda.Event
 
@@ -89,6 +107,8 @@ class _MutablePhaseMetrics:
     cache_misses: int = 0
     h2d_bytes: int = 0
     transfer_batches: int = 0
+    async_transfer_batches: int = 0
+    deferred_ready_waits: int = 0
 
 
 def deterministic_lru_slot(
@@ -159,6 +179,7 @@ class QwenExpertOffloadEngine:
         self._phase = "unscoped"
         self._resident_only = False
         self._pending: list[_PendingTransfer] = []
+        self._pending_stalls: list[_PendingStall] = []
         self._phase_counts: defaultdict[str, _MutablePhaseMetrics] = defaultdict(
             _MutablePhaseMetrics
         )
@@ -222,6 +243,7 @@ class QwenExpertOffloadEngine:
                     down,
                     [None] * self.slots_per_layer,
                     {},
+                    [None] * self.slots_per_layer,
                     [None] * self.slots_per_layer,
                 )
             )
@@ -303,12 +325,14 @@ class QwenExpertOffloadEngine:
             slots.logical_experts[:] = [None] * self.slots_per_layer
             slots.expert_to_slot.clear()
             slots.compute_complete[:] = [None] * self.slots_per_layer
+            slots.transfer_ready[:] = [None] * self.slots_per_layer
             self._last_used[layer].clear()
         self._clock = 0
 
     def reset_metrics(self) -> None:
         torch.cuda.synchronize(self.device)
         self._pending.clear()
+        self._pending_stalls.clear()
         self._phase_counts.clear()
         torch.cuda.reset_peak_memory_stats(self.device)
         self._host_start = time.perf_counter()
@@ -317,9 +341,17 @@ class QwenExpertOffloadEngine:
         self._clock += 1
         self._last_used[layer][expert] = self._clock
 
-    def _load_group(self, layer: int, experts: tuple[int, ...]) -> None:
+    def _load_group(
+        self,
+        layer: int,
+        experts: tuple[int, ...],
+        *,
+        asynchronous: bool = False,
+    ) -> None:
         slots = self.cuda_layers[layer]
         requested = tuple(sorted(set(experts)))
+        if not requested:
+            return
         counts = self._phase_counts[self._phase]
         counts.requested_experts += len(requested)
         hits = tuple(expert for expert in requested if expert in slots.expert_to_slot)
@@ -335,7 +367,7 @@ class QwenExpertOffloadEngine:
                 f"resident-only Qwen execution missed layer {layer} experts {misses}"
             )
         protected = frozenset(requested)
-        assignments: list[tuple[int, int]] = []
+        assignments: list[tuple[int, int, torch.cuda.Event | None]] = []
         for expert in misses:
             slot = deterministic_lru_slot(
                 slots.logical_experts,
@@ -347,27 +379,42 @@ class QwenExpertOffloadEngine:
                 del slots.expert_to_slot[old]
             slots.logical_experts[slot] = expert
             slots.expert_to_slot[expert] = slot
-            assignments.append((expert, slot))
+            assignments.append((expert, slot, slots.transfer_ready[slot]))
             self._touch(layer, expert)
         current = torch.cuda.current_stream(self.device)
         transfer_start = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
         transfer_end = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
-        stall_start = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
-        stall_end = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
-        stall_start.record(current)
+        stall_start = (
+            None if asynchronous else torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
+        )
+        stall_end = (
+            None if asynchronous else torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
+        )
+        if stall_start is not None:
+            stall_start.record(current)
         with torch.cuda.stream(self.transfer_stream):
-            for _, slot in assignments:
+            for _, slot, prior_ready in assignments:
                 complete = slots.compute_complete[slot]
                 if complete is not None:
                     self.transfer_stream.wait_event(complete)
+                if prior_ready is not None:
+                    self.transfer_stream.wait_event(prior_ready)
             transfer_start.record(self.transfer_stream)
             store = self.cpu_layers[layer]
-            for expert, slot in assignments:
+            for expert, slot, _ in assignments:
                 slots.gate_up[slot].copy_(store.gate_up[expert], non_blocking=True)
                 slots.down[slot].copy_(store.down[expert], non_blocking=True)
             transfer_end.record(self.transfer_stream)
-        current.wait_event(transfer_end)
-        stall_end.record(current)
+        for _, slot, _ in assignments:
+            slots.compute_complete[slot] = None
+            slots.transfer_ready[slot] = transfer_end if asynchronous else None
+        if asynchronous:
+            counts.async_transfer_batches += 1
+        else:
+            current.wait_event(transfer_end)
+            if stall_end is None:
+                raise AssertionError("synchronous transfer is missing a stall event")
+            stall_end.record(current)
         byte_count = sum(self.cpu_layers[layer].expert_bytes for _ in assignments)
         counts.h2d_bytes += byte_count
         counts.transfer_batches += 1
@@ -380,8 +427,65 @@ class QwenExpertOffloadEngine:
                 transfer_end,
                 stall_start,
                 stall_end,
+                asynchronous,
             )
         )
+
+    def _wait_ready(self, layer: int, experts: tuple[int, ...]) -> None:
+        slots = self.cuda_layers[layer]
+        ready_slots = tuple(
+            sorted(
+                {
+                    slots.expert_to_slot[expert]
+                    for expert in experts
+                    if slots.transfer_ready[slots.expert_to_slot[expert]] is not None
+                }
+            )
+        )
+        if not ready_slots:
+            return
+        events: list[torch.cuda.Event] = []
+        seen: set[int] = set()
+        for slot in ready_slots:
+            event = slots.transfer_ready[slot]
+            if event is None:
+                continue
+            identity = id(event)
+            if identity not in seen:
+                events.append(event)
+                seen.add(identity)
+        current = torch.cuda.current_stream(self.device)
+        stall_start = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
+        stall_end = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
+        stall_start.record(current)
+        for event in events:
+            current.wait_event(event)
+        stall_end.record(current)
+        for slot in ready_slots:
+            slots.transfer_ready[slot] = None
+        counts = self._phase_counts[self._phase]
+        counts.deferred_ready_waits += len(ready_slots)
+        self._pending_stalls.append(
+            _PendingStall(
+                self._phase,
+                len(ready_slots),
+                stall_start,
+                stall_end,
+            )
+        )
+
+    def pending_ready_experts(self, layer: int) -> frozenset[int]:
+        slots = self.cuda_layers[layer]
+        return frozenset(
+            expert
+            for expert, slot in slots.expert_to_slot.items()
+            if slots.transfer_ready[slot] is not None
+        )
+
+    def require_resident(self, layer: int, experts: tuple[int, ...]) -> None:
+        missing = tuple(sorted(set(experts) - self.resident_experts(layer)))
+        if missing:
+            raise RuntimeError(f"Qwen production layer {layer} missed resident experts {missing}")
 
     def preload_subsets(self, subsets: dict[int, tuple[int, ...]]) -> None:
         if set(subsets) != set(range(self.ops.num_layers)):
@@ -393,6 +497,16 @@ class QwenExpertOffloadEngine:
             self._load_group(layer, subset)
             if self.resident_experts(layer) != frozenset(subset):
                 raise RuntimeError(f"Qwen layer {layer} resident set differs from preload plan")
+
+    def preload_layer_subset_async(self, layer: int, subset: tuple[int, ...]) -> None:
+        if not 0 <= layer < self.ops.num_layers:
+            raise ValueError("Qwen async preload layer is outside the routed-layer range")
+        normalized = tuple(sorted(subset))
+        if len(normalized) != self.slots_per_layer or len(set(normalized)) != len(normalized):
+            raise ValueError(f"Qwen layer {layer} async preload must contain exactly B experts")
+        self._load_group(layer, normalized, asynchronous=True)
+        if self.resident_experts(layer) != frozenset(normalized):
+            raise RuntimeError(f"Qwen layer {layer} resident set differs from async preload plan")
 
     @torch.inference_mode()
     def execute(
@@ -411,6 +525,7 @@ class QwenExpertOffloadEngine:
         for start in range(0, len(used), self.slots_per_layer):
             group = used[start : start + self.slots_per_layer]
             self._load_group(layer, group)
+            self._wait_ready(layer, group)
             slots = self.cuda_layers[layer]
             for expert in group:
                 topk_positions, token_indices = torch.where(expert_mask[expert])
@@ -436,13 +551,26 @@ class QwenExpertOffloadEngine:
                 pending.experts,
                 pending.bytes,
                 pending.transfer_start.elapsed_time(pending.transfer_end),
-                pending.stall_start.elapsed_time(pending.stall_end),
+                (
+                    pending.stall_start.elapsed_time(pending.stall_end)
+                    if pending.stall_start is not None and pending.stall_end is not None
+                    else 0.0
+                ),
             )
             for pending in self._pending
+        )
+        deferred_stalls = tuple(
+            (
+                pending.phase,
+                pending.ready_slots,
+                pending.stall_start.elapsed_time(pending.stall_end),
+            )
+            for pending in self._pending_stalls
         )
         phases: dict[str, QwenOffloadPhaseMetrics] = {}
         for phase, counts in sorted(self._phase_counts.items()):
             phase_records = [record for record in records if record.phase == phase]
+            phase_deferred = [stall for stall in deferred_stalls if stall[0] == phase]
             phases[phase] = QwenOffloadPhaseMetrics(
                 counts.requested_experts,
                 counts.cache_hits,
@@ -450,8 +578,13 @@ class QwenExpertOffloadEngine:
                 counts.h2d_bytes,
                 counts.transfer_batches,
                 sum(record.transfer_ms for record in phase_records),
-                sum(record.exposed_stall_ms for record in phase_records),
+                sum(record.exposed_stall_ms for record in phase_records)
+                + sum(stall[2] for stall in phase_deferred),
+                counts.async_transfer_batches,
+                counts.deferred_ready_waits,
             )
+        asynchronous = tuple(pending for pending in self._pending if pending.asynchronous)
+        deferred_wait_ms = sum(stall[2] for stall in deferred_stalls)
         return QwenOffloadMetrics(
             sum(value.h2d_bytes for value in phases.values()),
             sum(value.requested_experts for value in phases.values()),
@@ -459,7 +592,7 @@ class QwenExpertOffloadEngine:
             sum(value.cache_misses for value in phases.values()),
             sum(value.transfer_batches for value in phases.values()),
             sum(record.transfer_ms for record in records),
-            sum(record.exposed_stall_ms for record in records),
+            sum(value.exposed_stall_ms for value in phases.values()),
             (time.perf_counter() - self._host_start) * 1000,
             torch.cuda.max_memory_allocated(self.device),
             torch.cuda.max_memory_reserved(self.device),
@@ -467,6 +600,11 @@ class QwenExpertOffloadEngine:
             self.gpu_expert_slot_capacity_bytes,
             phases,
             records,
+            len(asynchronous),
+            sum(pending.experts for pending in asynchronous),
+            sum(pending.bytes for pending in asynchronous),
+            sum(stall[1] for stall in deferred_stalls),
+            deferred_wait_ms,
         )
 
     def audit(self) -> dict[str, object]:
@@ -491,4 +629,7 @@ class QwenExpertOffloadEngine:
             "gpu_expert_slot_capacity_bytes": self.gpu_expert_slot_capacity_bytes,
             "resident_fraction": self.slots_per_layer / self.ops.num_experts,
             "setup_wall_seconds_measured": self.setup_wall_seconds,
+            "pending_ready_expert_slots": sum(
+                len(self.pending_ready_experts(layer)) for layer in range(self.ops.num_layers)
+            ),
         }
