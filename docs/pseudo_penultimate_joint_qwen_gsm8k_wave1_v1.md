@@ -88,3 +88,29 @@ divergence, policy-context route hit and selected mass, NLL/perplexity, logical
 simulator cost, and cache/RNG/bridge parity. Transfer is simulated. The report
 must not present simulator latency as joint runtime, claim offloading speedup,
 claim full-dataset preservation, or call eight rows a full-dataset GO.
+
+## Observed wave-1 result
+
+The 16-token smoke and all eight frozen wave-one rows completed without a
+failure marker. All 288 later-window bridge checks matched the corresponding
+real production forward, and cache/RNG/shadow-discard audits passed. The
+candidate scored 7/8 versus 8/8 for both frozen vanilla and the checksum-pinned
+online-post-sample baseline, giving paired candidate-versus-online
+gains/losses/ties of 0/1/7. The failed row was `test-252`, which reached its
+unchanged 512-token cap.
+
+Weighted route hit/selected mass were 0.685858/0.706211 for the penultimate
+candidate and 0.713199/0.734273 for the online baseline. Candidate weighted
+exact-token agreement was 0.031714 and all eight trajectories diverged. Its
+paired accuracy difference versus frozen vanilla was -0.125 with a 10,000-draw
+bootstrap 95% interval of [-0.375, 0.0]. It therefore passes the frozen 7/8
+allowed-drop gate but not the strong 8/8 signal.
+
+The focused decision is
+`PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION`. The eight rows are
+actual hard closed-loop generation with resident weights; none is identity
+materialized. The logical simulator measured 4,334.08 seconds for 2,341
+generated tokens, including 45.83 seconds of duplicate bridge work, but those
+numbers are not joint/fused runtime. Transfer reduction (0.798863) is simulated.
+Actual offloading, overlap, joint execution, and speedup remain unimplemented
+and unmeasured until the required user confirmation.

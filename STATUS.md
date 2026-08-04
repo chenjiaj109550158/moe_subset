@@ -17,8 +17,52 @@ Traditional exact-top-8 offload preserved frozen vanilla tokens 2/2; the H=8,
 B=32 pseudo candidate reduced actual H2D by 28.770% but measured 0.989157x
 normalized decode throughput and failed mask-only exact identity 0/2. Its scoped
 decision is **STOP/PIVOT**.
+The separately frozen penultimate-token joint-planning wave-one accuracy
+checkpoint is now complete. Its no-offload logical-equivalence candidate scored
+7/8 versus 8/8 for the checksum-pinned online-post-sample baseline, with one
+paired loss and no gain. It passed only the predeclared one-question allowed
+drop, not the strong 8/8 preservation signal. Its scoped decision is
+**PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION**; actual joint/fused
+execution, offloading, prefetch overlap, and speedup remain unimplemented and
+unmeasured pending human review.
 Earlier M11, trained-model, and subset-oracle artifacts remain complete and
 unchanged.
+
+## Penultimate-token joint-planning wave-one checkpoint
+
+`pseudo_penultimate_joint_qwen_gsm8k_wave1_v1` froze config SHA-256
+`57242f91f204c4e765d893dd754e4e523f8fdce62c303827d2e375cec4cc654c`,
+sample-manifest SHA-256
+`0f4fd75760390fb8ea468af888c8dcd0b22483cdb2af0f96f51a9833c6614d10`,
+the same eight wave-one IDs, timing semantics, and 7/8 accuracy gate before new
+model output.
+
+- The first H=8 window retains the existing online-post-sample bootstrap.
+  Later planning starts immediately before the eighth production forward, so
+  the consumed token is known but the token sampled by that forward is not.
+- The accuracy-only simulator forks the production cache, executes the known
+  bridge token under the current hard B=32 subset, then performs one native
+  causal eight-anchor pseudo traversal. The disposable bridge is duplicate
+  simulator work, not the proposed joint runtime.
+- A 16-token mechanism smoke passed. Across the eight actual rows, every cache,
+  RNG, shadow-discard, and bridge-route/logit parity check passed; all 288
+  non-bootstrap penultimate boundaries matched their later real bridge.
+- The candidate scored 7/8; the checksum-pinned online baseline and frozen
+  vanilla both scored 8/8. Paired candidate-versus-baseline gains/losses/ties
+  were 0/1/7. The paired accuracy difference versus vanilla was -0.125 with
+  95% bootstrap interval [-0.375, 0.0].
+- Weighted candidate route hit/selected mass were 0.685858/0.706211 versus
+  0.713199/0.734273 for the online baseline. Weighted exact-token agreement was
+  0.031714; all eight trajectories diverged.
+- The eight rows are actual hard closed-loop generation and none is identity
+  materialized. Accuracy, token/route metrics, logical-simulator cost, and
+  parity are measured. The 0.798863 transfer reduction is simulated. Actual
+  offload runtime, overlap, fused/joint latency, and speedup are not measured.
+
+Artifacts:
+`artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/`. Artifact-manifest
+SHA-256:
+`544d50a17c8fcb3300514b9b160376cb79a9eb6e45d0b56986d0ecd6a06c33d3`.
 
 ## Qwen/GSM8K pseudo-embedding focused pilot
 
@@ -580,7 +624,9 @@ sample rows require explicit human authorization.
 
 ## Decisions needing human review
 
-None.
+- Whether the 7/8 penultimate-joint wave-one result is sufficient to proceed to
+  the separately scoped actual joint/fused offload implementation.
+
 ## Real Qwen expert-offload speed pilot v1
 
 The pre-output config/sample fingerprints are
@@ -629,3 +675,17 @@ Transformers 5.14.1, and one A100-SXM4-80GB.
 - `python -m ruff check .`: PASS.
 - `python -m ruff format --check .`: PASS; 243 files formatted.
 - `python -m mypy src/pseudoroute`: PASS; no issues in 119 source files.
+
+## Penultimate-joint wave-one exact checks
+
+Recorded 2026-08-04 UTC on Python 3.14.6, PyTorch 2.13.0+cu130,
+Transformers 5.14.1, and one A100-SXM4-80GB.
+
+- Artifact validator: PASS; one smoke row, eight new actual hard closed-loop
+  rows, eight checksum-pinned external baseline rows, 25 manifest entries, zero
+  failure markers, checksum resume, and terminal
+  `PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION`.
+- `python -m pytest -ra`: PASS; 267 passed, 3 expected skips in 12.43s.
+- `ruff check .`: PASS.
+- `ruff format --check .`: PASS; 247 files already formatted.
+- `mypy src/pseudoroute`: PASS; no issues in 120 source files.

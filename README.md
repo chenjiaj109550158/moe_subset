@@ -262,3 +262,27 @@ production-serving speedup evidence. See the
 [protocol](docs/qwen_real_offload_speed_pilot_v1.md),
 [report](artifacts/qwen_real_offload_speed_pilot_v1/report.md), and
 [decision](artifacts/qwen_real_offload_speed_pilot_v1/decision.json).
+
+## Penultimate-token joint-planning accuracy checkpoint
+
+The separately frozen
+`pseudo_penultimate_joint_qwen_gsm8k_wave1_v1` checkpoint tests the information
+and state semantics needed to move planning before each H=8 window's last
+production forward. For accuracy only, a disposable cache branch executes the
+known bridge token under the current hard B=32 subset and then performs one
+causal eight-anchor pseudo traversal. The production cache and RNG are
+unchanged, and the later real bridge must match the shadow bridge bitwise. This
+runner deliberately keeps all experts resident; the duplicate bridge is a
+logical-equivalence device, not a fused-kernel timing model.
+
+On the same eight frozen wave-one GSM8K rows, the penultimate candidate scored
+7/8 versus 8/8 for the checksum-pinned online-post-sample baseline. Candidate
+route hit/selected mass were 0.685858/0.706211 versus 0.713199/0.734273, and all
+288 bridge parity checks passed. This meets only the predeclared one-question
+allowed drop, not strong 8/8 preservation. The decision is
+**PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION**. No actual joint
+execution, expert offloading, overlap, or speedup has been implemented or
+measured. See the
+[protocol](docs/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1.md),
+[report](artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/report.md), and
+[decision](artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/decision.json).

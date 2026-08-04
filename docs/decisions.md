@@ -1278,3 +1278,52 @@ additional samples, tolerance-based identity criterion, fused expert kernel,
 overlap schedule, prefill policy, B/H change, quantization, NVMe/NVLink path,
 model/dataset revision, or production claim requires a separately frozen
 amendment.
+
+## D-20260804-049 — Narrow penultimate-token joint planning after one wave-one loss
+
+**Status:** accepted; awaiting human confirmation before implementation
+
+**Context:** The user proposed using the token consumed by an H=8 window's last
+production forward to plan the next subset, so a future runtime could combine
+that real bridge and eight pseudo anchors instead of waiting for the newly
+sampled final token and issuing a separate forward. Before implementing actual
+joint execution or offloading, the frozen
+`pseudo_penultimate_joint_qwen_gsm8k_wave1_v1` protocol required a no-offload
+logical-equivalence test on the same eight wave-one GSM8K rows. Its disposable
+shadow bridge preserves the intended state dependency while cache, RNG, and
+bridge parity audits distinguish it from a runtime benchmark.
+
+**Decision:** Record
+**PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION**. The candidate
+scored 7/8 versus 8/8 for both frozen vanilla and the checksum-pinned
+online-post-sample baseline, with paired gains/losses/ties 0/1/7. It meets the
+predeclared minimum 7/8 gate but not the strong 8/8 signal. Its weighted route
+hit/selected mass were 0.685858/0.706211, below the online baseline's
+0.713199/0.734273. All 288 non-bootstrap bridge checks and all cache/RNG/shadow
+audits passed. Stop at the required checkpoint and ask the user whether to
+proceed; do not infer engineering authorization from the minimum gate pass.
+
+**Alternatives considered:** Start the actual offloader before checking
+accuracy, use the just-sampled last token even though it is unavailable at the
+proposed planning time, treat the duplicate bridge latency as joint runtime,
+rerun the checksum-pinned baseline, change IDs or caps after observing the one
+loss, or expand beyond wave one.
+
+**Consequences:** Eight new rows are actual resident-weight hard closed-loop
+generation and none is identity materialized. Accuracy, token/route metrics,
+logical-simulator cost, and parity are measured; transfer is simulated. The
+candidate's 0.540137 simulator tokens/s includes duplicate bridge work and says
+nothing about the proposed joint implementation's speed. Actual offloading,
+prefetch overlap, fused/joint latency, and production speedup remain
+unimplemented and unmeasured. N=8 supports only the scoped pilot decision.
+
+**Experiments affected:** Only
+`pseudo_penultimate_joint_qwen_gsm8k_wave1_v1`. Prior online-post-sample
+accuracy, hard-oracle, route-analysis, and real-offload results remain unchanged.
+
+**Migration required:** Preserve the exact eight IDs, original token caps,
+config/sample fingerprints, raw rows, 7/8 result, failed `test-252` row, parity
+audits, checksums, and measured/simulated partition. Actual joint/fused/offload
+implementation requires the pending user confirmation and a separately frozen
+engineering amendment; any additional rows, different timing, B/H, model,
+dataset, or speed claim requires new scope.

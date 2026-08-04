@@ -610,3 +610,42 @@ inside candidate rows are simulated diagnostics. The runner implements no
 transfer/compute overlap and includes research instrumentation overhead; it
 does not establish NVMe, NVLink, multi-GPU, fused-kernel, full-dataset, or
 production-serving behavior.
+
+## Penultimate-token joint-planning wave-one accuracy checkpoint
+
+The immutable config and sample manifest are
+`configs/benchmark/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1.yaml` and
+`configs/benchmark/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1_samples.json`,
+with SHA-256 values
+`57242f91f204c4e765d893dd754e4e523f8fdce62c303827d2e375cec4cc654c` and
+`0f4fd75760390fb8ea468af888c8dcd0b22483cdb2af0f96f51a9833c6614d10`.
+They reuse the exact eight wave-one IDs and checksum-pinned online baseline.
+
+Run or resume the no-offload logical-equivalence checkpoint from the pinned
+offline cache, then finalize and validate:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_penultimate_joint_accuracy run-smoke --gpu 0
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_penultimate_joint_accuracy smoke-audit
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=src \
+python -m pseudoroute.benchmark.pseudo_penultimate_joint_accuracy run-wave1 --gpu 0
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_penultimate_joint_accuracy finalize
+PYTHONPATH=src python -m \
+  pseudoroute.benchmark.pseudo_penultimate_joint_accuracy validate
+```
+
+Rows are atomic and checksum-resumable. Final validation covers one smoke row,
+eight actual candidate rows, eight checksum-pinned external baseline rows, 25
+manifest artifacts, zero failure markers, and a terminal user-confirmation
+checkpoint. Artifact-manifest SHA-256 is
+`544d50a17c8fcb3300514b9b160376cb79a9eb6e45d0b56986d0ecd6a06c33d3`.
+
+Actual hard closed-loop accuracy, token/route metrics, NLL/perplexity,
+logical-simulator cost, and cache/RNG/bridge parity are measured. Transfer is
+simulated. All experts remain resident, and the disposable duplicate bridge
+exists only to reproduce the intended state dependency. Actual offload runtime,
+prefetch overlap, joint/fused runtime, speedup, and full-dataset accuracy are not
+measured.
