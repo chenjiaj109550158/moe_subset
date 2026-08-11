@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "run_id": "5e50b39e216aaa94",
+  "command": "simulate-offload",
+  "result_kind": "simulator",
+  "information_regime": "offline_teacher_forced",
+  "config_sha256": "2627b233e497cc7d6d9c4ec4594e5d46545edf74bf2b068109168b70a75c3a6a",
+  "created_utc": "2026-07-27T11:31:05.871805+00:00",
+  "complete": true,
+  "negative_results": [
+    "at least one simulated commitment has route_coverage<1"
+  ],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "cache_events.csv",
+      "bytes": 2534844,
+      "sha256": "fc96d6c97ebd70958d2258d6e542eb9f57b652f660bf45ce425f52faa95e875d"
+    },
+    {
+      "path": "hardware.json",
+      "bytes": 71127,
+      "sha256": "bbc8af2b8a54d243a494a0a6f218c712624a60b5faf8612ed1d064318a5a888e"
+    },
+    {
+      "path": "hardware_sweep.csv",
+      "bytes": 12393,
+      "sha256": "34f55008ce4f588365d603c160750bf70ae9aaf420b2f0ff29dcffd6bd1f488b"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 163068,
+      "sha256": "20f81e08b266a502a0496fd0dff57ba9f5a52f36834d2c30522f1348389cb167"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 872,
+      "sha256": "2627b233e497cc7d6d9c4ec4594e5d46545edf74bf2b068109168b70a75c3a6a"
+    },
+    {
+      "path": "route_trace.csv",
+      "bytes": 303,
+      "sha256": "ad088c34e7c1844ff47f44acac7bd58d8c1202b2eeb5f11260056e6adca0b15e"
+    },
+    {
+      "path": "simulated_pareto.svg",
+      "bytes": 10804,
+      "sha256": "56d33e66f864dd43e4c5c9cfe831adfc9a5c637353e68a2322a84021fa3aab08"
+    },
+    {
+      "path": "simulation_summary.csv",
+      "bytes": 40906,
+      "sha256": "9a8915a10288ab709fa80b1ae9e19ba144288dad18791b14837467fab515d612"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 585,
+      "sha256": "f4cc881643e6e7b87d67d30f5a99309dae6a000c88c70642d5905289b70b7dbf"
+    }
+  ]
+}

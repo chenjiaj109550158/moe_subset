@@ -1,0 +1,6 @@
+{
+  "accuracy_or_correctness_used": false,
+  "all_pass": true,
+  "one_causal_forward_per_boundary": true,
+  "sample_policy_rows": 12
+}

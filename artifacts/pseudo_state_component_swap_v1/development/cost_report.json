@@ -1,0 +1,110 @@
+{
+  "exact_future_attention_and_moe_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22129152,
+    "mean_oracle_capture_latency_seconds": 0.17883818590576084,
+    "mean_pseudo_probe_latency_seconds": 0.19592096537417092,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_attention_output_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.18199634459369918,
+    "mean_pseudo_probe_latency_seconds": 0.19577706946915896,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_hidden_after_layer_15_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.17616967584353915,
+    "mean_pseudo_probe_latency_seconds": 0.1914172620311092,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_hidden_after_layer_23_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.173414719375387,
+    "mean_pseudo_probe_latency_seconds": 0.18902610906252448,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_hidden_after_layer_31_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.17583858587522627,
+    "mean_pseudo_probe_latency_seconds": 0.19023558974959087,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_hidden_after_layer_39_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.1745996985318925,
+    "mean_pseudo_probe_latency_seconds": 0.18876021668802423,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_hidden_after_layer_7_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.1776917430938738,
+    "mean_pseudo_probe_latency_seconds": 0.19056250831272337,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_moe_residual_oracle": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22129152,
+    "mean_oracle_capture_latency_seconds": 0.17741071521845697,
+    "mean_pseudo_probe_latency_seconds": 0.1978987665945624,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  },
+  "exact_future_unpatched": {
+    "max_oracle_capture_temporary_cuda_bytes": 34505216,
+    "max_pseudo_temporary_cuda_bytes": 22161920,
+    "mean_oracle_capture_latency_seconds": 0.1781363766249342,
+    "mean_pseudo_probe_latency_seconds": 0.19294183374972818,
+    "oracle_attention_calls": 1536,
+    "oracle_expert_calls": 1536,
+    "oracle_router_calls": 1536,
+    "pseudo_attention_calls": 1536,
+    "pseudo_expert_calls": 1536,
+    "pseudo_router_calls": 1536
+  }
+}

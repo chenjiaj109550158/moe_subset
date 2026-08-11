@@ -1,0 +1,45 @@
+{
+  "analysis_id": "pseudo_executed_embedding_composition_v1",
+  "default_vector_values_loaded": false,
+  "development_sample_ids": [
+    "test-0",
+    "test-439",
+    "test-879",
+    "test-1318"
+  ],
+  "execution_pids": [
+    2248579,
+    2248657,
+    2253027,
+    2253112,
+    2257430,
+    2257466,
+    2261686,
+    2261781,
+    2270636,
+    2270749
+  ],
+  "execution_ppids": [
+    2171486
+  ],
+  "held_out_sample_ids": [
+    "test-88",
+    "test-898",
+    "test-141",
+    "test-819",
+    "test-1250",
+    "test-1110",
+    "test-1049",
+    "test-1222"
+  ],
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "physical_gpus": [
+    0,
+    1
+  ],
+  "precision": "bfloat16",
+  "task_accuracy_measured": false,
+  "transfer_kind": "simulated"
+}

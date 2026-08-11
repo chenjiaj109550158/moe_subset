@@ -1,0 +1,12 @@
+{
+  "analysis_config_sha256": "6c348925820b914b1b8a021f68e121373b085e2973c19dc50030a1477bc3cf03",
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_smoke_v1",
+  "artifact_count": 18,
+  "best_observed_candidate": "sampled_top8_core_plus_prompt_or_recent_history_fill",
+  "decision": "CANDIDATE_FOR_NEW_FROZEN_DEVELOPMENT",
+  "qualifying_candidate": "sampled_top8_core_plus_prompt_or_recent_history_fill",
+  "samples": 2,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete"
+}

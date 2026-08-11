@@ -1,0 +1,28 @@
+{
+  "actual_closed_loop_generation": false,
+  "analysis_config_sha256": "f1384397deba1e2cdb702dd4878af4092eaa64cd7625617900a22802d4813a25",
+  "analysis_elapsed_seconds_measured": 32.900748599960934,
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_development_v1",
+  "default_vector_values_loaded_or_used": false,
+  "future_true_tokens_used_by_candidates": false,
+  "gpu_used_for_prompt_route_generation": true,
+  "gpu_used_this_invocation": false,
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_loaded_for_prompt_route_generation": true,
+  "model_loaded_this_invocation": false,
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "offline_calibration_statistics_used": false,
+  "precision": "bfloat16",
+  "route_scoring": "checksum_locked_authoritative_development_tensors_open_loop",
+  "schema_version": 1,
+  "source_samples": [
+    "test-0",
+    "test-439",
+    "test-879",
+    "test-1318"
+  ],
+  "task_accuracy_measured": false,
+  "transfer_kind": "simulated"
+}

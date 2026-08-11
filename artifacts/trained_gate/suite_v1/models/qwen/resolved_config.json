@@ -1,0 +1,139 @@
+{
+  "model": {
+    "adapter": "hf_qwen2_moe",
+    "full_router_mass_valid": true,
+    "key": "qwen",
+    "model_id": "Qwen/Qwen1.5-MoE-A2.7B",
+    "placement": "cuda0",
+    "revision": "1a758c50ecb6350748b9ce0a99d2352fd9fc11c9",
+    "tier": "floating_point"
+  },
+  "suite": {
+    "cache_dir": ".cache/pseudoroute/huggingface/hub",
+    "closed_loop": {
+      "budget_multiple": 2.0,
+      "horizon": 4,
+      "max_new_tokens": 12,
+      "sample_ids": [
+        "wikitext-3",
+        "gsm8k-0"
+      ],
+      "simulated_bandwidth_gib_s": 25.0,
+      "simulated_fixed_latency_us": 10.0
+    },
+    "datasets": [
+      {
+        "config": "wikitext-2-raw-v1",
+        "dataset_id": "Salesforce/wikitext",
+        "key": "wikitext",
+        "prompt_template": "{text}",
+        "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+        "row_ids": [
+          3,
+          49,
+          80,
+          105
+        ],
+        "split": "validation"
+      },
+      {
+        "config": "main",
+        "dataset_id": "openai/gsm8k",
+        "key": "gsm8k",
+        "prompt_template": "Question: {question}\nAnswer:",
+        "revision": "740312add88f781978c0658806c59bc2815b9866",
+        "row_ids": [
+          0,
+          100,
+          500,
+          1000
+        ],
+        "split": "test"
+      }
+    ],
+    "models": [
+      {
+        "adapter": "hf_olmoe",
+        "full_router_mass_valid": true,
+        "key": "olmoe",
+        "model_id": "allenai/OLMoE-1B-7B-0125",
+        "placement": "cuda0",
+        "revision": "9b0c1aa87e34a20052389dce1f0cf01da783f654",
+        "tier": "floating_point"
+      },
+      {
+        "adapter": "hf_qwen2_moe",
+        "full_router_mass_valid": true,
+        "key": "qwen",
+        "model_id": "Qwen/Qwen1.5-MoE-A2.7B",
+        "placement": "cuda0",
+        "revision": "1a758c50ecb6350748b9ce0a99d2352fd9fc11c9",
+        "tier": "floating_point"
+      },
+      {
+        "adapter": "hf_mixtral",
+        "full_router_mass_valid": true,
+        "key": "mixtral",
+        "model_id": "mistralai/Mixtral-8x7B-v0.1",
+        "placement": "balanced_2gpu",
+        "revision": "fc7ac94680e38d7348cfa806e51218e6273104b0",
+        "tier": "floating_point"
+      },
+      {
+        "adapter": "hf_deepseek_v2",
+        "full_router_mass_valid": true,
+        "key": "deepseek",
+        "model_id": "deepseek-ai/DeepSeek-V2-Lite-Chat",
+        "placement": "cuda0",
+        "revision": "85864749cd611b4353ce1decdb286193298f64c7",
+        "tier": "floating_point"
+      },
+      {
+        "adapter": "hf_gpt_oss",
+        "full_router_mass_valid": false,
+        "key": "gpt_oss",
+        "model_id": "openai/gpt-oss-20b",
+        "placement": "cuda0",
+        "revision": "6cee5e81ee83917806bbde320786a8fb61efebee",
+        "tier": "mxfp4"
+      }
+    ],
+    "oracle": {
+      "absolute_budgets": [
+        8,
+        16,
+        32
+      ],
+      "bootstrap_samples": 1000,
+      "budget_multiples": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "confidence": 0.95,
+      "horizons": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ]
+    },
+    "schema_version": 1,
+    "suite_id": "trained_oracle_gate_v1",
+    "thresholds": {
+      "maximum_lossless_fallback_rate": 0.1,
+      "maximum_relative_perplexity_increase": 0.05,
+      "minimum_baseline_improvement": 0.05,
+      "minimum_oracle_hit_rate": 0.9,
+      "minimum_oracle_selected_mass": 0.95,
+      "minimum_p05_hit_rate": 0.8,
+      "minimum_transfer_reduction": 0.3
+    },
+    "trace": {
+      "max_length": 48,
+      "seed": 20260727
+    }
+  }
+}

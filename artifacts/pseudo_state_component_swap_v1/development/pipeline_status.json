@@ -1,0 +1,7 @@
+{
+  "all_audits_pass": true,
+  "classification": "moe_residual_dominant",
+  "focused_decision": "NARROW",
+  "sample_policy_rows": 36,
+  "state": "complete"
+}

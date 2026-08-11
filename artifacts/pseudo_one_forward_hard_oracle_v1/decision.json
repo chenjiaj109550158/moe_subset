@@ -1,0 +1,10 @@
+{
+  "conclusion_ceiling": "PILOT_NARROW",
+  "decision": "PILOT_NARROW_DIAGNOSTIC_ORACLE_CEILING",
+  "deployable": false,
+  "does_not_modify_parent_pilot_decision": true,
+  "full_dataset_go": false,
+  "pilot_id": "pseudo_one_forward_hard_oracle_v1",
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_matched_eight_hard_oracle_diagnostic"
+}

@@ -1,0 +1,20 @@
+{
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "exception_type": "RuntimeError",
+  "message": "natural_trace worker failure: {'qwen3_30b_a3b': 1, 'gpt_oss_20b': 1}",
+  "orchestrator_pid": 1467144,
+  "orchestrator_ppid": 1398456,
+  "progress": {
+    "closed_loop_json_rows": {
+      "full": 0,
+      "mechanism_smoke": 0,
+      "selected_smoke": 0
+    },
+    "natural_trace_shards": 20
+  },
+  "schema_version": 1,
+  "stage": "failed",
+  "state": "blocked",
+  "suite_id": "benchmark_subset_oracle_v1",
+  "updated_at": "2026-07-30T11:23:27.511274+00:00"
+}

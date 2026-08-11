@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="420">
+<rect width="100%" height="100%" fill="white"/>
+<text x="350" y="25" text-anchor="middle">Top-k margin distribution</text>
+<rect x="70.00" y="156.67" width="44.67" height="213.33" fill="#2563eb"/>
+<rect x="116.67" y="76.67" width="44.67" height="293.33" fill="#2563eb"/>
+<rect x="163.33" y="50.00" width="44.67" height="320.00" fill="#2563eb"/>
+<rect x="210.00" y="210.00" width="44.67" height="160.00" fill="#2563eb"/>
+<rect x="256.67" y="130.00" width="44.67" height="240.00" fill="#2563eb"/>
+<rect x="303.33" y="290.00" width="44.67" height="80.00" fill="#2563eb"/>
+<rect x="350.00" y="290.00" width="44.67" height="80.00" fill="#2563eb"/>
+<rect x="396.67" y="236.67" width="44.67" height="133.33" fill="#2563eb"/>
+<rect x="443.33" y="316.67" width="44.67" height="53.33" fill="#2563eb"/>
+<rect x="490.00" y="370.00" width="44.67" height="0.00" fill="#2563eb"/>
+<rect x="536.67" y="343.33" width="44.67" height="26.67" fill="#2563eb"/>
+<rect x="583.33" y="263.33" width="44.67" height="106.67" fill="#2563eb"/>
+</svg>

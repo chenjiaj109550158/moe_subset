@@ -1,0 +1,101 @@
+{
+  "config_sha256": "7820f904ee547ae99b4b2a3ad5fabe47db410ffe2ae3f4da03653df1f4ecb1f1",
+  "failure_markers_retained": [],
+  "files": [
+    {
+      "bytes": 11418,
+      "path": "actual/00044/lossless_dynamic_top8_lru_b32.json",
+      "sha256": "9536377a00b8c73bf35a6bb3136c1a433fad738913c75e94ff5dbb53ec8a394b"
+    },
+    {
+      "bytes": 39576,
+      "path": "actual/00044/penultimate_unigram_joint_h8_b32_async_prefetch.json",
+      "sha256": "34f33ba62c76da109c81beba854bd301af14f1f72f7410eb0ec3110a93a036d4"
+    },
+    {
+      "bytes": 8563,
+      "path": "actual/00632/lossless_dynamic_top8_lru_b32.json",
+      "sha256": "cc79e71a893fa9e513c9048535d045ccf3715711623a217c75231fd7f7e60756"
+    },
+    {
+      "bytes": 28785,
+      "path": "actual/00632/penultimate_unigram_joint_h8_b32_async_prefetch.json",
+      "sha256": "f682d365d9e074e6582e9efcbd11bd4405976609f6aa0d3f2cb4d5ac063ea817"
+    },
+    {
+      "bytes": 7892,
+      "path": "aggregate.json",
+      "sha256": "bcda847f55add2dc6a0a6879dacc72778b8c90134911d3f5db0890570b771274"
+    },
+    {
+      "bytes": 535,
+      "path": "decision.json",
+      "sha256": "0d76e63c5537a7d1431443af45b58f9d814108f92e26e8231013a8ce798eb8c1"
+    },
+    {
+      "bytes": 321,
+      "path": "measured_vs_simulated.json",
+      "sha256": "1b5786a643650c61123255382ed20b4226f536da8d89c291c39b16f13e79d6e2"
+    },
+    {
+      "bytes": 174,
+      "path": "pipeline_status.json",
+      "sha256": "95e1c1a85c47061b56325635e05e328c39df83a815b916c50feffd862a598f60"
+    },
+    {
+      "bytes": 2674,
+      "path": "report.md",
+      "sha256": "cb28c75386abfbf761a43c25a1e9924f435736a4272af61abebb3f11f289ff5f"
+    },
+    {
+      "bytes": 10739,
+      "path": "resolved_config.json",
+      "sha256": "96ef53dbdc231be9b925ad746082a996e7f45443a6050b920a06bcc5b2ece745"
+    },
+    {
+      "bytes": 307,
+      "path": "resolved_environment.json",
+      "sha256": "60624810ae9543c3a1972401fc0e38993d9022e97b7f7ccd8c001cfb455e7c9e"
+    },
+    {
+      "bytes": 286,
+      "path": "resolved_execution_revision.json",
+      "sha256": "6f02362123c662ffaf353b1bebec9a9ab220fed3c3f2375df5979f59cd0f24e6"
+    },
+    {
+      "bytes": 3625,
+      "path": "resolved_sample_manifest.json",
+      "sha256": "34158100f23d37919cc80eb2f0a48cdfc20edbd957d2d92abff2839e528e57b7"
+    },
+    {
+      "bytes": 202,
+      "path": "resume_audit.json",
+      "sha256": "05cd9c3a1ee403365cfe31ecca7fd6a4ec14c6b6b4b7b1d9bfe9b203f6cddcc3"
+    },
+    {
+      "bytes": 1371,
+      "path": "setup/1785824468.429373.json",
+      "sha256": "bd67b8551d9309e49b640adc69a21b009b69bfad117d901abd7e6eb9a5f16ce3"
+    },
+    {
+      "bytes": 1371,
+      "path": "setup/1785824724.429791.json",
+      "sha256": "e348b119d72e0f5ddb16dfee11f6eca813b78301d48cc917ca2a5dc2998bb156"
+    },
+    {
+      "bytes": 12109,
+      "path": "smoke/00044/penultimate_unigram_joint_h8_b32_async_prefetch.json",
+      "sha256": "510ec731af95aa1203912eb25ff66153fc1ca0b3979194b558445604c1008d38"
+    },
+    {
+      "bytes": 1885,
+      "path": "smoke/audit.json",
+      "sha256": "48237a41c62c36d23e390a248904a5fccd0b397eb01a9981d4d7d956fbe73f8f"
+    }
+  ],
+  "manifest_payload_sha256": "8d5e9b70904d976171cee8b4ba66dcd4841acbb2c953576b8d3ce012593cdcb6",
+  "pilot_id": "qwen_penultimate_joint_offload_speed_v2",
+  "sample_manifest_sha256": "a8c8569cb42db51206d843123e4b5aab5b627347e423b0861b19e2b13d1ec68d",
+  "schema_version": 1,
+  "state": "complete"
+}

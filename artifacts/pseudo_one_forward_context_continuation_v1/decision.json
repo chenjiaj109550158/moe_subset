@@ -1,0 +1,9 @@
+{
+  "analysis_id": "pseudo_one_forward_context_continuation_v1",
+  "decision": "DEVELOPMENT_ROUTE_SIGNAL",
+  "held_out_route_authorized": false,
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_one_forward_context_continuation_development",
+  "selected_route_signal_variant": "sampled_unigram_full_continuation",
+  "task_accuracy_authorized": false
+}

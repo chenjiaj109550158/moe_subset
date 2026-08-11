@@ -1,0 +1,21 @@
+{
+  "analysis_id": "pseudo_executed_previous_subset_smoke_v1",
+  "rows": [
+    {
+      "row_index": 786,
+      "sample_id": "test-786"
+    },
+    {
+      "row_index": 394,
+      "sample_id": "test-394"
+    }
+  ],
+  "schema_version": 1,
+  "selection": {
+    "accuracy_or_correctness_used": false,
+    "new_rows_added": false,
+    "rule": "reuse_residual_window_v1_mechanism_smoke_rows"
+  },
+  "source_manifest": "configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1_samples.json",
+  "source_manifest_sha256": "cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255"
+}

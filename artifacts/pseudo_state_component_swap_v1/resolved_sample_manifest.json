@@ -1,0 +1,40 @@
+{
+  "analysis_id": "pseudo_state_component_swap_v1",
+  "partitions": {
+    "development": [
+      {
+        "row_index": 0,
+        "sample_id": "test-0"
+      },
+      {
+        "row_index": 439,
+        "sample_id": "test-439"
+      },
+      {
+        "row_index": 879,
+        "sample_id": "test-879"
+      },
+      {
+        "row_index": 1318,
+        "sample_id": "test-1318"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "selection": {
+    "accuracy_correctness_or_ground_truth_used": false,
+    "new_rows_added": false,
+    "replacement_after_execution": false,
+    "rule": "exact_reuse_of_parent_four_development_rows_in_original_order"
+  },
+  "source_manifest": {
+    "partition": "development",
+    "path": "configs/analysis/pseudo_one_forward_state_correction_v1_samples.json",
+    "sha256": "350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c"
+  },
+  "work_assignment": {
+    "order": "development_row_order_then_frozen_variant_order",
+    "shard_count": 1,
+    "variant_order_source": "configs/analysis/pseudo_state_component_swap_v1.yaml"
+  }
+}

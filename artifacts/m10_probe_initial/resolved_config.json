@@ -1,0 +1,32 @@
+{
+  "atol": 1e-06,
+  "experiment": {
+    "information_regime": "online_pre_sample",
+    "name": "tiny_m10_real_offload",
+    "seed": 1234
+  },
+  "gpu_slots_per_layer": 2,
+  "measured_tokens": 4,
+  "pinned_memory": true,
+  "prompt_tokens": [
+    1,
+    2,
+    3
+  ],
+  "repetitions": 5,
+  "rtol": 1e-05,
+  "schema_version": 1,
+  "subset_experts_by_layer": {
+    "0": [
+      0,
+      1
+    ],
+    "1": [
+      0,
+      1
+    ]
+  },
+  "subset_miss_policy": "lossless_fallback",
+  "tiny_model_config": "configs/model/tiny_moe.yaml",
+  "warmup_tokens": 2
+}

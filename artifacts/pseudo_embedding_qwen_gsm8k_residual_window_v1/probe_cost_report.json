@@ -1,0 +1,156 @@
+{
+  "kind": "measured",
+  "selected_candidate": {
+    "attention_queries": 24576,
+    "boundaries": 64,
+    "estimated_transfer_reduction": 0.39954696745562135,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8297142547926342,
+    "mean_route_hit": 0.6397055802103879,
+    "mean_sample_policy_elapsed_seconds": 51.58445703983307,
+    "mean_selected_mass": 0.649760568826812,
+    "natural_reference_bytes": 1837306478592,
+    "route_hits": 124543,
+    "route_slots": 194688,
+    "router_calls": 24576,
+    "samples": 4,
+    "selected_mass_hit": 15812.483337402344,
+    "selected_mass_total": 24335.861694335938,
+    "simulated_lossless_transfer_bytes": 1103216246784,
+    "total_sample_policy_elapsed_seconds": 206.33782815933228
+  },
+  "stages": {
+    "content_smoke": {
+      "content__exact_future_causal": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 10417664,
+        "mean_probe_latency_seconds": 0.11381792352767661,
+        "router_calls": 192
+      },
+      "content__exact_future_independent": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.7943483947310597,
+        "router_calls": 1536
+      },
+      "content__recent_sequence_causal": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 10417664,
+        "mean_probe_latency_seconds": 0.10775677248602733,
+        "router_calls": 192
+      },
+      "content__recent_sequence_independent": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.813749232533155,
+        "router_calls": 1536
+      },
+      "content__sampled_repeat_causal": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 10417664,
+        "mean_probe_latency_seconds": 0.11691872827941552,
+        "router_calls": 192
+      },
+      "content__sampled_repeat_independent": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.8014406694856007,
+        "router_calls": 1536
+      }
+    },
+    "development": {
+      "candidate__equal_pseudo_history": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8260550873801549,
+        "router_calls": 24576
+      },
+      "candidate__first_four_anchor_core_plus_history_fill": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8297142547926342,
+        "router_calls": 24576
+      },
+      "candidate__inverse_anchor_decay": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8245304805386695,
+        "router_calls": 24576
+      },
+      "candidate__linear_horizon_decay": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8329753625148442,
+        "router_calls": 24576
+      },
+      "candidate__previous_window_route_only": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8249824856902706,
+        "router_calls": 24576
+      },
+      "candidate__residual_pseudo_only": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8300223672813445,
+        "router_calls": 24576
+      },
+      "candidate__sampled_anchor_one_plus_previous_window_route": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.826984489131064,
+        "router_calls": 24576
+      },
+      "candidate__sampled_top8_core_plus_history_fill": {
+        "attention_queries": 24576,
+        "max_temporary_cuda_bytes": 195133440,
+        "mean_probe_latency_seconds": 0.8324450913096371,
+        "router_calls": 24576
+      },
+      "reference__hard_oracle_commitment": {
+        "attention_queries": 0,
+        "max_temporary_cuda_bytes": 0,
+        "mean_probe_latency_seconds": 0.0,
+        "router_calls": 0
+      },
+      "reference__previous_route_commitment": {
+        "attention_queries": 0,
+        "max_temporary_cuda_bytes": 0,
+        "mean_probe_latency_seconds": 0.0,
+        "router_calls": 0
+      },
+      "reference__static_frequency": {
+        "attention_queries": 0,
+        "max_temporary_cuda_bytes": 0,
+        "mean_probe_latency_seconds": 0.0,
+        "router_calls": 0
+      }
+    },
+    "residual_smoke": {
+      "residual__previous_window_last_repeated": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.781871054234216,
+        "router_calls": 1536
+      },
+      "residual__previous_window_mean_repeated": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.7793194464466069,
+        "router_calls": 1536
+      },
+      "residual__previous_window_position_aligned": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.8027682237443514,
+        "router_calls": 1536
+      },
+      "residual__zero": {
+        "attention_queries": 1536,
+        "max_temporary_cuda_bytes": 64560128,
+        "mean_probe_latency_seconds": 0.7940861800452694,
+        "router_calls": 1536
+      }
+    }
+  }
+}

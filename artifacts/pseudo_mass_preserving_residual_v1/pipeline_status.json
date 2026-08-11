@@ -1,0 +1,13 @@
+{
+  "analysis_config_sha256": "6682aa83487c21924b0a80f755c36eb9caa0be72626a098339ae80b3ce18b5bb",
+  "analysis_id": "pseudo_mass_preserving_residual_v1",
+  "artifact_count": 41,
+  "decision": "NARROW",
+  "development_progress_gate_pass": true,
+  "new_sample_policy_rows": 12,
+  "schema_version": 1,
+  "selected_candidate": "natural_top8_intersection_zero_missing",
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": false
+}

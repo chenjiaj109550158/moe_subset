@@ -1,0 +1,30 @@
+{
+  "architecture": "deterministic_tiny_moe",
+  "expert_bytes": {
+    "0:0": 4096,
+    "0:1": 4096,
+    "0:2": 4096,
+    "0:3": 4096,
+    "1:0": 4096,
+    "1:1": 4096,
+    "1:2": 4096,
+    "1:3": 4096
+  },
+  "hidden_size": 16,
+  "model_id": "tiny_moe",
+  "moe_layer_indices": [
+    0,
+    1
+  ],
+  "num_experts_by_layer": {
+    "0": 4,
+    "1": 4
+  },
+  "num_layers": 2,
+  "pre_norm": true,
+  "top_k_by_layer": {
+    "0": 2,
+    "1": 2
+  },
+  "uses_rope": true
+}

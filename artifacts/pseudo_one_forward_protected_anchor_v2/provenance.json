@@ -1,0 +1,16 @@
+{
+  "analysis_id": "pseudo_one_forward_protected_anchor_v2",
+  "default_vector_values_loaded": false,
+  "development_sample_ids": [
+    "test-0",
+    "test-439",
+    "test-879",
+    "test-1318"
+  ],
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "source_reference_analysis": "pseudo_one_forward_state_correction_v1",
+  "task_accuracy_measured": false
+}

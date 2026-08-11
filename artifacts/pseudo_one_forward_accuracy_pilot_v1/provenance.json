@@ -1,0 +1,21 @@
+{
+  "future_v17_tokens_used": false,
+  "learned_or_fitted_parameters": false,
+  "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "offline_continuation_tables": false,
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "sample_ids": [
+    "test-44",
+    "test-632",
+    "test-444",
+    "test-519",
+    "test-1311",
+    "test-1264",
+    "test-825",
+    "test-252"
+  ],
+  "source_v17_vanilla_rows_sha256": "4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae",
+  "vanilla_regenerated": false
+}

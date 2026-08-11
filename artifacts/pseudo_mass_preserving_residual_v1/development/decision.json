@@ -1,0 +1,12 @@
+{
+  "analysis_id": "pseudo_mass_preserving_residual_v1",
+  "decision": "NARROW",
+  "development_progress_gate_pass": true,
+  "eligible_candidates": [
+    "natural_top8_intersection_zero_missing"
+  ],
+  "held_out_route_authorized": false,
+  "held_out_route_requires_separate_frozen_protocol": true,
+  "selected_candidate": "natural_top8_intersection_zero_missing",
+  "task_accuracy_authorized": false
+}

@@ -1,0 +1,28 @@
+{
+  "actual_h2d_bytes": 57076088832,
+  "all_pass": false,
+  "async_prefetch_batches": 96,
+  "checks": {
+    "actual_h2d": true,
+    "async_consumed": true,
+    "async_scheduled": true,
+    "b32": true,
+    "bridge_executed_ids": false,
+    "bridge_natural_ids": false,
+    "bridge_sampled_token": true,
+    "joint_cache_and_calls": true,
+    "joint_calls": true,
+    "next_b32": false,
+    "no_full_cuda_experts": true,
+    "no_identity_materialization": true,
+    "pinned": true,
+    "zero_production_misses": true
+  },
+  "config_sha256": "6ba8a77f9a749d7baab2b9d784825c7b835fb32538d843cb7d32ea8c1eb27f6d",
+  "deferred_ready_waits": 301,
+  "joint_calls": 2,
+  "pilot_id": "qwen_penultimate_joint_offload_speed_v1",
+  "sample_manifest_sha256": "202486d1591fc46c21ac298c0ff953ccb3245441a6961c7279826db4ec1d62d4",
+  "schema_version": 1,
+  "state": "failed"
+}

@@ -1,0 +1,9 @@
+{
+  "analysis_config_sha256": "361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b",
+  "analysis_id": "pseudo_embedding_qwen_gsm8k_residual_window_v1",
+  "ranking_uses_accuracy": false,
+  "result": "RESIDUAL_SELECTED_FOR_CONTENT_SMOKE",
+  "selected_policy": "residual__previous_window_position_aligned",
+  "selected_residual": "previous_window_position_aligned",
+  "stage": "residual_smoke"
+}

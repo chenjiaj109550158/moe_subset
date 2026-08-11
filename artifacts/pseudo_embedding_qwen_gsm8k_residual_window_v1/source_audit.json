@@ -1,0 +1,9 @@
+{
+  "all_frozen_hashes_match": true,
+  "analysis_config_path": "configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1.yaml",
+  "analysis_config_sha256": "361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b",
+  "sample_manifest_path": "configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1_samples.json",
+  "sample_manifest_sha256": "cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255",
+  "source_suite_artifact_manifest": "artifacts/pseudo_embedding_qwen_gsm8k_v1/artifact_manifest.json",
+  "source_suite_artifact_manifest_sha256": "b5c71fbe49eee2aad35d2f66da136f3e814818c312057598cc5301334444a337"
+}

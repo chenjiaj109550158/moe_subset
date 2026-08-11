@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "4b9d75cbe9f0228c",
+  "command": "benchmark-offload",
+  "result_kind": "runtime",
+  "information_regime": "online_pre_sample",
+  "config_sha256": "8b3dee56faa0c086ffff7e83952b1655d74377075100819ccd421637b0710d89",
+  "created_utc": "2026-07-27T07:25:45.323473+00:00",
+  "complete": true,
+  "negative_results": [],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 88,
+      "sha256": "b6fa198736b055a7537ac3bd841d473e4e1f5c801d68c760439cc9a69908691b"
+    },
+    {
+      "path": "generated.csv",
+      "bytes": 194,
+      "sha256": "e1d5d20227489ee3cadd268daa9f13d8644ee0af7a8a519abe775af25e5e6cea"
+    },
+    {
+      "path": "hardware.json",
+      "bytes": 148,
+      "sha256": "ca2b08f2657316a7c2c10be12b6846140ae2a5dfad1df0b3f06b9a8bf556e3da"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 1139,
+      "sha256": "4b287dbe7506f00a346ea9c83a7b7ff79a08a3c4d962e1d9090e21dc5ee27e39"
+    },
+    {
+      "path": "model_manifest.json",
+      "bytes": 463,
+      "sha256": "9608eb417de7062f67f54ae8aeabf0770ca2bfda1d51f84b9bc130c7c98ef060"
+    },
+    {
+      "path": "repetitions.csv",
+      "bytes": 721,
+      "sha256": "ec6ed5359e99f01a9b5bd20cb3f3b4bc9adcbd576084f156892f7917e1b30639"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 553,
+      "sha256": "8b3dee56faa0c086ffff7e83952b1655d74377075100819ccd421637b0710d89"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 1139,
+      "sha256": "4b287dbe7506f00a346ea9c83a7b7ff79a08a3c4d962e1d9090e21dc5ee27e39"
+    },
+    {
+      "path": "transfers.csv",
+      "bytes": 8682,
+      "sha256": "d417391c49af5e4c2af74e13aa76f5ce6a23c71764c3dca1b44fe76bd00b17c5"
+    }
+  ]
+}

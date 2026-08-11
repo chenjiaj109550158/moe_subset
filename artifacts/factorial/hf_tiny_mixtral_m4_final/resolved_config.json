@@ -1,0 +1,54 @@
+{
+  "bootstrap": {
+    "confidence": 0.95,
+    "samples": 50
+  },
+  "boundary": 3,
+  "capture": {
+    "post_attention_state": true,
+    "post_rope_query": false,
+    "pre_rope_query": true,
+    "router_input": true,
+    "router_logits": true,
+    "topk": true
+  },
+  "content_seed": 41,
+  "context_swap": false,
+  "documents": [
+    [
+      1,
+      327,
+      11537,
+      283,
+      381,
+      11129,
+      3479,
+      381
+    ],
+    [
+      381,
+      3479,
+      11129,
+      381,
+      283,
+      11537,
+      327,
+      1
+    ]
+  ],
+  "experiment": {
+    "information_regime": "offline_teacher_forced",
+    "name": "hf_tiny_mixtral_m4_factorial",
+    "seed": 1234
+  },
+  "hf_trace_config": "configs/model/hf_tiny_mixtral.yaml",
+  "horizons": [
+    1,
+    2
+  ],
+  "position_offsets": [
+    3
+  ],
+  "schema_version": 1,
+  "tiny_model_config": null
+}

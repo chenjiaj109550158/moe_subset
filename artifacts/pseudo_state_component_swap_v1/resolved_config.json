@@ -1,0 +1,257 @@
+{
+  "analysis": {
+    "bootstrap_samples": 10000,
+    "bootstrap_seed": 20260803,
+    "conclusion_labels": [
+      "ATTENTION_DOMINANT",
+      "MOE_RESIDUAL_DOMINANT",
+      "COUPLED_ATTENTION_AND_RESIDUAL",
+      "COMPONENT_PATH_UNRESOLVED"
+    ],
+    "held_out_route_authorized": false,
+    "learned_predictor_training": false,
+    "ranking_uses_accuracy_or_correctness": false,
+    "task_accuracy_authorized": false
+  },
+  "analysis_id": "pseudo_state_component_swap_v1",
+  "artifact_root": "artifacts/pseudo_state_component_swap_v1",
+  "attribution_rule": {
+    "baseline": "exact_future_unpatched",
+    "checkpoint_recovery_threshold_fraction_of_joint_gain": 0.5,
+    "checkpoint_selection": "latest_checkpoint_meeting_both_route_and_mass_recovery",
+    "component_dominance_minimum_fraction_of_joint_gain": 0.5,
+    "component_dominance_minimum_mean_recovery_lead": 0.1,
+    "joint_reference": "exact_future_attention_and_moe_oracle",
+    "minimum_joint_absolute_route_hit_gain": 0.02,
+    "minimum_joint_absolute_selected_mass_gain": 0.02,
+    "zero_or_negative_joint_gain_classification": "component_path_unresolved"
+  },
+  "audits": {
+    "expected_oracle_attention_calls_per_boundary": 48,
+    "expected_oracle_attention_queries_per_full_boundary": 384,
+    "expected_oracle_expert_calls_per_boundary": 48,
+    "expected_oracle_router_calls_per_boundary": 48,
+    "expected_pseudo_attention_calls_per_boundary": 48,
+    "expected_pseudo_attention_queries_per_boundary": 384,
+    "expected_pseudo_expert_calls_per_boundary": 48,
+    "expected_pseudo_router_calls_per_boundary": 48,
+    "require_policy_own_hard_context": true,
+    "require_production_cache_signature_unchanged_by_oracle_capture": true,
+    "require_production_cache_signature_unchanged_by_pseudo_probe": true,
+    "require_production_rng_unchanged_by_oracle_capture": true,
+    "require_production_rng_unchanged_by_pseudo_probe": true,
+    "require_shadow_caches_discarded": true
+  },
+  "dataset": {
+    "key": "gsm8k",
+    "new_rows": false,
+    "partition": "development",
+    "sample_count": 4,
+    "saved_v17_token_trajectories_only": true,
+    "split": "test"
+  },
+  "decode": {
+    "batch_size": 1,
+    "do_sample": false,
+    "seed": 20260727,
+    "use_cache": true
+  },
+  "execution": {
+    "atomic_json_safetensors_pairs": true,
+    "checksum_resume": true,
+    "expected_sample_variant_rows": 36,
+    "maximum_workers_per_physical_gpu": 1,
+    "network_downloads": false,
+    "retain_failed_markers": true,
+    "sample_manifest": "configs/analysis/pseudo_state_component_swap_v1_samples.json",
+    "shard_count": 1,
+    "variants_per_sample": 9
+  },
+  "information_boundary": {
+    "all_variants_forbidden": [
+      "benchmark_answer",
+      "correctness",
+      "task_accuracy",
+      "learned_or_fitted_parameters",
+      "offline_route_transition_tables",
+      "offline_expert_priors",
+      "default_vector_values"
+    ],
+    "deployability": {
+      "all_component_swap_variants": false,
+      "outputs_may_select_final_deployable_policy_directly": false
+    },
+    "diagnostic_oracle_allowed": [
+      "saved_v17_future_token_ids",
+      "full_expert_future_attention_outputs",
+      "full_expert_future_router_inputs",
+      "full_expert_future_moe_outputs",
+      "full_expert_future_layer_outputs"
+    ]
+  },
+  "metrics": {
+    "cost": [
+      "oracle_capture_latency_seconds_measured",
+      "pseudo_probe_latency_seconds_measured",
+      "temporary_cuda_bytes_measured",
+      "attention_calls_and_queries",
+      "router_calls",
+      "expert_calls"
+    ],
+    "primary": [
+      "mean_route_hit",
+      "mean_selected_mass",
+      "centered_router_logit_cosine",
+      "pseudo_vs_oracle_subset_jaccard"
+    ],
+    "state_alignment": [
+      "attention_output_cosine",
+      "router_input_cosine",
+      "moe_residual_cosine",
+      "decoder_layer_output_cosine"
+    ],
+    "strata": [
+      "sample",
+      "boundary",
+      "anchor",
+      "layer",
+      "eight_layer_block",
+      "natural_router_margin_quartile"
+    ]
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "native_top_k": 8,
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "routed_experts_per_layer": 128,
+    "routed_layers": 48,
+    "shared_experts_per_layer": 0
+  },
+  "next_candidate_mapping": {
+    "attention_dominant": "batched_recent_unigram_current_multiview",
+    "candidate_requires_separate_frozen_protocol_before_model_output": true,
+    "component_path_unresolved": "stop_without_candidate_execution",
+    "coupled_attention_and_residual": "mass_preserving_batched_multiview",
+    "moe_residual_dominant": "mass_preserving_previous_subset_residual"
+  },
+  "operating_point": {
+    "actual_replay": "hard_mask_teacher_forced_saved_v17_tokens_on_policy_own_state",
+    "budget_per_layer": 32,
+    "horizon": 8,
+    "native_top_k": 8,
+    "pseudo_attention": "native_causal_single_traversal",
+    "pseudo_content": "exact_future_tokens_diagnostic",
+    "pseudo_expert_execution_boundary_zero": "full_native_top8",
+    "pseudo_expert_execution_later": "current_policy_previous_realized_layer_local_b32_subset",
+    "resident_fraction": 0.25,
+    "route_token_cap": 64,
+    "routed_experts_per_layer": 128,
+    "subset_selection": "first_four_anchor_core_plus_history_fill"
+  },
+  "oracle_component_capture": {
+    "cache": "copy_on_write_read_only",
+    "captured": [
+      "native_attention_output",
+      "post_attention_layernorm_router_input",
+      "native_moe_mixture_output",
+      "decoder_layer_output",
+      "pre_topk_router_logits",
+      "native_topk_ids_and_weights"
+    ],
+    "context": "current_component_policy_hard_subset_state",
+    "execution": "full_native_experts",
+    "forward_shape": "one_causal_batch_of_up_to_eight_teacher_forced_tokens",
+    "information_regime": "diagnostic_future_state_oracle",
+    "token_source": "saved_v17_future_token_ids_at_current_boundary"
+  },
+  "protocol_document": "docs/pseudo_state_component_swap_v1.md",
+  "reporting": {
+    "component_swaps": "diagnostic_oracle_not_deployable",
+    "probe_and_capture_cost": "measured",
+    "route_kind": "teacher_forced_current_policy_hard_subset_state",
+    "runtime_speedup": "not_measured",
+    "state_and_route_metrics": "measured",
+    "task_accuracy": "not_measured",
+    "transfer_kind": "simulated"
+  },
+  "schema_version": 1,
+  "source": {
+    "composition_artifact_manifest": "artifacts/pseudo_executed_embedding_composition_v1/artifact_manifest.json",
+    "composition_artifact_manifest_sha256": "e00e88fa8c20c90682f49b52415792681d688c02b74c887cb32be348d5efcac7",
+    "composition_config": "configs/analysis/pseudo_executed_embedding_composition_v1.yaml",
+    "composition_config_sha256": "35d9ef891c4bccf8603cc0e4b98d8cbb51022a82f11ed72782293e374938e8f9",
+    "composition_sample_manifest": "configs/analysis/pseudo_executed_embedding_composition_v1_samples.json",
+    "composition_sample_manifest_sha256": "d554e10eed706e9bc35bdfbb91c58347c7e7a23fe23526460b06fc4e76bdaac1",
+    "focused_suite_config": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml",
+    "focused_suite_config_sha256": "41b902ac392b777bce0c0eb4efc97e47e4b31376a64605752cf03ea2b9ce6dba",
+    "focused_suite_sample_manifest": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json",
+    "focused_suite_sample_manifest_sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93",
+    "parent_analysis_id": "pseudo_one_forward_state_correction_v1",
+    "parent_artifact_manifest": "artifacts/pseudo_one_forward_state_correction_v1/artifact_manifest.json",
+    "parent_artifact_manifest_sha256": "b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21",
+    "parent_config": "configs/analysis/pseudo_one_forward_state_correction_v1.yaml",
+    "parent_config_sha256": "7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44",
+    "parent_sample_manifest": "configs/analysis/pseudo_one_forward_state_correction_v1_samples.json",
+    "parent_sample_manifest_sha256": "350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c"
+  },
+  "status": "protocol_frozen_before_model_execution",
+  "variants": {
+    "exact_future_attention_and_moe_oracle": {
+      "attention_output_patch": true,
+      "hidden_after_layer_patch": null,
+      "moe_residual_patch": true
+    },
+    "exact_future_attention_output_oracle": {
+      "attention_output_patch": true,
+      "hidden_after_layer_patch": null,
+      "moe_residual_patch": false
+    },
+    "exact_future_hidden_after_layer_15_oracle": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": 15,
+      "moe_residual_patch": false
+    },
+    "exact_future_hidden_after_layer_23_oracle": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": 23,
+      "moe_residual_patch": false
+    },
+    "exact_future_hidden_after_layer_31_oracle": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": 31,
+      "moe_residual_patch": false
+    },
+    "exact_future_hidden_after_layer_39_oracle": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": 39,
+      "moe_residual_patch": false
+    },
+    "exact_future_hidden_after_layer_7_oracle": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": 7,
+      "moe_residual_patch": false
+    },
+    "exact_future_moe_residual_oracle": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": null,
+      "moe_residual_patch": true
+    },
+    "exact_future_unpatched": {
+      "attention_output_patch": false,
+      "hidden_after_layer_patch": null,
+      "moe_residual_patch": false
+    },
+    "order": [
+      "exact_future_unpatched",
+      "exact_future_attention_output_oracle",
+      "exact_future_moe_residual_oracle",
+      "exact_future_attention_and_moe_oracle",
+      "exact_future_hidden_after_layer_7_oracle",
+      "exact_future_hidden_after_layer_15_oracle",
+      "exact_future_hidden_after_layer_23_oracle",
+      "exact_future_hidden_after_layer_31_oracle",
+      "exact_future_hidden_after_layer_39_oracle"
+    ]
+  }
+}

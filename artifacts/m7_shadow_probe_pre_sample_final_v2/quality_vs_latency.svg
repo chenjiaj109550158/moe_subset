@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420"
+viewBox="0 0 720 420">
+<rect width="100%" height="100%" fill="white"/>
+<line x1="58" y1="362" x2="662" y2="362"
+stroke="black"/>
+<line x1="58" y1="58" x2="58" y2="362" stroke="black"/>
+<text x="360.0" y="408" text-anchor="middle">online p95 latency (µs)</text>
+<text x="16" y="210.0" transform="rotate(-90 16 210.0)"
+text-anchor="middle">routing-mass coverage</text>
+<circle cx="59.47" cy="205.04" r="5" fill="#2864dc"/><circle cx="339.04" cy="205.04" r="5" fill="#2864dc"/><circle cx="339.22" cy="205.04" r="5" fill="#2864dc"/><circle cx="339.64" cy="205.04" r="5" fill="#2864dc"/><circle cx="343.14" cy="207.97" r="5" fill="#2864dc"/><circle cx="521.41" cy="205.04" r="5" fill="#2864dc"/><circle cx="525.52" cy="205.04" r="5" fill="#2864dc"/><circle cx="561.33" cy="205.04" r="5" fill="#2864dc"/><circle cx="566.05" cy="204.82" r="5" fill="#2864dc"/><circle cx="633.24" cy="205.93" r="5" fill="#2864dc"/><text x="66.47" y="198.04" font-size="11">current_route</text><text x="346.04" y="198.04" font-size="11">future_position_rephased_correct</text><text x="346.22" y="198.04" font-size="11">future_position_rephased_no_rephase</text><text x="346.64" y="198.04" font-size="11">future_position_rephased_wrong_position</text><text x="350.14" y="200.97" font-size="11">future_position_rephased_random_content</text><text x="528.41" y="198.04" font-size="11">pseudo_token_independent_current_token</text><text x="532.52" y="198.04" font-size="11">pseudo_token_causal_current_token</text><text x="568.33" y="198.04" font-size="11">default_vector_shadow_rollout_independent_current_token</text><text x="573.05" y="197.82" font-size="11">default_vector_shadow_rollout_causal_current_token</text><text x="640.24" y="198.93" font-size="11">uncertainty_ensemble</text></svg>

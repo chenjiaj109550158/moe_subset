@@ -1,0 +1,223 @@
+{
+  "accuracy_gate": {
+    "accuracy_selects_or_tunes_variant": false,
+    "allowed_drop_questions": 1,
+    "conclusion_ceiling": "PILOT_NARROW",
+    "frozen_before_generation": true,
+    "frozen_online_baseline_successes": 8,
+    "frozen_vanilla_successes": 8,
+    "minimum_candidate_successes": 7,
+    "paired_bootstrap_samples": 10000,
+    "paired_bootstrap_seed": 20260804,
+    "result_authorizes_fused_runtime_automatically": false,
+    "sample_count": 8,
+    "strong_preservation_successes": 8,
+    "user_confirmation_required_for_fused_runtime": true
+  },
+  "artifact_root": "artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1",
+  "audits": {
+    "require_actual_hard_mask_execution": true,
+    "require_bridge_natural_route_parity": true,
+    "require_cache_signature_unchanged_by_planning": true,
+    "require_disposable_hard_bridge": true,
+    "require_first_window_online_bootstrap": true,
+    "require_future_v17_tokens_unused": true,
+    "require_identity_materialized_false": true,
+    "require_label_correctness_unused": true,
+    "require_last_sampled_token_unavailable_to_planner": true,
+    "require_later_penultimate_trigger": true,
+    "require_no_offload_engine": true,
+    "require_one_h8_causal_pseudo_traversal_per_later_boundary": true,
+    "require_policy_own_closed_loop_context": true,
+    "require_pseudo_executed_ids_within_current_subset": true,
+    "require_rng_unchanged_by_planning": true,
+    "require_shadow_cache_discarded": true
+  },
+  "authorization": {
+    "actual_fused_or_overlapped_runtime_approved": false,
+    "approved_at_utc": "2026-08-04",
+    "checkpoint": "stop_after_wave_1_report_for_user_confirmation",
+    "dataset_expansion": "forbidden",
+    "offload_during_accuracy": false,
+    "token_cap_expansion": "forbidden",
+    "user_approved_wave_1_accuracy": true
+  },
+  "dataset": {
+    "key": "gsm8k",
+    "original_v17_max_new_tokens": 512,
+    "sample_count": 8,
+    "selection_used_accuracy_correctness_or_answer": false,
+    "source_partition": "closed_loop_wave_1",
+    "source_v17_total_generated_tokens": 2101,
+    "source_v17_vanilla_successes": 8,
+    "split": "test"
+  },
+  "decode": {
+    "answer_parser": "exact_v17_gsm8k_parser",
+    "batch_size": 1,
+    "do_sample": false,
+    "prompt_rendering": "exact_saved_v17_rendered_prompt",
+    "seed": 20260727,
+    "stop_strings": "exact_v17",
+    "use_cache": true
+  },
+  "execution": {
+    "actual": {
+      "external_online_baseline_rows": 8,
+      "max_new_tokens": "original_v17_cap_512",
+      "new_policy_rows": 8,
+      "partition": "closed_loop_wave_1",
+      "sample_count": 8
+    },
+    "atomic_json_rows": true,
+    "checksum_resume": true,
+    "maximum_workers_per_physical_gpu": 1,
+    "mechanism_smoke": {
+      "expected_joint_boundaries_minimum": 1,
+      "max_new_tokens": 16,
+      "result_selects_ids_policy_or_gate": false,
+      "row_index": 44,
+      "sample_id": "test-44"
+    },
+    "model_loads_per_worker": 1,
+    "network_downloads": false,
+    "physical_gpu": 0,
+    "retain_failed_markers": true
+  },
+  "information_boundary": {
+    "allowed": [
+      "current_policy_prompt_and_already_realized_tokens",
+      "penultimate_sampled_token_known_before_last_forward",
+      "current_policy_production_cache_read_only_copy_on_write",
+      "current_policy_current_window_layer_local_b32_subset",
+      "current_policy_realized_pre_mask_natural_routes",
+      "native_model_parameters_and_router_scores"
+    ],
+    "forbidden": [
+      "current_window_last_sampled_token_before_it_is_produced",
+      "future_true_tokens",
+      "v17_vanilla_future_trajectory",
+      "benchmark_answer",
+      "correctness_or_accuracy_during_execution",
+      "learned_or_fitted_parameters",
+      "offline_route_or_continuation_tables",
+      "offline_expert_priors",
+      "default_vector_values",
+      "retrieved_hidden_states"
+    ]
+  },
+  "logical_accuracy_simulation": {
+    "generation_rng_must_remain_unchanged_by_planning": true,
+    "intended_fused_runtime_equivalence": "mathematical_dependency_and_information_equivalent",
+    "intended_fused_runtime_not_implemented": true,
+    "later_boundary_execution": [
+      "fork_production_cache_copy_on_write",
+      "execute_disposable_exact_hard_b32_bridge_on_penultimate_token",
+      "execute_one_causal_h8_pseudo_traversal_from_bridge_shadow_cache",
+      "discard_all_shadow_state",
+      "execute_real_last_production_forward",
+      "verify_shadow_and_real_bridge_natural_routes_match",
+      "select_next_b32_from_pseudo_anchors_and_completed_real_window_history"
+    ],
+    "offload_engine": "disabled",
+    "production_cache_must_remain_unchanged_by_planning": true,
+    "purpose": "accuracy_and_route_semantics_only",
+    "simulator_bridge_recomputation_latency_is_not_joint_runtime": true
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "key": "qwen3_30b_a3b",
+    "native_top_k": 8,
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "routed_experts_per_layer": 128,
+    "routed_layers": 48,
+    "shared_experts_per_layer": 0
+  },
+  "operating_point": {
+    "budget_per_layer": 32,
+    "horizon": 8,
+    "identity_materialization": "forbidden",
+    "native_top_k": 8,
+    "production_execution": "hard_mask_outside_subset_before_native_topk_and_normalization",
+    "pseudo_residual_execution": "natural_top8_intersection_zero_missing",
+    "resident_fraction": 0.25,
+    "routed_experts_per_layer": 128,
+    "subset_selection": "first_four_anchor_core_plus_completed_previous_window_history_fill"
+  },
+  "pilot_id": "pseudo_penultimate_joint_qwen_gsm8k_wave1_v1",
+  "policy": {
+    "first_window": {
+      "content": "sampled_unigram_full_continuation",
+      "content_fallback": "recent_sequence_causal",
+      "reason": "no_previous_decode_window_exists",
+      "shadow_expert_access": "full_native_top8",
+      "timing": "online_post_sample_bootstrap"
+    },
+    "history_fill": {
+      "includes_real_bridge_route": true,
+      "source": "current_policy_completed_eight_forward_window_pre_mask_natural_routes"
+    },
+    "key": "penultimate_unigram_joint_equivalent",
+    "later_windows": {
+      "bridge_execution": "current_window_hard_b32_production_semantics",
+      "content": "sampled_unigram_full_continuation",
+      "content_fallback": "recent_sequence_causal",
+      "content_seed": "current_input_token_that_becomes_penultimate_sample_after_forward",
+      "intended_joint_sequence": "one_real_bridge_token_then_eight_future_pseudo_anchors",
+      "planning_trigger": "before_current_window_last_production_forward",
+      "pseudo_execution": "current_window_b32_natural_top8_intersection_zero_missing",
+      "sampled_last_token_used_for_planning": false,
+      "sampled_last_token_used_for_subset_selection": false,
+      "subset_commit": "after_real_bridge_route_completes_before_next_window_first_forward"
+    },
+    "learned_or_fitted_parameters": false,
+    "role": "deployable_calibration_free_timing_hypothesis"
+  },
+  "protocol_document": "docs/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1.md",
+  "reporting": {
+    "measured": [
+      "actual_hard_closed_loop_gsm8k_accuracy",
+      "exact_token_agreement_and_first_divergence",
+      "route_hit_and_selected_routing_mass_on_policy_context",
+      "v17_token_nll_and_perplexity_on_policy_context",
+      "logical_simulator_probe_and_generation_runtime",
+      "cache_rng_bridge_parity"
+    ],
+    "not_measured": [
+      "offload_runtime",
+      "prefetch_overlap",
+      "joint_fused_kernel_runtime",
+      "production_speedup"
+    ],
+    "prohibited_claims": [
+      "simulator_latency_as_joint_runtime",
+      "offloading_speedup",
+      "full_dataset_accuracy_preservation",
+      "full_dataset_go"
+    ],
+    "simulated": [
+      "expert_transfer_bytes_and_reduction"
+    ]
+  },
+  "sample_manifest": "configs/benchmark/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1_samples.json",
+  "schema_version": 1,
+  "source": {
+    "accuracy_config": "configs/benchmark/speculating_experts_accuracy_v17.yaml",
+    "accuracy_config_sha256": "23687248a85a52cb60b09a337c691fb0c95df018dc195794ddf7775e10015092",
+    "focused_config": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml",
+    "focused_config_sha256": "41b902ac392b777bce0c0eb4efc97e47e4b31376a64605752cf03ea2b9ce6dba",
+    "focused_sample_manifest": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json",
+    "focused_sample_manifest_sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93",
+    "online_baseline_config": "configs/benchmark/pseudo_mass_preserving_residual_accuracy_pilot_v1.yaml",
+    "online_baseline_config_sha256": "7370d4c3208fcd32ab7b0f903409a7132c14cd784b7360cc7cf7863720f0d46b",
+    "online_baseline_policy": "natural_top8_intersection_zero_missing",
+    "online_baseline_reuse": "checksum_pinned_external_measured_rows_no_rerun",
+    "online_baseline_rows": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual",
+    "online_baseline_sample_manifest": "configs/benchmark/pseudo_mass_preserving_residual_accuracy_pilot_v1_samples.json",
+    "online_baseline_sample_manifest_sha256": "ac1aeb3da4778d09628c2e3188fd524392ce253b9fc04b8c795c0312f82dadfe",
+    "vanilla_rows": "artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl",
+    "vanilla_rows_sha256": "4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae"
+  },
+  "status": "protocol_frozen_before_any_penultimate_result"
+}

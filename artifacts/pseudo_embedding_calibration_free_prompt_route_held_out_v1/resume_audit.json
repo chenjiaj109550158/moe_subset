@@ -1,0 +1,9 @@
+{
+  "atomic_json_tensor_pairs": true,
+  "checksum_resume": true,
+  "failed_markers_preserved": [],
+  "samples_expected": 8,
+  "samples_validated": 8,
+  "schema_version": 1,
+  "state": "complete"
+}

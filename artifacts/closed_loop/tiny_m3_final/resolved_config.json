@@ -1,0 +1,39 @@
+{
+  "experiment": {
+    "information_regime": "oracle",
+    "name": "tiny_m3_gate_a",
+    "seed": 1234
+  },
+  "gate_a": {
+    "minimum_exact_token_rate": 1.0,
+    "minimum_transfer_reduction": 0.25
+  },
+  "grid": {
+    "budget_ratios": [
+      1.0,
+      1.5,
+      2.0
+    ],
+    "gamma": 0.9,
+    "horizons": [
+      1,
+      2,
+      4
+    ],
+    "policies": [
+      "natural",
+      "lossless_fallback",
+      "masked_substitution",
+      "masked_truncation_preserve",
+      "masked_truncation_renormalize"
+    ]
+  },
+  "max_new_tokens": 8,
+  "prompt_tokens": [
+    1,
+    2,
+    3
+  ],
+  "schema_version": 1,
+  "tiny_model_config": "configs/model/tiny_moe.yaml"
+}

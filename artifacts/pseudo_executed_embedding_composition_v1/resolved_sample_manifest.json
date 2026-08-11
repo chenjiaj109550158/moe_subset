@@ -1,0 +1,64 @@
+{
+  "analysis_id": "pseudo_executed_embedding_composition_v1",
+  "partitions": {
+    "development": [
+      {
+        "row_index": 0,
+        "sample_id": "test-0"
+      },
+      {
+        "row_index": 439,
+        "sample_id": "test-439"
+      },
+      {
+        "row_index": 879,
+        "sample_id": "test-879"
+      },
+      {
+        "row_index": 1318,
+        "sample_id": "test-1318"
+      }
+    ],
+    "held_out_route": [
+      {
+        "row_index": 88,
+        "sample_id": "test-88"
+      },
+      {
+        "row_index": 898,
+        "sample_id": "test-898"
+      },
+      {
+        "row_index": 141,
+        "sample_id": "test-141"
+      },
+      {
+        "row_index": 819,
+        "sample_id": "test-819"
+      },
+      {
+        "row_index": 1250,
+        "sample_id": "test-1250"
+      },
+      {
+        "row_index": 1110,
+        "sample_id": "test-1110"
+      },
+      {
+        "row_index": 1049,
+        "sample_id": "test-1049"
+      },
+      {
+        "row_index": 1222,
+        "sample_id": "test-1222"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "selection": {
+    "accuracy_correctness_or_ground_truth_used": false,
+    "new_rows_added": false,
+    "rule": "reuse_previously_frozen_residual_window_v1_partitions",
+    "source_manifest_sha256": "cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255"
+  }
+}

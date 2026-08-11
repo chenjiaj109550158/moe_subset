@@ -1,0 +1,62 @@
+{
+  "rows": [
+    {
+      "file_sha256": "6551ce25a886d8019b4cb12ecdffb5e9392f3d09a4ef9b73331027b7940b8273",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/00044/natural_top8_intersection_zero_missing.json",
+      "row_index": 44,
+      "row_payload_sha256": "7b3017fb0ac73667e6048c4eb6f7062c366ee16a34f3b2de22c13c7b5972b9fd",
+      "sample_id": "test-44"
+    },
+    {
+      "file_sha256": "72de5e6e3427ce3f266823de783b8ed629dd44ba369a9eeadfec9f252e38963f",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/00632/natural_top8_intersection_zero_missing.json",
+      "row_index": 632,
+      "row_payload_sha256": "3cb411a336426e488a38288b4d4470d9018cfeb61e8dcbbf4ebd543d1cfa8dd4",
+      "sample_id": "test-632"
+    },
+    {
+      "file_sha256": "f7d4511e734db76f7cb659701ee31168ab9e3aa9f4ff7a69e16e3cd36fedb969",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/00444/natural_top8_intersection_zero_missing.json",
+      "row_index": 444,
+      "row_payload_sha256": "8cf949823acf19086f6ce8458cf37a918102778baf6509dec3263384cca6e178",
+      "sample_id": "test-444"
+    },
+    {
+      "file_sha256": "0a3d078dc960dd15c28dcd6a289c430691cb289890e3a997a590ef8c8022858d",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/00519/natural_top8_intersection_zero_missing.json",
+      "row_index": 519,
+      "row_payload_sha256": "e7e10a2a084a15b4378ef5cd1e050cf75adaef9441e507f5ee2785201d1c6d95",
+      "sample_id": "test-519"
+    },
+    {
+      "file_sha256": "63c890e66502bb8be29942271b9622c10425865e05dd3a9f9d31be804a36245e",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/01311/natural_top8_intersection_zero_missing.json",
+      "row_index": 1311,
+      "row_payload_sha256": "444cf0e715304b24120bd91627c597bbf08cefcac2399163edc877c87ea7dfcb",
+      "sample_id": "test-1311"
+    },
+    {
+      "file_sha256": "d0b0e7c4525598ff08aec1aaced828001ffd11a612a34bbbac53638ec3dd9bc9",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/01264/natural_top8_intersection_zero_missing.json",
+      "row_index": 1264,
+      "row_payload_sha256": "d782a03dcaf0e2a8df00277e5569e91f19f68623a70005c926a9907c1d71cc25",
+      "sample_id": "test-1264"
+    },
+    {
+      "file_sha256": "a42a0c9915e2300bf8132456dec93c4cab050facbcc32b0224074f6fcfdf41d1",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/00825/natural_top8_intersection_zero_missing.json",
+      "row_index": 825,
+      "row_payload_sha256": "c6bc0102e52cb1084713628577dd2163b5b8bd1d5b275a0aa2ca4cd1a8cda2e7",
+      "sample_id": "test-825"
+    },
+    {
+      "file_sha256": "af979cb013cf08534c31cb0b96ffb53d54ad58e0fbd53adc4c7d09b5127796a7",
+      "path": "artifacts/pseudo_mass_preserving_residual_accuracy_pilot_v1/actual/00252/natural_top8_intersection_zero_missing.json",
+      "row_index": 252,
+      "row_payload_sha256": "ff6b80af59dd4ad77f8d1fee97a61b3478b0da0026d206422efcb9e2b765e26f",
+      "sample_id": "test-252"
+    }
+  ],
+  "schema_version": 1,
+  "source_policy": "natural_top8_intersection_zero_missing"
+}

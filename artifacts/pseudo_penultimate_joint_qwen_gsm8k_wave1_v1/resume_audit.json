@@ -1,0 +1,9 @@
+{
+  "actual_rows_validated": 8,
+  "atomic_json_rows": true,
+  "checksum_resume_pass": true,
+  "external_online_baseline_rows_checksum_validated": 8,
+  "failed_markers_preserved": [],
+  "smoke_rows_validated": 1,
+  "state": "complete"
+}

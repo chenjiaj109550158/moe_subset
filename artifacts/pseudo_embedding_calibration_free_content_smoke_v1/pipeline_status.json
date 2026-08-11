@@ -1,0 +1,11 @@
+{
+  "analysis_config_sha256": "66cc4643310e8d1b1ed0239c57a02c86664510db16489b03fde90bd7f1c5f7f0",
+  "analysis_id": "pseudo_embedding_calibration_free_content_smoke_v1",
+  "artifact_count": 20,
+  "best_deployable": "recent_window_equal_history_blend",
+  "decision": "MECHANISM_PROMISING_FOR_NEW_FROZEN_DEVELOPMENT",
+  "samples": 2,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete"
+}

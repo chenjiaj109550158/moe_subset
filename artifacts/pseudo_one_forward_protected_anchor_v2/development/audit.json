@@ -1,0 +1,7 @@
+{
+  "accuracy_or_correctness_used": false,
+  "all_pass": true,
+  "candidate_sample_policy_rows": 20,
+  "one_causal_forward_per_boundary": true,
+  "source_reference_rows": 4
+}

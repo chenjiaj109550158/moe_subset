@@ -1,0 +1,13 @@
+{
+  "cuda_runtime": "13.0",
+  "cudnn": 92000,
+  "datasets": "4.8.5",
+  "gpus": [
+    "0, NVIDIA A100-SXM4-80GB, 81920 MiB, 580.126.09"
+  ],
+  "platform": "Linux-6.8.0-100-generic-x86_64-with-glibc2.39",
+  "python": "3.14.6",
+  "safetensors": "0.8.0",
+  "torch": "2.13.0+cu130",
+  "transformers": "5.14.1"
+}

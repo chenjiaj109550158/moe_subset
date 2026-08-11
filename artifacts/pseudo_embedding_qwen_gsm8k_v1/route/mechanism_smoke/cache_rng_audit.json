@@ -1,0 +1,17 @@
+{
+  "all_required_invariants_pass": true,
+  "audit_rows": 10,
+  "forbidden_inputs_absent": true,
+  "required_fields": [
+    "production_cache_signature_unchanged",
+    "production_rng_unchanged",
+    "shadow_cache_discarded",
+    "native_attention",
+    "native_rope",
+    "native_router",
+    "layer_scoped_expert_ids"
+  ],
+  "unobserved_default_pairs": [
+    444
+  ]
+}

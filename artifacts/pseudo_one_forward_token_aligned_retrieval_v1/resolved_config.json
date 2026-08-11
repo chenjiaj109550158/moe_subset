@@ -1,0 +1,187 @@
+{
+  "analysis": {
+    "actual_accuracy_authorized": false,
+    "bootstrap_samples": 10000,
+    "bootstrap_seed": 20260802,
+    "held_out_route_authorized": false,
+    "learned_predictor_training": false,
+    "maximum_anchor_one_absolute_regression": 0.005,
+    "maximum_mean_total_planning_latency_seconds": 0.5,
+    "primary_metrics": [
+      "mean_selected_mass",
+      "mean_route_hit"
+    ],
+    "ranking_uses_accuracy_or_correctness": false,
+    "route_signal_minimum_absolute_improvement_over_uncorrected": 0.02,
+    "secondary_metrics": [
+      "estimated_transfer_reduction",
+      "mean_total_planning_latency_seconds",
+      "retrieval_exact_fraction",
+      "retrieval_fallback_fraction"
+    ]
+  },
+  "analysis_id": "pseudo_one_forward_token_aligned_retrieval_v1",
+  "artifact_root": "artifacts/pseudo_one_forward_token_aligned_retrieval_v1",
+  "audits": {
+    "expected_attention_calls_per_boundary": 48,
+    "expected_attention_queries_per_boundary": 384,
+    "expected_expert_calls_per_boundary": 48,
+    "expected_router_calls_per_boundary": 48,
+    "require_one_causal_forward_per_boundary": true,
+    "require_production_cache_signature_unchanged": true,
+    "require_production_rng_unchanged": true,
+    "require_retrieval_history_length_matches_realized_context": true,
+    "require_retrieved_indices_precede_boundary": true,
+    "require_shadow_cache_discarded": true,
+    "require_similarity_finite_in_0_1": true,
+    "require_state_bank_policy_local": true
+  },
+  "dataset": {
+    "key": "gsm8k",
+    "new_rows_or_traces": false,
+    "source_suite": "speculating_experts_accuracy_v17",
+    "split": "test"
+  },
+  "decode": {
+    "batch_size": 1,
+    "do_sample": false,
+    "seed": 20260727,
+    "use_cache": true
+  },
+  "execution": {
+    "atomic_json_safetensors_pairs": true,
+    "checksum_resume": true,
+    "maximum_workers_per_physical_gpu": 1,
+    "network_downloads": false,
+    "retain_failed_markers": true,
+    "sample_manifest": "configs/analysis/pseudo_one_forward_token_aligned_retrieval_v1_samples.json",
+    "shard_count": 2
+  },
+  "information_boundary": {
+    "allowed": [
+      "current_policy_production_cache_read_only_copy_on_write",
+      "sampled_next_token",
+      "prompt_or_already_realized_token_ids",
+      "prompt_or_already_realized_current_policy_router_inputs",
+      "prompt_or_already_realized_current_policy_executed_moe_outputs",
+      "native_input_embedding_weight"
+    ],
+    "forbidden": [
+      "future_true_tokens_after_sampled_next",
+      "vanilla_future_trajectory",
+      "benchmark_answer",
+      "correctness",
+      "task_accuracy",
+      "learned_or_fitted_parameters",
+      "offline_route_transition_tables",
+      "offline_expert_priors",
+      "default_vector_values"
+    ]
+  },
+  "mixing": {
+    "additive_norm": {
+      "exact_token_similarity": 1.0,
+      "formula": "norm_match_l2(fresh_state + similarity * retrieved_state)",
+      "missing_exact_similarity": 0.0
+    },
+    "epsilon": 1e-12,
+    "replace_norm": {
+      "exact_token_similarity": 1.0,
+      "formula": "norm_match_l2((1 - similarity) * fresh_state + similarity * retrieved_state)",
+      "missing_exact_similarity": 0.0
+    }
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "native_top_k": 8,
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "routed_experts_per_layer": 128,
+    "routed_layers": 48,
+    "shared_experts_per_layer": 0
+  },
+  "operating_point": {
+    "attention": "causal",
+    "boundary_zero_expert_access": "full_native_top8",
+    "budget_per_layer": 32,
+    "content": "recent_sequence",
+    "horizon": 8,
+    "later_expert_access": "current_policy_previous_realized_layer_local_b32_subset",
+    "resident_fraction": 0.25,
+    "route_token_cap": 64,
+    "subset_selection": "first_four_anchor_core_plus_history_fill"
+  },
+  "protocol_document": "docs/pseudo_one_forward_token_aligned_retrieval_v1.md",
+  "reporting": {
+    "probe_retrieval_and_replay_latency": "measured",
+    "route_kind": "teacher_forced_current_policy_hard_subset_state",
+    "runtime_speedup": "not_measured",
+    "task_accuracy": "not_measured",
+    "transfer_kind": "simulated"
+  },
+  "retrieval_bank": {
+    "detach": true,
+    "embedding_nearest": {
+      "exclude_future_and_current_unrealized": true,
+      "metric": "cosine_similarity_float32",
+      "similarity_weight": "clamp_0_1",
+      "source": "native_input_embedding_weight",
+      "tie_break": "most_recent_history_position"
+    },
+    "exact_token_tie_break": "most_recent_history_position",
+    "production_state": "read_only",
+    "scope": "current_policy_prompt_and_already_realized_tokens_only",
+    "states": [
+      "native_router_input",
+      "exact_executed_moe_output"
+    ],
+    "token_ids": "rendered_prompt_and_current_policy_realized_saved_tokens"
+  },
+  "schema_version": 1,
+  "source": {
+    "baseline_analysis_id": "pseudo_one_forward_state_correction_v1",
+    "baseline_artifact_manifest_sha256": "b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21",
+    "baseline_artifact_root": "artifacts/pseudo_one_forward_state_correction_v1",
+    "baseline_config": "configs/analysis/pseudo_one_forward_state_correction_v1.yaml",
+    "baseline_config_sha256": "7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44",
+    "baseline_sample_manifest": "configs/analysis/pseudo_one_forward_state_correction_v1_samples.json",
+    "baseline_sample_manifest_sha256": "350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c",
+    "preceding_analysis_id": "pseudo_one_forward_protected_anchor_v2",
+    "preceding_artifact_manifest_sha256": "455db962eee8379480a353353e1168e0e26e90dc8de2739fbf2ea4ec2369f84e",
+    "preceding_artifact_root": "artifacts/pseudo_one_forward_protected_anchor_v2",
+    "reference_policy": "recent_sequence_causal_uncorrected"
+  },
+  "status": "protocol_frozen_before_model_execution",
+  "variants": [
+    {
+      "key": "exact_recent_residual_additive_norm",
+      "mixing": "additive_norm",
+      "retrieval": "exact_token_most_recent",
+      "target": "fresh_moe_residual"
+    },
+    {
+      "key": "exact_recent_residual_replace_norm",
+      "mixing": "replace_norm",
+      "retrieval": "exact_token_most_recent",
+      "target": "fresh_moe_residual"
+    },
+    {
+      "key": "exact_then_embedding_nearest_residual_additive_norm",
+      "mixing": "additive_norm",
+      "retrieval": "exact_token_then_embedding_nearest",
+      "target": "fresh_moe_residual"
+    },
+    {
+      "key": "exact_recent_router_input_additive_norm",
+      "mixing": "additive_norm",
+      "retrieval": "exact_token_most_recent",
+      "target": "router_input"
+    },
+    {
+      "key": "exact_then_embedding_nearest_router_input_additive_norm",
+      "mixing": "additive_norm",
+      "retrieval": "exact_token_then_embedding_nearest",
+      "target": "router_input"
+    }
+  ]
+}

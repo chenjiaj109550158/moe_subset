@@ -1,0 +1,26 @@
+{
+  "residual__previous_window_last_repeated": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.781871054234216,
+    "router_calls": 1536
+  },
+  "residual__previous_window_mean_repeated": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.7793194464466069,
+    "router_calls": 1536
+  },
+  "residual__previous_window_position_aligned": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.8027682237443514,
+    "router_calls": 1536
+  },
+  "residual__zero": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.7940861800452694,
+    "router_calls": 1536
+  }
+}

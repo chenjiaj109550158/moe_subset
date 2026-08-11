@@ -1,0 +1,7 @@
+{
+  "all_pass": true,
+  "bfloat16_absolute_weight_tolerance": 0.0078125,
+  "candidate_future_or_label_leakage": false,
+  "legacy_previous_rows_used": false,
+  "sample_policy_rows": 24
+}

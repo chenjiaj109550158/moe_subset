@@ -1,0 +1,11 @@
+{
+  "analysis_config_sha256": "1f6f5ab8372aa6f63796cfda49601745bf2736490ee21c8807fd9657b9a996ef",
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_held_out_v1",
+  "artifact_count": 31,
+  "decision": "STOP/PIVOT",
+  "samples": 8,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "strong_candidate_gate_pass": false
+}

@@ -1,0 +1,11 @@
+{
+  "accuracy_gate_minimum_successes": 7,
+  "candidate_successes": 7,
+  "decision": "PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION",
+  "full_dataset_go": false,
+  "fused_runtime_authorized": false,
+  "offload_speedup_claim": false,
+  "pilot_id": "pseudo_penultimate_joint_qwen_gsm8k_wave1_v1",
+  "scope": "Qwen_GSM8K_H8_B32_wave_one_penultimate_joint_accuracy_checkpoint",
+  "user_confirmation_required_for_fused_runtime": true
+}

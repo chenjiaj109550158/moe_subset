@@ -1,0 +1,9 @@
+{
+  "expert_h2d_bytes": "measured_from_copy_operations",
+  "joint_cache_and_call_counts": "measured_and_audited",
+  "runtime": "measured",
+  "simulated_metrics": [],
+  "task_accuracy": "measured_two_row_actual_hard_closed_loop",
+  "token_identity": "measured",
+  "transfer_and_exposed_stall": "measured_by_cuda_events"
+}

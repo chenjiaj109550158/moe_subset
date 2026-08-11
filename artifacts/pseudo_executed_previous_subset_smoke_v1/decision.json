@@ -1,0 +1,10 @@
+{
+  "analysis_config_sha256": "117ce2f4f05d91760d36a7e20136120dbead5853d97af89b37d95faeefcd7f4c",
+  "analysis_id": "pseudo_executed_previous_subset_smoke_v1",
+  "decision": "MECHANISM_FEASIBLE",
+  "maximum_claim": "mechanism_feasibility_on_two_fixed_smoke_rows",
+  "mechanism_feasibility_pass": true,
+  "route_metrics_used_as_selection_gate": false,
+  "runtime_speedup_claim": false,
+  "task_accuracy_claim": false
+}

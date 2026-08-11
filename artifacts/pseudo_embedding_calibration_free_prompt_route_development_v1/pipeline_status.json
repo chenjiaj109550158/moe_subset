@@ -1,0 +1,12 @@
+{
+  "analysis_config_sha256": "f1384397deba1e2cdb702dd4878af4092eaa64cd7625617900a22802d4813a25",
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_development_v1",
+  "artifact_count": 22,
+  "best_observed_candidate": "equal_sampled_pseudo_prompt_or_recent_history",
+  "decision": "CANDIDATE_FOR_NEW_FROZEN_HELD_OUT_ROUTE_PROTOCOL",
+  "qualifying_candidate": "equal_sampled_pseudo_prompt_or_recent_history",
+  "samples": 4,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete"
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="460">
+<rect width="100%" height="100%" fill="white"/>
+<text x="380.0" y="28" text-anchor="middle" font-size="18">Expert union size by horizon</text>
+<line x1="80" y1="50" x2="80" y2="390" stroke="black"/>
+<line x1="80" y1="390" x2="730" y2="390" stroke="black"/>
+<text x="380.0" y="440" text-anchor="middle">Horizon</text>
+<text x="18" y="230.0" transform="rotate(-90 18 230.0)" text-anchor="middle">Mean union size</text>
+<polyline points="80.00,220.00 172.86,135.00 358.57,78.33 730.00,50.00" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="580" y="50" fill="#2563eb">layer=0</text>
+<polyline points="80.00,220.00 172.86,156.25 358.57,135.00 730.00,50.00" fill="none" stroke="#dc2626" stroke-width="2"/>
+<text x="580" y="68" fill="#dc2626">layer=1</text>
+</svg>

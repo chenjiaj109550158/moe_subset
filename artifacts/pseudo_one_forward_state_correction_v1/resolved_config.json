@@ -1,0 +1,164 @@
+{
+  "analysis": {
+    "actual_accuracy_authorized": false,
+    "bootstrap_samples": 10000,
+    "bootstrap_seed": 20260802,
+    "held_out_route_authorized": false,
+    "learned_predictor_training": false,
+    "maximum_mean_probe_latency_seconds": 0.5,
+    "primary_metrics": [
+      "mean_selected_mass",
+      "mean_route_hit"
+    ],
+    "ranking_uses_accuracy_or_correctness": false,
+    "route_signal_minimum_absolute_improvement_over_uncorrected": 0.02,
+    "secondary_metrics": [
+      "estimated_transfer_reduction",
+      "mean_probe_latency_seconds"
+    ]
+  },
+  "analysis_id": "pseudo_one_forward_state_correction_v1",
+  "anchor_correction": {
+    "coefficients": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "epsilon": 1e-12,
+    "hidden_velocity": {
+      "formula": "norm_match_l2(pseudo_router_input + anchor_coefficient * recent_delta)",
+      "insertion": "after_native_post_attention_layernorm_before_native_gate_and_experts",
+      "reference_norm": "uncorrected_pseudo_router_input_per_anchor",
+      "source": "recent_native_post_attention_layernorm_mlp_inputs"
+    },
+    "residual_velocity": {
+      "formula": "norm_match_l2(fresh_pseudo_moe_residual + anchor_coefficient * recent_delta)",
+      "insertion": "after_native_previous_subset_expert_execution_before_residual_add",
+      "reference_norm": "fresh_pseudo_moe_residual_per_anchor",
+      "source": "recent_native_moe_mixture_outputs"
+    }
+  },
+  "artifact_root": "artifacts/pseudo_one_forward_state_correction_v1",
+  "audits": {
+    "expected_attention_calls_per_boundary": 48,
+    "expected_attention_queries_per_boundary": 384,
+    "expected_expert_calls_per_boundary": 48,
+    "expected_router_calls_per_boundary": 48,
+    "require_correction_finite": true,
+    "require_history_policy_local": true,
+    "require_one_causal_forward_per_boundary": true,
+    "require_production_cache_signature_unchanged": true,
+    "require_production_rng_unchanged": true,
+    "require_shadow_cache_discarded": true
+  },
+  "dataset": {
+    "key": "gsm8k",
+    "new_rows_or_traces": false,
+    "source_suite": "speculating_experts_accuracy_v17",
+    "split": "test"
+  },
+  "decode": {
+    "batch_size": 1,
+    "do_sample": false,
+    "seed": 20260727,
+    "use_cache": true
+  },
+  "execution": {
+    "atomic_json_safetensors_pairs": true,
+    "checksum_resume": true,
+    "maximum_workers_per_physical_gpu": 1,
+    "network_downloads": false,
+    "retain_failed_markers": true,
+    "sample_manifest": "configs/analysis/pseudo_one_forward_state_correction_v1_samples.json",
+    "shard_count": 2
+  },
+  "history": {
+    "boundary_zero": "last_two_full_expert_prompt_mlp_router_inputs_and_outputs",
+    "delta": "newest_minus_previous",
+    "detach": true,
+    "later_boundaries": "last_two_current_policy_realized_window_mlp_router_inputs_and_outputs"
+  },
+  "information_boundary": {
+    "allowed": [
+      "current_policy_production_cache_read_only_copy_on_write",
+      "sampled_next_token",
+      "prompt_or_already_realized_token_ids",
+      "last_two_current_policy_realized_router_inputs",
+      "last_two_current_policy_realized_moe_outputs"
+    ],
+    "forbidden": [
+      "future_true_tokens_after_sampled_next",
+      "vanilla_future_trajectory",
+      "benchmark_answer",
+      "correctness",
+      "task_accuracy",
+      "learned_or_fitted_parameters",
+      "offline_route_transition_tables",
+      "offline_expert_priors",
+      "default_vector_values"
+    ]
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "native_top_k": 8,
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "routed_experts_per_layer": 128,
+    "routed_layers": 48,
+    "shared_experts_per_layer": 0
+  },
+  "operating_point": {
+    "attention": "causal",
+    "boundary_zero_expert_access": "full_native_top8",
+    "budget_per_layer": 32,
+    "content": "recent_sequence",
+    "horizon": 8,
+    "later_expert_access": "current_policy_previous_realized_layer_local_b32_subset",
+    "resident_fraction": 0.25,
+    "route_token_cap": 64,
+    "subset_selection": "first_four_anchor_core_plus_history_fill"
+  },
+  "protocol_document": "docs/pseudo_one_forward_state_correction_v1.md",
+  "reporting": {
+    "probe_latency_and_memory": "measured",
+    "route_kind": "teacher_forced_current_policy_hard_subset_state",
+    "runtime_speedup": "not_measured",
+    "task_accuracy": "not_measured",
+    "transfer_kind": "simulated"
+  },
+  "schema_version": 1,
+  "source": {
+    "artifact_manifest_sha256": "e00e88fa8c20c90682f49b52415792681d688c02b74c887cb32be348d5efcac7",
+    "composition_analysis_id": "pseudo_executed_embedding_composition_v1",
+    "config": "configs/analysis/pseudo_executed_embedding_composition_v1.yaml",
+    "config_sha256": "35d9ef891c4bccf8603cc0e4b98d8cbb51022a82f11ed72782293e374938e8f9",
+    "sample_manifest": "configs/analysis/pseudo_executed_embedding_composition_v1_samples.json",
+    "sample_manifest_sha256": "d554e10eed706e9bc35bdfbb91c58347c7e7a23fe23526460b06fc4e76bdaac1"
+  },
+  "status": "protocol_frozen_before_model_execution",
+  "variants": [
+    {
+      "hidden_velocity": "none",
+      "key": "recent_sequence_causal_uncorrected",
+      "residual_velocity": "none",
+      "role": "one_forward_baseline"
+    },
+    {
+      "hidden_velocity": "recent_linear_norm",
+      "key": "recent_sequence_causal_hidden_velocity_linear_norm",
+      "residual_velocity": "none",
+      "role": "proposed_method_1"
+    },
+    {
+      "hidden_velocity": "none",
+      "key": "recent_sequence_causal_residual_velocity_linear_norm",
+      "residual_velocity": "recent_linear_norm",
+      "role": "proposed_method_2"
+    }
+  ]
+}

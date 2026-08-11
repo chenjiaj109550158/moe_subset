@@ -1,0 +1,46 @@
+{
+  "alignment": {
+    "gpt_oss_20b": false,
+    "qwen3_30b_a3b": false
+  },
+  "failed": [
+    {
+      "accuracy": 0.6,
+      "model": "qwen3_30b_a3b",
+      "paper": 0.8,
+      "task": "aime24",
+      "tolerance": 0.146
+    },
+    {
+      "accuracy": 0.5,
+      "model": "qwen3_30b_a3b",
+      "paper": 0.733,
+      "task": "aime25",
+      "tolerance": 0.162
+    },
+    {
+      "accuracy": 0.9329268292682927,
+      "model": "gpt_oss_20b",
+      "paper": 0.97,
+      "task": "humaneval",
+      "tolerance": 0.026
+    },
+    {
+      "accuracy": 0.43333333333333335,
+      "model": "gpt_oss_20b",
+      "paper": 0.667,
+      "task": "aime24",
+      "tolerance": 0.172
+    },
+    {
+      "accuracy": 0.26666666666666666,
+      "model": "gpt_oss_20b",
+      "paper": 0.667,
+      "task": "aime25",
+      "tolerance": 0.172
+    }
+  ],
+  "stage": "vanilla_alignment_gate",
+  "state": "blocked",
+  "updated_at": "2026-07-29T03:15:58.203698+00:00"
+}

@@ -1,0 +1,14 @@
+{
+  "accuracy_or_correctness_selected_policy": false,
+  "actual_hard_mask_execution": true,
+  "all_pass": true,
+  "candidate_cache_rng_information_and_weight_audits_pass": true,
+  "config_sha256": "7370d4c3208fcd32ab7b0f903409a7132c14cd784b7360cc7cf7863720f0d46b",
+  "identity_materialized_rows": 0,
+  "pilot_id": "pseudo_mass_preserving_residual_accuracy_pilot_v1",
+  "previous_first_window_static_frequency": true,
+  "sample_manifest_sha256": "ac1aeb3da4778d09628c2e3188fd524392ce253b9fc04b8c795c0312f82dadfe",
+  "sample_policy_rows": 2,
+  "schema_version": 1,
+  "state": "complete"
+}

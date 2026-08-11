@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "trace_id": "f51506d9352b9607",
+  "created_at": "2026-07-27T03:16:17.839213+00:00",
+  "information_regime": "offline_teacher_forced",
+  "model_id": "hf-internal-testing/tiny-random-MixtralForCausalLM",
+  "model_revision": "ccb12fe2fc142cb752085506c3db22572290e90c",
+  "model_fingerprint": "bd6864e070489ac3a6179df8b95c211f7e30495a5a79e777cf0995d14f1bbcd6",
+  "dataset_id": "Salesforce/wikitext",
+  "dataset_revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+  "dataset_split": "validation",
+  "dataset_fingerprint": "8f135e7ff4e3506a16d6f8376381b8635af2b02681dc1228c8c199e4b11b3432",
+  "trace_level": "router_logits",
+  "storage_dtype": "float32",
+  "num_samples": 1,
+  "num_tokens": 9,
+  "num_moe_layers": 2,
+  "num_experts_by_layer": {
+    "0": 4,
+    "1": 4
+  },
+  "top_k_by_layer": {
+    "0": 2,
+    "1": 2
+  },
+  "shards": [
+    {
+      "sample_id": "validation-1",
+      "path": "shards/000000-validation-1.safetensors",
+      "sha256": "0b321522a10248fc2388ee2b94c3bff0b5246a4a1f0d8660257129f681281b5b",
+      "num_tokens": 9,
+      "start_offset": 0,
+      "end_offset": 9
+    }
+  ],
+  "complete": true
+}

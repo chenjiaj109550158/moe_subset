@@ -1,0 +1,12 @@
+{
+  "atomic_json_tensor_pairs": true,
+  "checksum_resume_pass": true,
+  "failed_markers_preserved": [
+    "samples/00786/pseudo_executed_previous_subset.2244306.FAILED.json"
+  ],
+  "row_count_pass": true,
+  "sample_policy_rows_expected": 6,
+  "sample_policy_rows_validated": 6,
+  "schema_version": 1,
+  "state": "complete"
+}

@@ -1,0 +1,29 @@
+{
+  "actual_closed_loop_generation": false,
+  "analysis_config_sha256": "66cc4643310e8d1b1ed0239c57a02c86664510db16489b03fde90bd7f1c5f7f0",
+  "analysis_elapsed_seconds_measured": 4.9563983010011725,
+  "analysis_id": "pseudo_embedding_calibration_free_content_smoke_v1",
+  "default_vector_values_loaded_or_used": false,
+  "diagnostic_oracles_excluded_from_deployable_ranking": true,
+  "future_true_tokens_used_by_deployable_methods": false,
+  "future_true_tokens_used_by_diagnostic_oracles": true,
+  "gpu_used_for_sample_generation": true,
+  "gpu_used_this_aggregation_invocation": false,
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_loaded_for_sample_generation": true,
+  "model_loaded_this_aggregation_invocation": false,
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "offline_calibration_statistics_used": false,
+  "precision": "bfloat16",
+  "probe_cost_kind": "measured_native_qwen_gpu",
+  "route_evaluation": "teacher_forced_saved_v17_trajectory_open_loop",
+  "schema_version": 1,
+  "source_samples": [
+    "test-786",
+    "test-394"
+  ],
+  "task_accuracy_measured": false,
+  "transfer_kind": "simulated"
+}

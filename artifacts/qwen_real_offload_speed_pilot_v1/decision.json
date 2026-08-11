@@ -1,0 +1,18 @@
+{
+  "actual_h2d_reduction_measured": 0.28770462690904397,
+  "all_required_reference_exact_identity": false,
+  "candidate_reference_exact_identity_gate_pass": false,
+  "claim_limit": "not a full-dataset or production serving speedup claim",
+  "cuda_event_transfer_time_reduction_measured": 0.31386419378894315,
+  "focused_decision": "STOP_PIVOT_CANDIDATE_IDENTITY_GATE_FAILURE",
+  "lossless_reference_exact_identity_gate_pass": true,
+  "pilot_id": "qwen_real_offload_speed_pilot_v1",
+  "schema_version": 1,
+  "scope": "Qwen/GSM8K H=8 B=32 two-row real-offload engineering pilot",
+  "speedup_ratio_measured": 0.9891570311140697,
+  "state": "complete",
+  "task_accuracy_measured": {
+    "lossless_dynamic_top8_lru_b32": 1.0,
+    "natural_top8_intersection_zero_missing_h8_b32": 1.0
+  }
+}

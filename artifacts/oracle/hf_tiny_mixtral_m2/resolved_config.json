@@ -1,0 +1,34 @@
+{
+  "experiment": {
+    "information_regime": "oracle",
+    "name": "hf_tiny_mixtral_oracle_sweep",
+    "seed": 1234
+  },
+  "oracle": {
+    "load_cost_lambda": 0.0001,
+    "selectors": [
+      "binary_count",
+      "selected_routing_mass",
+      "full_router_mass",
+      "cost_aware_selected_mass"
+    ]
+  },
+  "samples": [],
+  "schema_version": 1,
+  "tiny_model_config": null,
+  "trace_dir": "artifacts/traces/hf_tiny_mixtral",
+  "window": {
+    "budget_ratios": [
+      1.0,
+      1.5,
+      2.0
+    ],
+    "gamma": 0.9,
+    "horizons": [
+      1,
+      2,
+      4,
+      8
+    ]
+  }
+}

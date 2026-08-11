@@ -1,0 +1,20 @@
+{
+  "calibration_fingerprint": "4569a95c112c8a6fdc5584c5bd109ea19f27715c182ee016c832a516f9447598",
+  "counts": [
+    [
+      29,
+      38,
+      24,
+      29
+    ],
+    [
+      28,
+      36,
+      38,
+      18
+    ]
+  ],
+  "definition": "expert_output",
+  "safe_format": "safetensors",
+  "schema_version": 1
+}

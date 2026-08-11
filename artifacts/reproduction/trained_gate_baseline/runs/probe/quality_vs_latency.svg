@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420"
+viewBox="0 0 720 420">
+<rect width="100%" height="100%" fill="white"/>
+<line x1="58" y1="362" x2="662" y2="362"
+stroke="black"/>
+<line x1="58" y1="58" x2="58" y2="362" stroke="black"/>
+<text x="360.0" y="408" text-anchor="middle">online p95 latency (µs)</text>
+<text x="16" y="210.0" transform="rotate(-90 16 210.0)"
+text-anchor="middle">routing-mass coverage</text>
+<circle cx="135.85" cy="205.04" r="5" fill="#2864dc"/><circle cx="309.83" cy="198.48" r="5" fill="#2864dc"/><circle cx="468.73" cy="191.38" r="5" fill="#2864dc"/><circle cx="354.01" cy="170.17" r="5" fill="#2864dc"/><circle cx="570.19" cy="237.57" r="5" fill="#2864dc"/><circle cx="573.93" cy="247.49" r="5" fill="#2864dc"/><circle cx="611.11" cy="240.13" r="5" fill="#2864dc"/><circle cx="633.24" cy="220.25" r="5" fill="#2864dc"/><text x="142.85" y="198.04" font-size="11">current_route</text><text x="316.83" y="191.48" font-size="11">rolling_frequency</text><text x="475.73" y="184.38" font-size="11">rolling_mass</text><text x="361.01" y="163.17" font-size="11">markov_transition</text><text x="577.19" y="230.57" font-size="11">direct_linear</text><text x="580.93" y="240.49" font-size="11">direct_ridge</text><text x="618.11" y="233.13" font-size="11">direct_mlp</text><text x="640.24" y="213.25" font-size="11">adept_style_rf</text></svg>

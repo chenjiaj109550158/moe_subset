@@ -1,0 +1,35 @@
+{
+  "kind": "measured",
+  "policies": {
+    "previous_route_commitment_reference": {
+      "attention_calls": 0,
+      "attention_queries": 0,
+      "expert_calls": 0,
+      "max_temporary_cuda_bytes": 0,
+      "mean_probe_latency_seconds": 0.0,
+      "mean_sample_policy_elapsed_seconds": 4.949241638183594,
+      "router_calls": 0,
+      "total_sample_policy_elapsed_seconds": 9.898483276367188
+    },
+    "provided_previous_residual_control": {
+      "attention_calls": 1536,
+      "attention_queries": 1536,
+      "expert_calls": 0,
+      "max_temporary_cuda_bytes": 64560128,
+      "mean_probe_latency_seconds": 0.8149406605225522,
+      "mean_sample_policy_elapsed_seconds": 6.674002528190613,
+      "router_calls": 1536,
+      "total_sample_policy_elapsed_seconds": 13.348005056381226
+    },
+    "pseudo_executed_previous_subset": {
+      "attention_calls": 1536,
+      "attention_queries": 1536,
+      "expert_calls": 1536,
+      "max_temporary_cuda_bytes": 64691200,
+      "mean_probe_latency_seconds": 2.0375519475201145,
+      "mean_sample_policy_elapsed_seconds": 9.925316572189331,
+      "router_calls": 1536,
+      "total_sample_policy_elapsed_seconds": 19.850633144378662
+    }
+  }
+}

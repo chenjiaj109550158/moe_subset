@@ -1,0 +1,16 @@
+{
+  "accuracy_or_correctness_selected_policy": false,
+  "actual_execution_authorized": true,
+  "actual_hard_mask_execution": true,
+  "all_pass": true,
+  "all_planning_audits_pass": true,
+  "config_scope": "protocol_frozen_before_accuracy_generation",
+  "config_sha256": "d9515855b897189fde9f36fba151af5467ebc93e46bbf09bb79ad5b39e5f10af",
+  "future_v17_tokens_used": false,
+  "identity_materialized_rows": 0,
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "sample_manifest_sha256": "fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046",
+  "sample_policy_rows": 3,
+  "schema_version": 1,
+  "state": "complete"
+}

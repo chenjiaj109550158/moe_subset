@@ -1,0 +1,11 @@
+{
+  "analysis_id": "pseudo_state_component_swap_v1",
+  "candidate_executed": false,
+  "classification": "moe_residual_dominant",
+  "decision": "NARROW",
+  "held_out_route_authorized": false,
+  "next_calibration_free_candidate": "mass_preserving_previous_subset_residual",
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_four_row_component_diagnostic",
+  "task_accuracy_authorized": false
+}

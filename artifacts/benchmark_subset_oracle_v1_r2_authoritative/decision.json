@@ -1,0 +1,42 @@
+{
+  "all_six_tasks_evaluated": false,
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "evaluated_actual_policies": [
+    "hard_oracle_commitment"
+  ],
+  "evaluated_tasks": [
+    "gsm8k"
+  ],
+  "execution_scope_fingerprint": "a5a908ad0124d2041b589a681e7102d3ea5d3f7df90752075799bb9875871d7c",
+  "execution_scope_id": "benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2",
+  "model_all_task_accuracy_pass": {
+    "gpt_oss_20b": false,
+    "qwen3_30b_a3b": false
+  },
+  "model_scoped_task_accuracy_pass": {
+    "gpt_oss_20b": true,
+    "qwen3_30b_a3b": false
+  },
+  "no_macro_average_override": true,
+  "overall_decision": "NARROW",
+  "per_point_rows": 25,
+  "predictor_authorization": "only explicitly NARROW task scopes are authorized",
+  "schema_version": 1,
+  "selected_operating_points": [
+    {
+      "budget": 4,
+      "horizon": 1,
+      "method": "future_selected_routing_mass",
+      "model": "gpt_oss_20b",
+      "selection_rule": [
+        "lowest_resident_fraction",
+        "lowest_worst_task_estimated_h2d_bytes_per_token",
+        "highest_worst_task_route_hit",
+        "highest_horizon",
+        "lowest_budget"
+      ],
+      "selection_uses_accuracy": false
+    }
+  ],
+  "suite_id": "benchmark_subset_oracle_v1"
+}

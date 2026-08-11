@@ -1,0 +1,12 @@
+{
+  "analysis_config_sha256": "19a368fe6a5e819cc0e5b3a6c3528ccf9baf94a66ba4733a278e9c0d1e5cadff",
+  "analysis_id": "pseudo_one_forward_token_aligned_retrieval_v1",
+  "artifact_count": 59,
+  "candidate_sample_policy_rows": 20,
+  "decision": "STOP/PIVOT",
+  "schema_version": 1,
+  "source_reference_rows": 4,
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": false
+}

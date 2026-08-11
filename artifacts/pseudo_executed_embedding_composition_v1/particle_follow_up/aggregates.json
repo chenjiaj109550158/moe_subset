@@ -1,0 +1,77 @@
+{
+  "analysis_id": "pseudo_executed_embedding_composition_v1",
+  "comparisons": {
+    "self_top2_particle_probability_weighted": {
+      "sampled_repeat_independent": {
+        "mean_route_hit": 0.093017578125,
+        "mean_selected_mass": 0.09864009010561192
+      },
+      "self_expected_top8_causal": {
+        "mean_route_hit": 0.007029215494791741,
+        "mean_selected_mass": 0.007915656181029518
+      },
+      "self_greedy_causal": {
+        "mean_route_hit": 0.0005900065104167407,
+        "mean_selected_mass": 0.002407718105231438
+      }
+    },
+    "self_top4_particle_probability_weighted": {
+      "sampled_repeat_independent": {
+        "mean_route_hit": 0.093048095703125,
+        "mean_selected_mass": 0.09818378089311508
+      },
+      "self_expected_top8_causal": {
+        "mean_route_hit": 0.007059733072916741,
+        "mean_selected_mass": 0.007459346968532676
+      },
+      "self_greedy_causal": {
+        "mean_route_hit": 0.0006205240885417407,
+        "mean_selected_mass": 0.0019514088927345963
+      }
+    }
+  },
+  "policies": {
+    "self_top2_particle_probability_weighted": {
+      "attention_calls": 23040,
+      "attention_queries": 23040,
+      "boundaries": 32,
+      "estimated_transfer_reduction": 0.5718892415364583,
+      "expert_calls": 23040,
+      "max_temporary_cuda_bytes": 76462592,
+      "mean_probe_latency_seconds": 4.087442378560809,
+      "mean_route_hit": 0.7893575032552084,
+      "mean_sample_policy_elapsed_seconds": 55.365375995635986,
+      "mean_selected_mass": 0.8081901750945536,
+      "natural_reference_bytes": 927712935936,
+      "route_hits": 77597,
+      "route_slots": 98304,
+      "router_calls": 23040,
+      "samples": 4,
+      "selected_mass_hit": 9931.080383300781,
+      "selected_mass_total": 12288.048889160156,
+      "simulated_lossless_transfer_bytes": 397163888640,
+      "total_sample_policy_elapsed_seconds": 221.46150398254395
+    },
+    "self_top4_particle_probability_weighted": {
+      "attention_calls": 44544,
+      "attention_queries": 44544,
+      "boundaries": 32,
+      "estimated_transfer_reduction": 0.5716552734375,
+      "expert_calls": 44544,
+      "max_temporary_cuda_bytes": 152027648,
+      "mean_probe_latency_seconds": 7.900867974050925,
+      "mean_route_hit": 0.7893880208333334,
+      "mean_sample_policy_elapsed_seconds": 85.19032192230225,
+      "mean_selected_mass": 0.8077338658820568,
+      "natural_reference_bytes": 927712935936,
+      "route_hits": 77600,
+      "route_slots": 98304,
+      "router_calls": 44544,
+      "samples": 4,
+      "selected_mass_hit": 9925.388732910156,
+      "selected_mass_total": 12287.944274902344,
+      "simulated_lossless_transfer_bytes": 397380943872,
+      "total_sample_policy_elapsed_seconds": 340.761287689209
+    }
+  }
+}

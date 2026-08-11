@@ -1,0 +1,6 @@
+{
+  "all_pass": true,
+  "deterministic_probability_weighted_particles": true,
+  "production_rng_unchanged": true,
+  "sample_policy_rows": 8
+}

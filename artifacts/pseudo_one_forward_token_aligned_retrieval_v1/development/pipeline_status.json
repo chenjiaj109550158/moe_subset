@@ -1,0 +1,7 @@
+{
+  "all_audits_pass": true,
+  "candidate_sample_policy_rows": 20,
+  "decision": "STOP/PIVOT",
+  "source_reference_rows": 4,
+  "state": "complete"
+}

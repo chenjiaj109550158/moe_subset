@@ -1,0 +1,6 @@
+{
+  "all_audits_pass": true,
+  "sample_policy_rows": 64,
+  "selected_deployable": "self_greedy_causal",
+  "state": "complete"
+}

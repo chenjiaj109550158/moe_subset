@@ -1,0 +1,32 @@
+{
+  "longest_suffix_full_continuation": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_content_planning_latency_seconds": 0.0011232647411816288,
+    "mean_probe_latency_seconds": 0.31190377604798414,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 102.17539262771606
+  },
+  "longest_suffix_partial_recent_fill": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_content_planning_latency_seconds": 0.001131589750002604,
+    "mean_probe_latency_seconds": 0.3148551446647616,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 99.6003212928772
+  },
+  "sampled_unigram_full_continuation": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_content_planning_latency_seconds": 7.901856588432565e-05,
+    "mean_probe_latency_seconds": 0.30553831461656955,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 95.4478669166565
+  }
+}

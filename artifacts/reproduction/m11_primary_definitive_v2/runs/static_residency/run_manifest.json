@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "run_id": "347ff8a5163a677f",
+  "command": "simulate-offload",
+  "result_kind": "static",
+  "information_regime": "oracle",
+  "config_sha256": "c1be0bbb9f76a256fc356ce27fe94558751cfe4e711fba38f3f246c6dc60cef7",
+  "created_utc": "2026-07-27T07:29:28.731041+00:00",
+  "complete": true,
+  "negative_results": [],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "closed_loop_summary.csv",
+      "bytes": 7147,
+      "sha256": "c200d2fc53a2cf64633c4f52e533b504f898dff3d4d9896c0c4fdb0ebe25ed92"
+    },
+    {
+      "path": "fixed_vs_adaptive.svg",
+      "bytes": 4231,
+      "sha256": "22481e99896e6bcc79e47da4994453009259e6c2134a5fb715c1c70eeb91c1fb"
+    },
+    {
+      "path": "fixed_vs_adaptive_simulated.svg",
+      "bytes": 4298,
+      "sha256": "8dd5a9a6059c192a0a658940f66a60e356e7299765d6175556895e4219c40f03"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 78085,
+      "sha256": "a9a6fd5f5df0248a2852367780312714e33a9bb55cbe8f22b40ebb06b495fc03"
+    },
+    {
+      "path": "replan_events.csv",
+      "bytes": 21000,
+      "sha256": "aec358967e61b22705ddb0b80175c67c4ad39b0fef73917a55aa3a0375144137"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 1268,
+      "sha256": "c1be0bbb9f76a256fc356ce27fe94558751cfe4e711fba38f3f246c6dc60cef7"
+    },
+    {
+      "path": "simulation_summary.csv",
+      "bytes": 11027,
+      "sha256": "a7d7c67cf30f4365d2959995c978e2a5c2f8b3007b7e97cfbf7282d39d6868b7"
+    },
+    {
+      "path": "simulation_timeline.csv",
+      "bytes": 494061,
+      "sha256": "b0e37c005cb2985c2221d6502dfbf615c721bb0d2bdb79ef512cbf39c1722476"
+    },
+    {
+      "path": "static_rankings.csv",
+      "bytes": 878,
+      "sha256": "eefdf274cceb0e6987db1f66d9acb0eed4e78a6b0e98745c54a4550cf61ec117"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 858,
+      "sha256": "65980ab0aeec32cbbd246556652084e572d8b21b26a300dd576138cecfd38f2f"
+    },
+    {
+      "path": "termination_events.csv",
+      "bytes": 492,
+      "sha256": "f925b1b8a30a68344824b21d2deb687a2ef13b73a0029897840d4c24a1896a39"
+    }
+  ]
+}

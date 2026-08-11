@@ -1,0 +1,10 @@
+{
+  "analysis_config_sha256": "361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b",
+  "analysis_id": "pseudo_embedding_qwen_gsm8k_residual_window_v1",
+  "decision": "STOP/PIVOT",
+  "progress_gate_pass": false,
+  "route_hit_improvement_over_previous": 0.01607186883629197,
+  "selected_candidate": "candidate__first_four_anchor_core_plus_history_fill",
+  "selected_mass_improvement_over_previous": 0.01545287172376808,
+  "stage": "development"
+}

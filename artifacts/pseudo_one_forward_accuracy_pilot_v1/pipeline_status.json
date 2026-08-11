@@ -1,0 +1,12 @@
+{
+  "actual_sample_policy_rows": 24,
+  "artifact_count": 50,
+  "config_sha256": "d9515855b897189fde9f36fba151af5467ebc93e46bbf09bb79ad5b39e5f10af",
+  "decision": "PILOT_NARROW_WITH_ONE_ALLOWED_LOSS",
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "sample_manifest_sha256": "fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046",
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": true
+}

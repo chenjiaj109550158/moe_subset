@@ -1,0 +1,83 @@
+{
+  "calibration_documents": [
+    [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    [
+      2,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14,
+      16
+    ],
+    [
+      3,
+      6,
+      9,
+      12,
+      15,
+      18,
+      21,
+      24
+    ],
+    [
+      4,
+      7,
+      10,
+      13,
+      16,
+      19,
+      22,
+      25
+    ]
+  ],
+  "experiment": {
+    "information_regime": "oracle",
+    "name": "tiny_m9_static_adaptive",
+    "seed": 1234
+  },
+  "hardware": {
+    "bandwidth_bytes_per_us": 12000.0,
+    "compute_us_per_token": 50.0,
+    "fixed_latency_us": 10.0,
+    "name": "reference_pcie_serial"
+  },
+  "horizons": [
+    2,
+    4
+  ],
+  "max_interventions": 12,
+  "max_new_tokens": 6,
+  "out_of_subset_threshold": 0.35,
+  "prompt_tokens": [
+    1,
+    2,
+    3
+  ],
+  "ranking_methods": [
+    "frequency",
+    "covariance_variance",
+    "quality_sensitivity",
+    "downstream_influence",
+    "miss_risk",
+    "combined"
+  ],
+  "schema_version": 1,
+  "static_fractions": [
+    0.0,
+    0.5,
+    1.0
+  ],
+  "tiny_model_config": "configs/model/tiny_moe.yaml",
+  "total_experts_per_layer": 3
+}

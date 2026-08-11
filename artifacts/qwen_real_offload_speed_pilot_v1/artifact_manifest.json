@@ -1,0 +1,104 @@
+{
+  "config_sha256": "9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec",
+  "failure_markers_retained": [
+    "actual/00044/natural_top8_intersection_zero_missing_h8_b32.258670.FAILED.json",
+    "actual/00044/natural_top8_intersection_zero_missing_h8_b32.266688.FAILED.json"
+  ],
+  "files": [
+    {
+      "bytes": 10918,
+      "path": "actual/00044/lossless_dynamic_top8_lru_b32.json",
+      "sha256": "e2f86858dc65dd14aac88f0b0844207bf9c65b4d5a4c1c6dfe2d4626e6872b15"
+    },
+    {
+      "bytes": 8231,
+      "path": "actual/00044/natural_top8_intersection_zero_missing_h8_b32.266688.DIAGNOSTIC.json",
+      "sha256": "df7f93e1caf23deb273e81f4a661c8e3e88cd52a5299acb62a0d33ec8fcae3eb"
+    },
+    {
+      "bytes": 10532,
+      "path": "actual/00044/natural_top8_intersection_zero_missing_h8_b32.json",
+      "sha256": "05d0019529809da34101957dba46ee04df4375ac7b30c2a4a44d04e24db06e6e"
+    },
+    {
+      "bytes": 8133,
+      "path": "actual/00632/lossless_dynamic_top8_lru_b32.json",
+      "sha256": "d71ba255d5694c6bc75a30644b96be0bc9dcaf599d55a38d0eb6d5fbdb3c33a9"
+    },
+    {
+      "bytes": 6532,
+      "path": "actual/00632/natural_top8_intersection_zero_missing_h8_b32.271206.DIAGNOSTIC.json",
+      "sha256": "0d0c04a267a12491d23b93d057e660a6397a57b38408026056074ea835e839f1"
+    },
+    {
+      "bytes": 195197,
+      "path": "actual/00632/natural_top8_intersection_zero_missing_h8_b32.json",
+      "sha256": "f5694e929b27f87eba95aea4acc3b46999fc33b3017f89526b2966e71ed8d8ee"
+    },
+    {
+      "bytes": 5793,
+      "path": "aggregate.json",
+      "sha256": "c95c280b855afe4205bcb9f3a356b5f01631fc71960a9fcdc5cdc8b7312b417b"
+    },
+    {
+      "bytes": 785,
+      "path": "decision.json",
+      "sha256": "035f6dda87e615a7872df13e77eaf887dad7ec1bc03a065d77292830559cf05d"
+    },
+    {
+      "bytes": 1582,
+      "path": "report.md",
+      "sha256": "cbf0788fd72abe6ee563ea297f470c35682db08ab95cd280edc78425965916ea"
+    },
+    {
+      "bytes": 1628,
+      "path": "report_payload.json",
+      "sha256": "c932f415f2c596f61ec6ad076ccaab9b655f41d8d7835bf121303f8f52ceb46f"
+    },
+    {
+      "bytes": 307,
+      "path": "resolved_environment.json",
+      "sha256": "60624810ae9543c3a1972401fc0e38993d9022e97b7f7ccd8c001cfb455e7c9e"
+    },
+    {
+      "bytes": 1327,
+      "path": "setup/1785781118.257604.json",
+      "sha256": "605d856f9abb7fb78decc8b781ba1a5440e1158d432cd95608508ac17d9a6324"
+    },
+    {
+      "bytes": 1327,
+      "path": "setup/1785781366.258670.json",
+      "sha256": "f3422067100f0f5b6ade4446c0ed990dfcdf9c378c911179b091e0e4f02d8fb7"
+    },
+    {
+      "bytes": 1327,
+      "path": "setup/1785783085.266688.json",
+      "sha256": "d406db13696451eedee3e66451fff7f391d5feaec0312e2dc97a93b015dfb97f"
+    },
+    {
+      "bytes": 1326,
+      "path": "setup/1785784284.271206.json",
+      "sha256": "a8ea223334ba575db174a87759cf6d1f638a7c5d4b32a6a35759e949e30662bf"
+    },
+    {
+      "bytes": 4215,
+      "path": "smoke/00044/lossless_dynamic_top8_lru_b32.json",
+      "sha256": "98b17af7188ac57c48331e209e06b5e4df7fd016fdbf93a8d3c04292ac00df50"
+    },
+    {
+      "bytes": 13197,
+      "path": "smoke/00044/natural_top8_intersection_zero_missing_h8_b32.json",
+      "sha256": "a5cd6d315943e910b8fceae3f62b436307ff456a1df4407efc4abb62c71f2a32"
+    },
+    {
+      "bytes": 440,
+      "path": "smoke/audit.json",
+      "sha256": "653508dbd83f36e47017e4d433c9e22271e18e8c28ec23cf494ab921e03691b8"
+    }
+  ],
+  "manifest_payload_sha256": "44bb91376054f514766e8e2bf6ebba69c05e695c0208164218825681a429ff07",
+  "pilot_id": "qwen_real_offload_speed_pilot_v1",
+  "sample_manifest_sha256": "aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819",
+  "schema_version": 1,
+  "state": "complete"
+}

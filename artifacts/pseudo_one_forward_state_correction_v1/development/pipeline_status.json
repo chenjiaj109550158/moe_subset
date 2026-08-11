@@ -1,0 +1,6 @@
+{
+  "all_audits_pass": true,
+  "decision": "STOP/PIVOT",
+  "sample_policy_rows": 12,
+  "state": "complete"
+}

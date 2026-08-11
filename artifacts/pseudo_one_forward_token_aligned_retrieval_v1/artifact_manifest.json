@@ -1,0 +1,305 @@
+{
+  "analysis_config_sha256": "19a368fe6a5e819cc0e5b3a6c3528ccf9baf94a66ba4733a278e9c0d1e5cadff",
+  "analysis_id": "pseudo_one_forward_token_aligned_retrieval_v1",
+  "artifact_count": 59,
+  "artifacts": [
+    {
+      "bytes": 317,
+      "path": "decision.json",
+      "sha256": "548925f1928c9c3941a4656f0747af4066eb25e1c973d588c9a35a33f11331ab"
+    },
+    {
+      "bytes": 7385,
+      "path": "development/aggregates.json",
+      "sha256": "b17c320f5dea34823f1304438253c837f77ed2854a0d68b7d540cbcbde7bea8d"
+    },
+    {
+      "bytes": 6801,
+      "path": "development/anchor_strata.json",
+      "sha256": "48fa06366d48e9bfd1250df723583ca07f16d55b88f6d190cef414567f272eb0"
+    },
+    {
+      "bytes": 223,
+      "path": "development/audit.json",
+      "sha256": "197de60c4781b3b1bcef851678a9d3aad3d50e14794cb905460e9476d78d23aa"
+    },
+    {
+      "bytes": 4148,
+      "path": "development/comparisons.json",
+      "sha256": "b30e7848740caee65041290db94767b20d5bb8eb7de8a6a99f6221f3a5294d00"
+    },
+    {
+      "bytes": 2435,
+      "path": "development/cost_report.json",
+      "sha256": "c7417e446b529e6c6b826a4f28168a1836f8b678d1f0411ba9eaf7acea86f398"
+    },
+    {
+      "bytes": 535,
+      "path": "development/decision.json",
+      "sha256": "e3f997edbf845346feb03d9e927535dadd0e228401f9747762e6976ef3c9e67d"
+    },
+    {
+      "bytes": 2122,
+      "path": "development/per_sample.json",
+      "sha256": "a12f4931a778c5293bccf9dcd4b0b9ccef49f36d7d59f65cd31ac8aa48b25724"
+    },
+    {
+      "bytes": 149,
+      "path": "development/pipeline_status.json",
+      "sha256": "1a6beb82a05221e70dddc2b46485472edb393f1cfcd441d05aa021420ba11c81"
+    },
+    {
+      "bytes": 1189,
+      "path": "development/retrieval_strata.json",
+      "sha256": "f7d171347b09c276e8ad0f06e6a5f55f0da3c13ef1fff25abf7429b45e402cf6"
+    },
+    {
+      "bytes": 560472,
+      "path": "development/samples/00000/exact_recent_residual_additive_norm.json",
+      "sha256": "d8d8e5611cb2896521a8ab7f5ce1c0a3de63c68df2c9fc9be34f07f00e79b0f6"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/exact_recent_residual_additive_norm.safetensors",
+      "sha256": "37c233e902d41c66c595c0860cb94e0826698cf3812c8deb0a8cb70238d09a90"
+    },
+    {
+      "bytes": 560456,
+      "path": "development/samples/00000/exact_recent_residual_replace_norm.json",
+      "sha256": "5e753a376545ddcd6f65666d2916a4031ed74ff9b569e8ed169a055a0f86815a"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/exact_recent_residual_replace_norm.safetensors",
+      "sha256": "0a4b0a78fddcc933e88358d3287c80d65f263625dc8029a3ec4f6316e3b46848"
+    },
+    {
+      "bytes": 562027,
+      "path": "development/samples/00000/exact_recent_router_input_additive_norm.json",
+      "sha256": "f5c2a872de64eea1d65d4c2a07df6c3197b7ac4ed3f112ec5232e6ccee08ec79"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/exact_recent_router_input_additive_norm.safetensors",
+      "sha256": "78fc67846756322a74f47ea40473f231ba5328ff71f8f8059feae509d247ed57"
+    },
+    {
+      "bytes": 566291,
+      "path": "development/samples/00000/exact_then_embedding_nearest_residual_additive_norm.json",
+      "sha256": "30768df623717be89b4a90402a520c7457d901d8224bfd33b1c988f0deff690c"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/exact_then_embedding_nearest_residual_additive_norm.safetensors",
+      "sha256": "95eaeec0148cdc4b0db1d346787a0f5c47440c9bd80824d083528a8055f8940a"
+    },
+    {
+      "bytes": 568383,
+      "path": "development/samples/00000/exact_then_embedding_nearest_router_input_additive_norm.json",
+      "sha256": "665ab7d25211bf7fdcb84386c3f1c24e0f2d48dc9411059d07e338246062cefa"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/exact_then_embedding_nearest_router_input_additive_norm.safetensors",
+      "sha256": "80aca6f02c3f370af5132d41d1e33e513a076e44b07c1a4a26dda06473fb3c92"
+    },
+    {
+      "bytes": 561527,
+      "path": "development/samples/00439/exact_recent_residual_additive_norm.json",
+      "sha256": "9b617ee572bc3e5d8fdb3698aef0bae216c745017cb10453e826e3d80956eb17"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/exact_recent_residual_additive_norm.safetensors",
+      "sha256": "c0761ea1814345c8ed849b4ac9c482bd96c1dff5ffc24b82b6ef52218b17ea11"
+    },
+    {
+      "bytes": 561320,
+      "path": "development/samples/00439/exact_recent_residual_replace_norm.json",
+      "sha256": "ddca4f2a210dca1b914ccb82fd44d3490b4d40b49a2bebc8ff4ed1c2583ebdb3"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/exact_recent_residual_replace_norm.safetensors",
+      "sha256": "65d7f388c0562b1e7f3b24bfaf604ec5f1c8014ab1ef036ef35fafb14f1e8306"
+    },
+    {
+      "bytes": 563078,
+      "path": "development/samples/00439/exact_recent_router_input_additive_norm.json",
+      "sha256": "0f475ae9d534191c56e4dfc94393cd79dd0f47ab6223b1f23aba68e30af4dcd0"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/exact_recent_router_input_additive_norm.safetensors",
+      "sha256": "ea0189082eb0b768236c25097749faab3c10850f58620a68d6e9074a1a871154"
+    },
+    {
+      "bytes": 567652,
+      "path": "development/samples/00439/exact_then_embedding_nearest_residual_additive_norm.json",
+      "sha256": "61b93b56c764bedee7504e5accb962746624598a34d7b8dbd3e90a69430609db"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/exact_then_embedding_nearest_residual_additive_norm.safetensors",
+      "sha256": "342706bae7d0bfd5164a2705036e766d28eef20b34cc25a84d4d1a1c08bb958f"
+    },
+    {
+      "bytes": 569594,
+      "path": "development/samples/00439/exact_then_embedding_nearest_router_input_additive_norm.json",
+      "sha256": "792871a150dc756ef34bb4eea320f35c11c2283f10bc8fc6b12c8af6637e0d1d"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/exact_then_embedding_nearest_router_input_additive_norm.safetensors",
+      "sha256": "6284602c8af727e80255273271680c76de477845f32a616b2830e970f1dfb22e"
+    },
+    {
+      "bytes": 561275,
+      "path": "development/samples/00879/exact_recent_residual_additive_norm.json",
+      "sha256": "5541b631155449a7cc661b652bd45c2d3c5be97a3d248671744e4573847cab18"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/exact_recent_residual_additive_norm.safetensors",
+      "sha256": "7aa96c0ba629ea2eefd5aa9ff76b926a6531cc11b909844dd41b722989e1f4cd"
+    },
+    {
+      "bytes": 561076,
+      "path": "development/samples/00879/exact_recent_residual_replace_norm.json",
+      "sha256": "f84277bd263d5d04bddd78dc82e1fc20f8306ab95d1a7a4606ddca688970a95a"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/exact_recent_residual_replace_norm.safetensors",
+      "sha256": "7c15ced387824f095d202191ca9eb678048b6dcff81c7c9d10419eff5d729e9a"
+    },
+    {
+      "bytes": 562611,
+      "path": "development/samples/00879/exact_recent_router_input_additive_norm.json",
+      "sha256": "737ee23ee80ad4ffba2e558a2d29a17b1f59b53db8e448332abff073fdbe8a5a"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/exact_recent_router_input_additive_norm.safetensors",
+      "sha256": "fdcc49334db2a1cde25ab0bf24268528b5dddf48953b813dba8c91ce730696bc"
+    },
+    {
+      "bytes": 567389,
+      "path": "development/samples/00879/exact_then_embedding_nearest_residual_additive_norm.json",
+      "sha256": "e2377f73b5cc04faba5188b52c382b6a190d1810ea84331a19766eef13636ee8"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/exact_then_embedding_nearest_residual_additive_norm.safetensors",
+      "sha256": "337d09771fd060ef85b63225956942a86481013943d6773f7ca3cc67576dd57a"
+    },
+    {
+      "bytes": 568798,
+      "path": "development/samples/00879/exact_then_embedding_nearest_router_input_additive_norm.json",
+      "sha256": "2056001e2d9657ffda39f333eb28f9e240409587defd9a78fbe7a01d4eaa306b"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/exact_then_embedding_nearest_router_input_additive_norm.safetensors",
+      "sha256": "098ca9df076673822ef907513ffed9e90d991ad1f2b87ca241dd568501b3b27f"
+    },
+    {
+      "bytes": 561457,
+      "path": "development/samples/01318/exact_recent_residual_additive_norm.json",
+      "sha256": "e627c74df2a8be64173d98168f64945072dffe29afa37b52fd08fdca6e1d3b9b"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/exact_recent_residual_additive_norm.safetensors",
+      "sha256": "469954b740de4db306f62f1ee9662a3c561129ba47e8cb0e4b86e8e6e856df76"
+    },
+    {
+      "bytes": 561255,
+      "path": "development/samples/01318/exact_recent_residual_replace_norm.json",
+      "sha256": "70c8a24da86405417fbf847a4c5ba78af943947f0c224ab9f976bf0eb9a5274b"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/exact_recent_residual_replace_norm.safetensors",
+      "sha256": "ae647fef5ca50f2fe8feec59f319a98fd175e133d69b4a830e485d3402b3ea4a"
+    },
+    {
+      "bytes": 563244,
+      "path": "development/samples/01318/exact_recent_router_input_additive_norm.json",
+      "sha256": "69db27147f5feb7dd7ab88447ec00b5d56e3aaa7751c2be46bac6b4e0516a635"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/exact_recent_router_input_additive_norm.safetensors",
+      "sha256": "58d0eb7844c53706753913a69b73334d8dc757d623b33312f76cc12709680023"
+    },
+    {
+      "bytes": 567792,
+      "path": "development/samples/01318/exact_then_embedding_nearest_residual_additive_norm.json",
+      "sha256": "736acc174bb860f9cb8f36566fb4c905e7eca262b452a1889b46ef9f18963418"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/exact_then_embedding_nearest_residual_additive_norm.safetensors",
+      "sha256": "2e5682ccb77e3c1d24a2f8ae61d981d251664d28ec5d02a998e7dbe732620738"
+    },
+    {
+      "bytes": 569554,
+      "path": "development/samples/01318/exact_then_embedding_nearest_router_input_additive_norm.json",
+      "sha256": "645913893fa80980d9790e1d9eca4826dfd1b04f3fc43d7b15259a3f54881ee6"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/exact_then_embedding_nearest_router_input_additive_norm.safetensors",
+      "sha256": "378e3d7d01e77ff71c0a2d52dc56b9e8f26c5223efa2f4d7fbddd89a32cb6ba2"
+    },
+    {
+      "bytes": 3085,
+      "path": "development/worst_cases.json",
+      "sha256": "3d95e34013150c00544c42c02c1ab53d5a188e3ba6c82d7b416d1351ff66894a"
+    },
+    {
+      "bytes": 494,
+      "path": "measured_vs_simulated.json",
+      "sha256": "148a592cb9312b795b2dab28d4c15f3f076a5c7fde5e23123d834cf0ab19ddd6"
+    },
+    {
+      "bytes": 539,
+      "path": "provenance.json",
+      "sha256": "80b39adf6298a7d7b26f4810dd0ba3db74258f3bfd363045b56f8cffe4a0077c"
+    },
+    {
+      "bytes": 1956,
+      "path": "report.md",
+      "sha256": "00949eb69e9ec354e5f5b80509d38d458cf2791a9e03beb86867c61ecb674831"
+    },
+    {
+      "bytes": 6888,
+      "path": "resolved_config.json",
+      "sha256": "a2814cdfb1f971f140bbaa91d1bd251fc7d58854f0a75ee47727eb2c6efdf4e3"
+    },
+    {
+      "bytes": 362,
+      "path": "resolved_environment.json",
+      "sha256": "6cffdbbb39d2784f82d35f5c440e51bcb9207f7ca2db5aa1fd454ea5824d8741"
+    },
+    {
+      "bytes": 297,
+      "path": "resolved_execution_revision.json",
+      "sha256": "333b68c763947033338d33d13a4f502f5179466cefb546c1876cd370167a1f49"
+    },
+    {
+      "bytes": 725,
+      "path": "resolved_sample_manifest.json",
+      "sha256": "7cd48eed022f8bc3ddcb69f2d7009e02310909ca217422b57b8cc0ba509e12e9"
+    },
+    {
+      "bytes": 216,
+      "path": "resume_audit.json",
+      "sha256": "fd9ab70388024556757f9ad2b86fa9770ade19bad9df87fb3ca1fc3d3e8841b7"
+    }
+  ],
+  "sample_manifest_sha256": "dc18107f178100f41df1ffccdf23f07ddd3f611044f4b7f7ac5da1edbad36c69",
+  "schema_version": 1,
+  "state": "complete"
+}

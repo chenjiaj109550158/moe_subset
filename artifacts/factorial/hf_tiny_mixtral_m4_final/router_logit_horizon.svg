@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="460">
+<rect width="100%" height="100%" fill="white"/>
+<text x="380" y="28" text-anchor="middle" font-size="18">Router-logit cosine by horizon</text>
+<line x1="80" y1="50" x2="80" y2="390" stroke="black"/>
+<line x1="80" y1="390" x2="730" y2="390" stroke="black"/>
+<polyline points="405.00,50.00 730.00,50.17" fill="none" stroke="#111827" stroke-width="2"/>
+<polyline points="405.00,167.21 730.00,191.76" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="405.00,83.37 730.00,76.06" fill="none" stroke="#dc2626" stroke-width="2"/>
+<polyline points="405.00,158.66 730.00,188.54" fill="none" stroke="#9333ea" stroke-width="2"/>
+</svg>

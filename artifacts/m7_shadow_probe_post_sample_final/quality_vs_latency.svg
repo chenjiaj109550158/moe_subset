@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420"
+viewBox="0 0 720 420">
+<rect width="100%" height="100%" fill="white"/>
+<line x1="58" y1="362" x2="662" y2="362"
+stroke="black"/>
+<line x1="58" y1="58" x2="58" y2="362" stroke="black"/>
+<text x="360.0" y="408" text-anchor="middle">online p95 latency (µs)</text>
+<text x="16" y="210.0" transform="rotate(-90 16 210.0)"
+text-anchor="middle">routing-mass coverage</text>
+<circle cx="339.81" cy="205.04" r="5" fill="#2864dc"/><circle cx="340.06" cy="205.04" r="5" fill="#2864dc"/><circle cx="339.61" cy="205.04" r="5" fill="#2864dc"/><circle cx="343.36" cy="207.97" r="5" fill="#2864dc"/><circle cx="520.89" cy="116.14" r="5" fill="#2864dc"/><circle cx="524.54" cy="116.14" r="5" fill="#2864dc"/><circle cx="561.74" cy="116.14" r="5" fill="#2864dc"/><circle cx="565.43" cy="116.14" r="5" fill="#2864dc"/><circle cx="633.24" cy="205.93" r="5" fill="#2864dc"/><text x="346.81" y="198.04" font-size="11">future_position_rephased_correct</text><text x="347.06" y="198.04" font-size="11">future_position_rephased_no_rephase</text><text x="346.61" y="198.04" font-size="11">future_position_rephased_wrong_position</text><text x="350.36" y="200.97" font-size="11">future_position_rephased_random_content</text><text x="527.89" y="109.14" font-size="11">pseudo_token_independent_sampled_next_token</text><text x="531.54" y="109.14" font-size="11">pseudo_token_causal_sampled_next_token</text><text x="568.74" y="109.14" font-size="11">default_vector_shadow_rollout_independent_sampled_next_token</text><text x="572.43" y="109.14" font-size="11">default_vector_shadow_rollout_causal_sampled_next_token</text><text x="640.24" y="198.93" font-size="11">uncertainty_ensemble</text></svg>

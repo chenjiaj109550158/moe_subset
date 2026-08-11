@@ -1,0 +1,79 @@
+{
+  "pilot_id": "qwen_penultimate_joint_offload_speed_v2",
+  "samples": [
+    {
+      "logical_penultimate_reference": {
+        "correct": true,
+        "file_sha256": "5b899bc297b3036a1a72eeedb52db9e3b9771ba8ba0ec7a4ebf49b1701fc47ba",
+        "generated_tokens": 261,
+        "path": "artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/actual/00044/penultimate_unigram_joint_equivalent.json",
+        "row_payload_sha256": "5396445a888367663fea01ac52af5a2ca916a2f90edae5df1f54cfdef519e538"
+      },
+      "partition": "closed_loop_wave_1",
+      "prior_traditional_offload_provenance": {
+        "file_sha256": "e2f86858dc65dd14aac88f0b0844207bf9c65b4d5a4c1c6dfe2d4626e6872b15",
+        "path": "artifacts/qwen_real_offload_speed_pilot_v1/actual/00044/lossless_dynamic_top8_lru_b32.json",
+        "row_payload_sha256": "dfe392b69f0c46591466d0f4fe1f42591356747739a066cfa0e604e9dc2364d2"
+      },
+      "rendered_prompt_sha256": "62fa2b96bcd73c704a41f5c2e5ea40d6b845f706c4c152f1b18486d84066ec9a",
+      "row_index": 44,
+      "sample_id": "test-44",
+      "sha256_rank": "0319517d5d3ce043565fa8868fc08f0a1db763d3232bf8819439c46a5966cd18",
+      "source_v17_correct": true,
+      "source_v17_generated_tokens": 314,
+      "target_sha256": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b"
+    },
+    {
+      "logical_penultimate_reference": {
+        "correct": true,
+        "file_sha256": "3bfa6a828b13687b8d838b039345156de46ec350065c770d425bc914e68f7cac",
+        "generated_tokens": 200,
+        "path": "artifacts/pseudo_penultimate_joint_qwen_gsm8k_wave1_v1/actual/00632/penultimate_unigram_joint_equivalent.json",
+        "row_payload_sha256": "05053c446631d657f3e25987fc5084b234fe51b0bfc915179d0ffa0fe39b6ee7"
+      },
+      "partition": "closed_loop_wave_1",
+      "prior_traditional_offload_provenance": {
+        "file_sha256": "d71ba255d5694c6bc75a30644b96be0bc9dcaf599d55a38d0eb6d5fbdb3c33a9",
+        "path": "artifacts/qwen_real_offload_speed_pilot_v1/actual/00632/lossless_dynamic_top8_lru_b32.json",
+        "row_payload_sha256": "a1b4b755afc72f234a6fae9a63ed4ee60af1b048e679549178e08ffc765683fe"
+      },
+      "rendered_prompt_sha256": "43d841ee9d0d6dc2e1135acd1955268d121aea06be20c8549849d2f6db6e1cd2",
+      "row_index": 632,
+      "sample_id": "test-632",
+      "sha256_rank": "03257319b8083115c0a7817996362f3531656cca8f53cd2cae4a6cc0bacf9e35",
+      "source_v17_correct": true,
+      "source_v17_generated_tokens": 176,
+      "target_sha256": "811786ad1ae74adfdd20dd0372abaaebc6246e343aebd01da0bfc4c02bf0106c"
+    }
+  ],
+  "schema_version": 1,
+  "selection": {
+    "accuracy_correctness_answer_or_new_runtime_used_to_select_replacements": false,
+    "failed_v1_smoke_changed_only_the_internal_bitwise_validation_semantics": true,
+    "failed_v1_smoke_did_not_change_policy_ids_caps_or_work_order": true,
+    "prior_results_were_known_but_did_not_change_replace_or_reorder_ids": true,
+    "replacement_after_execution": false,
+    "rule": "exact_reuse_of_the_previously_frozen_two_row_real_offload_speed_scope",
+    "source_manifest": "configs/benchmark/qwen_real_offload_speed_pilot_v1_samples.json",
+    "source_manifest_sha256": "aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819",
+    "source_partition": "closed_loop_wave_1"
+  },
+  "work_order": [
+    [
+      "test-44",
+      "lossless_dynamic_top8_lru_b32"
+    ],
+    [
+      "test-44",
+      "penultimate_unigram_joint_h8_b32_async_prefetch"
+    ],
+    [
+      "test-632",
+      "penultimate_unigram_joint_h8_b32_async_prefetch"
+    ],
+    [
+      "test-632",
+      "lossless_dynamic_top8_lru_b32"
+    ]
+  ]
+}

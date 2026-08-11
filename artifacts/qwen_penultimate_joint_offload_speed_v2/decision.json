@@ -1,0 +1,15 @@
+{
+  "actual_h2d_reduction_measured": 0.26867069193761905,
+  "focused_decision": "NARROW_NO_SPEEDUP",
+  "full_dataset_go": false,
+  "pilot_id": "qwen_penultimate_joint_offload_speed_v2",
+  "production_serving_speedup_claim": false,
+  "schema_version": 1,
+  "scope": "Qwen/GSM8K H8 B32 two-row actual penultimate-joint offload",
+  "speedup_ratio_measured": 0.9865234145737998,
+  "state": "complete",
+  "task_accuracy_measured": {
+    "lossless_dynamic_top8_lru_b32": 1.0,
+    "penultimate_unigram_joint_h8_b32_async_prefetch": 1.0
+  }
+}

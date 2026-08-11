@@ -1,0 +1,9 @@
+{
+  "boundaries": 2,
+  "bridge_parity_passes": 1,
+  "generated_tokens": 16,
+  "offload_engine_used": false,
+  "penultimate_joint_boundaries": 1,
+  "sample_id": "test-44",
+  "state": "valid"
+}

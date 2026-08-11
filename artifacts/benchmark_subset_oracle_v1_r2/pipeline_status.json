@@ -1,0 +1,20 @@
+{
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "exception_type": "KeyboardInterrupt",
+  "message": "",
+  "orchestrator_pid": 1464359,
+  "orchestrator_ppid": 1464271,
+  "progress": {
+    "closed_loop_json_rows": {
+      "full": 0,
+      "mechanism_smoke": 0,
+      "selected_smoke": 0
+    },
+    "natural_trace_shards": 0
+  },
+  "schema_version": 1,
+  "stage": "failed",
+  "state": "blocked",
+  "suite_id": "benchmark_subset_oracle_v1",
+  "updated_at": "2026-07-30T11:12:22.604029+00:00"
+}

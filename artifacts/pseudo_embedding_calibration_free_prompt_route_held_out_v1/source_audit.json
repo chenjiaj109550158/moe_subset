@@ -1,0 +1,7 @@
+{
+  "default_mean_tensor_accessed": false,
+  "development_manifest_sha256": "f6f36ac0f73c9b141fc7df3bd2387704cdf06093a0db450fde41432b287b8452",
+  "sample_manifest_sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93",
+  "state": "valid",
+  "static_reference_tensor_sha256": "2a315f6f3dc65ff62b656d0eb92b6781267e5dd13cbcaf4c09a5b5806060fd30"
+}

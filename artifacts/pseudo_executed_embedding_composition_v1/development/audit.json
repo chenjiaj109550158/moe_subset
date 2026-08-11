@@ -1,0 +1,7 @@
+{
+  "accuracy_or_correctness_used": false,
+  "all_pass": true,
+  "cache_rng_shadow_information": true,
+  "future_true_tokens_only_in_diagnostics": true,
+  "sample_policy_rows": 64
+}

@@ -1,0 +1,26 @@
+{
+  "analysis_id": "pseudo_mass_preserving_residual_held_out_v1",
+  "candidate_future_token_or_label_inputs": false,
+  "candidate_learned_or_fitted_parameters": false,
+  "default_mean_vectors_loaded": false,
+  "development_reference_sample_ids": [
+    "test-0",
+    "test-439",
+    "test-879",
+    "test-1318"
+  ],
+  "held_out_sample_ids": [
+    "test-88",
+    "test-898",
+    "test-141",
+    "test-819",
+    "test-1250",
+    "test-1110",
+    "test-1049",
+    "test-1222"
+  ],
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "task_accuracy_measured": false
+}

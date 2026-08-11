@@ -1,0 +1,15 @@
+{
+  "analysis_id": "pseudo_one_forward_token_aligned_retrieval_v1",
+  "decision": "STOP/PIVOT",
+  "held_out_route_authorized": false,
+  "ranked_candidate_variants": [
+    "exact_then_embedding_nearest_residual_additive_norm",
+    "exact_recent_residual_additive_norm",
+    "exact_recent_router_input_additive_norm",
+    "exact_recent_residual_replace_norm",
+    "exact_then_embedding_nearest_router_input_additive_norm"
+  ],
+  "route_signal_variants": [],
+  "selected_route_signal_variant": null,
+  "task_accuracy_authorized": false
+}

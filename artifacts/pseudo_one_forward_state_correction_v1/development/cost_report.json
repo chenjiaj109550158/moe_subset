@@ -1,0 +1,29 @@
+{
+  "recent_sequence_causal_hidden_velocity_linear_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22555136,
+    "mean_probe_latency_seconds": 0.3252754255045147,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 98.60303974151611
+  },
+  "recent_sequence_causal_residual_velocity_linear_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22555136,
+    "mean_probe_latency_seconds": 0.32506576658488484,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 97.4315185546875
+  },
+  "recent_sequence_causal_uncorrected": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22555136,
+    "mean_probe_latency_seconds": 0.3082215434151294,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 98.89009428024292
+  }
+}

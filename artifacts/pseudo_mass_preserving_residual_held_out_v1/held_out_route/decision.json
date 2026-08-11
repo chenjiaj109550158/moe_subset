@@ -1,0 +1,9 @@
+{
+  "candidate_minus_previous_route_hit": 0.10500390368178836,
+  "candidate_minus_previous_selected_mass": 0.1149778503388742,
+  "decision": "CANDIDATE_FOR_SEPARATELY_FROZEN_CLOSED_LOOP_PILOT",
+  "oracle_gap_recovery_route_hit": 0.2965525745080548,
+  "oracle_gap_recovery_selected_mass": 0.3133702038981879,
+  "strong_candidate_gate_pass": true,
+  "task_accuracy_authorized": false
+}

@@ -1,0 +1,37 @@
+{
+  "model_rerun": false,
+  "reason": "legacy pre-JSON-round-trip hashing sorted integer layer keys differently after reload",
+  "repair_execution_git_head": "61e8a38595d13d5ec8652bf6ce5d698457637d4c",
+  "rows": [
+    {
+      "content_sha256_before_serializer_marker": "dc83a2614ff6ff5fdf47459140e8e33a93d0d836852367eba18c1e3e6042c723",
+      "file_sha256_after": "5873ab7eb71107e773c01466173f1aeb78692c8e5d55e0aaf263c1918dea71b8",
+      "file_sha256_before": "aad3db3da96a5cdbc78d690f9a01a79b2739e39619f1a283bfef4c00f5f50658",
+      "generation_content_recomputed": false,
+      "new_row_payload_sha256": "c7b4226d5af68d6e7ee358acef49620f7d442ec67bca4e09a775af5f11f90c27",
+      "old_row_payload_sha256": "d8dd15e951ed570052dfc98b8fa6535aef559a656885512495fcfcae7804cfcf",
+      "path": "smoke/00044/recent_sequence_causal.json"
+    },
+    {
+      "content_sha256_before_serializer_marker": "b014dc7e98897a5507f681261bd67744d5d4c87e5857a32e2d969dae5b7b880c",
+      "file_sha256_after": "8f103491eb51e0a716c8e7ad0847d67f70fc924c9e2f3dbe8ed963975db0fd7f",
+      "file_sha256_before": "185187b09f90ec819867e7264e9eb01cbca14c194be012a6e32b25276f39b4c9",
+      "generation_content_recomputed": false,
+      "new_row_payload_sha256": "ba3d1dada94d2f901d8eba22dbed689359ede202c44157e93f1f7e3d0e7b8d71",
+      "old_row_payload_sha256": "0340aa9aa1f79ec78e7fc06b56919d091abf1dfefe99231b5d21eb31b72a73da",
+      "path": "smoke/00044/sampled_unigram_full_continuation.json"
+    },
+    {
+      "content_sha256_before_serializer_marker": "c8a2fc316e7e3d88073be362b07dbf0a4b8217e7984666b31bcd1e2b5b57484a",
+      "file_sha256_after": "4c85bb7b4ae9e7be2710716c12d8e49abc1c2056aaccb9b9abaaa5636834126a",
+      "file_sha256_before": "3b4b3aea790460ff597ae65c8db33ea991469017c6b82ad572d37e0b3bb12e13",
+      "generation_content_recomputed": false,
+      "new_row_payload_sha256": "cccc2306095dbbd95675e25a00ec732cabadb36a3f2ed753b9fc18e2be2dae3b",
+      "old_row_payload_sha256": "c528636bb6f58fa9f0427b10f142cd36bc2d2202f13aa3f2b414b9fd23bae88b",
+      "path": "smoke/00044/future_exact_content_oracle.json"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "three completed smoke rows; checksum metadata only",
+  "state": "complete"
+}

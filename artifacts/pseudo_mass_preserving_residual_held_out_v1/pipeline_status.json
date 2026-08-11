@@ -1,0 +1,12 @@
+{
+  "analysis_id": "pseudo_mass_preserving_residual_held_out_v1",
+  "artifact_count": 78,
+  "decision": "NARROW",
+  "development_progress_gate_pass": true,
+  "new_sample_policy_rows": 28,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "strong_candidate_gate_pass": true,
+  "task_accuracy_executed": false
+}

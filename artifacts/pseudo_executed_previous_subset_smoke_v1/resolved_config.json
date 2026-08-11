@@ -1,0 +1,129 @@
+{
+  "analysis_id": "pseudo_executed_previous_subset_smoke_v1",
+  "artifact_root": "artifacts/pseudo_executed_previous_subset_smoke_v1",
+  "control_residual": {
+    "definition": "previous_realized_window_position_aligned_moe_output",
+    "same_content_attention_and_subset_selection": true
+  },
+  "dataset": {
+    "config": "main",
+    "id": "openai/gsm8k",
+    "revision": "740312add88f781978c0658806c59bc2815b9866",
+    "split": "test",
+    "trajectory_source": "exact_v17_saved_tokens"
+  },
+  "decode": {
+    "batch_size": 1,
+    "do_sample": false,
+    "seed": 20260727,
+    "use_cache": true
+  },
+  "executed_residual": {
+    "boundary_zero_execution": "full_native_top8_because_prefill_experts_are_accessible",
+    "definition": "native_weighted_selected_expert_mixture_on_pseudo_router_input",
+    "full_pre_mask_scores_saved_before_execution_mask": true,
+    "later_boundary_execution": "previous_realized_window_layer_subset_native_top8",
+    "production_state": "read_only_copy_on_write",
+    "subset_for_planning": "selected_only_after_complete_shadow_rollout"
+  },
+  "feasibility_checks": [
+    "native_expert_mlp_executes_on_pseudo_router_input",
+    "boundary_zero_uses_full_native_top8",
+    "later_boundaries_execute_only_previous_subset",
+    "full_pre_mask_router_scores_cover_all_128_experts",
+    "next_subset_can_escape_previous_subset",
+    "pseudo_residual_is_finite_nonzero_and_newly_computed",
+    "production_cache_identity_pointer_version_and_length_unchanged",
+    "generation_rng_unchanged",
+    "shadow_cache_discarded",
+    "no_forbidden_information"
+  ],
+  "information_boundary": {
+    "deployable_inputs": [
+      "sampled_next_token",
+      "current_policy_read_only_production_cache",
+      "current_policy_previous_realized_subset",
+      "current_policy_previous_pre_mask_routes"
+    ],
+    "forbidden_inputs": [
+      "future_true_tokens",
+      "vanilla_future_trajectory",
+      "benchmark_answer",
+      "correctness",
+      "learned_or_fitted_parameters",
+      "default_vector_values",
+      "offline_expert_priors"
+    ]
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "native_top_k": 8,
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "routed_experts_per_layer": 128,
+    "routed_layers": 48,
+    "shared_experts_per_layer": 0
+  },
+  "operating_point": {
+    "boundary_rule": "non_overlapping_start_zero_h8",
+    "budget_per_layer": 32,
+    "horizon": 8,
+    "resident_fraction": 0.25,
+    "route_token_cap": 16
+  },
+  "policies": [
+    "pseudo_executed_previous_subset",
+    "provided_previous_residual_control",
+    "previous_route_commitment_reference"
+  ],
+  "protocol_document": "docs/pseudo_executed_previous_subset_smoke_v1.md",
+  "pseudo_content": {
+    "anchors": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "attention": "independent",
+    "content": "sampled_next_token_repeated"
+  },
+  "reporting": {
+    "compare_route_hit_and_selected_mass_without_selection_gate": true,
+    "maximum_decision": "MECHANISM_FEASIBLE_OR_NOT_FEASIBLE",
+    "no_accuracy_or_speedup_claim": true,
+    "probe_and_replay_runtime": "measured",
+    "route_metrics": "teacher_forced_policy_own_hard_subset_state",
+    "transfer": "simulated"
+  },
+  "sample_manifest": "configs/analysis/pseudo_executed_previous_subset_smoke_v1_samples.json",
+  "schema_version": 1,
+  "scope": {
+    "held_out_or_development_expansion": "forbidden",
+    "partition": "mechanism_smoke",
+    "policies_per_sample": 3,
+    "samples": 2,
+    "task_accuracy": "forbidden"
+  },
+  "source_residual_analysis": {
+    "config": "configs/analysis/pseudo_embedding_qwen_gsm8k_residual_window_v1.yaml",
+    "config_sha256": "361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b",
+    "result_manifest_sha256": "720e3e0ae68efeddd770226f7d953969c8313997455ac8520a39788b4dd71771",
+    "sample_manifest_sha256": "cd6957e34f72f69290ebd9cb147be54ccee3a3dcfe6ef5358f6d34dc850d1255"
+  },
+  "source_suite": {
+    "artifact_manifest_sha256": "b5c71fbe49eee2aad35d2f66da136f3e814818c312057598cc5301334444a337",
+    "artifact_root": "artifacts/pseudo_embedding_qwen_gsm8k_v1",
+    "config": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml",
+    "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc"
+  },
+  "status": "protocol_frozen_before_model_execution",
+  "subset_selection": {
+    "definition": "lock_union_of_anchor_1_to_4_native_top8_ranked_by_sum_p_1_to_4_capped_at_32_then_fill_by_previous_route_utility",
+    "deterministic_tie_break": "ascending_layer_scoped_expert_id",
+    "formula": "first_four_anchor_core_plus_history_fill"
+  }
+}

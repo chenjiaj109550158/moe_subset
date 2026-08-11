@@ -1,0 +1,12 @@
+{
+  "actual_h2d_copy_rows": 2,
+  "all_pass": true,
+  "config_sha256": "9276363796e711baf487415a85fde49fc525ae42e7be701972867fb8713ed1ec",
+  "identity_materialized_rows": 0,
+  "pilot_id": "qwen_real_offload_speed_pilot_v1",
+  "required_reference_exact_identity_rows": 2,
+  "sample_manifest_sha256": "aafd570fe56d878074cc6f5666dd26df8da528086776400226c15727b77ee819",
+  "sample_policy_rows": 2,
+  "schema_version": 1,
+  "state": "complete"
+}

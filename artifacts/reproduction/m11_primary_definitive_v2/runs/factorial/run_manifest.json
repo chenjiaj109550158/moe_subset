@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "e0b65f89579f4312",
+  "command": "dapq-factorial",
+  "result_kind": "factorial",
+  "information_regime": "offline_teacher_forced",
+  "config_sha256": "9536cd3b7c8eecace19507527d69ee0313f2d8449e40cf539c5f410d52c13cf6",
+  "created_utc": "2026-07-27T07:28:39.749843+00:00",
+  "complete": true,
+  "negative_results": [
+    "factorial Gate B did not pass for the configured model"
+  ],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "factorial_bootstrap.csv",
+      "bytes": 196350,
+      "sha256": "1270eed25e8298a0bef694e5e200fd0606999075d63be77b1b7d3da77fbccdb2"
+    },
+    {
+      "path": "factorial_examples.csv",
+      "bytes": 8325,
+      "sha256": "97e93c530901dc80caaf7cdee1a13f956455a182f1858ca7e9d1d6f0e5fdba84"
+    },
+    {
+      "path": "factorial_metrics.csv",
+      "bytes": 596370,
+      "sha256": "1daa2fb06020c3e21284c8ba1e3b23e8aa89bf3fac74246e78dfb414f2e07df5"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 844,
+      "sha256": "03aaed30d77e8606a338f377d84a54d3d871117c80e24967fea64608ac71e37d"
+    },
+    {
+      "path": "position_dominance_heatmap.svg",
+      "bytes": 2234,
+      "sha256": "5f8e3e83d4e2a42f7630344441aa69582c00a73e96610b5a330398de30dd9e62"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 1151,
+      "sha256": "9536cd3b7c8eecace19507527d69ee0313f2d8449e40cf539c5f410d52c13cf6"
+    },
+    {
+      "path": "router_logit_horizon.svg",
+      "bytes": 760,
+      "sha256": "d76737bceea054d8e4254a135117522a47b25b090fe6b4a0fe9732e8176bfd71"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 844,
+      "sha256": "03aaed30d77e8606a338f377d84a54d3d871117c80e24967fea64608ac71e37d"
+    }
+  ]
+}

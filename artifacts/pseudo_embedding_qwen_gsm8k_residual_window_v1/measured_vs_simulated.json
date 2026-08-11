@@ -1,0 +1,25 @@
+{
+  "actual_closed_loop_generation_rows": 0,
+  "identity_materialized_rows": 0,
+  "measured": [
+    "teacher_forced_policy_state_route_hit",
+    "teacher_forced_policy_state_selected_mass",
+    "probe_latency",
+    "temporary_cuda_memory",
+    "router_calls",
+    "attention_queries",
+    "sample_policy_replay_elapsed_time"
+  ],
+  "not_measured": [
+    "task_accuracy",
+    "exact_token_identity",
+    "free_generation_nll_or_perplexity",
+    "closed_loop_generation_runtime",
+    "runtime_speedup"
+  ],
+  "simulated": [
+    "expert_transfer_bytes",
+    "transfer_reduction",
+    "stall"
+  ]
+}

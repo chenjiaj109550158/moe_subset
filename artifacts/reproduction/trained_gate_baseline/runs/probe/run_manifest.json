@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "f6c02de6a17710dc",
+  "command": "evaluate-probe",
+  "result_kind": "probe",
+  "information_regime": "online_pre_sample",
+  "config_sha256": "b15183febd716bc113cb12bbf2e9864f067a7fdbc752949ecfc5a016f6b8fc16",
+  "created_utc": "2026-07-27T09:09:46.930133+00:00",
+  "complete": true,
+  "negative_results": [],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 5128,
+      "sha256": "b2c04bcf33e211f9f0d683b81c694f4adc7debd1dad181a82ba219b1116f533b"
+    },
+    {
+      "path": "probe_results.csv",
+      "bytes": 1678,
+      "sha256": "570f23ed077e513eb6bf91ac4e410afd37d6ea82e020b2583eaa5831ae7f5b0b"
+    },
+    {
+      "path": "quality_vs_latency.svg",
+      "bytes": 1380,
+      "sha256": "deea8ac72a631f7a4e4f54a2f7e538642931e6238bb91f9cc4a9633277884f0e"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 426,
+      "sha256": "b15183febd716bc113cb12bbf2e9864f067a7fdbc752949ecfc5a016f6b8fc16"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 5128,
+      "sha256": "b2c04bcf33e211f9f0d683b81c694f4adc7debd1dad181a82ba219b1116f533b"
+    }
+  ]
+}

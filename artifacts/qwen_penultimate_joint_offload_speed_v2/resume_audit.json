@@ -1,0 +1,9 @@
+{
+  "actual_rows_validated": 4,
+  "atomic_json_rows": true,
+  "checksum_resume_pass": true,
+  "failed_markers_preserved": [],
+  "schema_version": 1,
+  "smoke_rows_validated": 1,
+  "state": "complete"
+}

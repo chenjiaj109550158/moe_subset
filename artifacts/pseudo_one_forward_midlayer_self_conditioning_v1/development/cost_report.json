@@ -1,0 +1,32 @@
+{
+  "midpoint_expected_top8_shift_uncapped": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "lm_head_queries": 224,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_probe_latency_seconds": 0.30669506513731903,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 95.87030673027039
+  },
+  "midpoint_greedy_shift_cap25": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "lm_head_queries": 224,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_probe_latency_seconds": 0.3026535853787209,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 93.8275465965271
+  },
+  "midpoint_greedy_shift_uncapped": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "lm_head_queries": 224,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_probe_latency_seconds": 0.31834724450163776,
+    "router_calls": 1536,
+    "total_sample_policy_elapsed_seconds": 99.9539704322815
+  }
+}

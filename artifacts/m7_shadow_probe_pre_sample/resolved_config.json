@@ -1,0 +1,20 @@
+{
+  "anchors": [
+    1,
+    2,
+    4
+  ],
+  "default_vectors_dir": "artifacts/m7_default_vectors",
+  "experiment": {
+    "information_regime": "online_pre_sample",
+    "name": "tiny_m7_shadow_probe_pre_sample",
+    "seed": 1234
+  },
+  "fixed_token_id": 0,
+  "latency_repetitions": 3,
+  "predictor_dataset_dir": "artifacts/m6_predictors/dataset",
+  "schema_version": 1,
+  "top_b": 2,
+  "training_config": "configs/experiment/train_predictor_tiny.yaml",
+  "wrong_position_offset": 2
+}

@@ -1,0 +1,28 @@
+{
+  "actual_rows": 4,
+  "all_pass": true,
+  "checks": {
+    "aggregate_complete": true,
+    "all_actual_h2d": true,
+    "all_b32": true,
+    "all_pinned": true,
+    "both_policies": true,
+    "candidate_production_zero_miss": true,
+    "candidate_reference_identity_audited": true,
+    "lossless_reference_identity": true,
+    "manifest_checksum": true,
+    "manifest_files": true,
+    "no_full_cuda_expert_parameters": true,
+    "no_identity_materialized": true,
+    "row_count": true,
+    "smoke_complete": true,
+    "two_samples": true
+  },
+  "failure_markers_retained": [
+    "actual/00044/natural_top8_intersection_zero_missing_h8_b32.258670.FAILED.json",
+    "actual/00044/natural_top8_intersection_zero_missing_h8_b32.266688.FAILED.json"
+  ],
+  "pilot_id": "qwen_real_offload_speed_pilot_v1",
+  "schema_version": 1,
+  "state": "complete"
+}

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "run_id": "f0ea1684d396c63f",
+  "command": "train-predictor",
+  "result_kind": "support",
+  "information_regime": "offline_teacher_forced",
+  "config_sha256": "781a3d323b2152f5b545404d71f35ac1e3d1d89dfcc28a805aaab76f6249e6cb",
+  "created_utc": "2026-07-27T09:09:40.614712+00:00",
+  "complete": true,
+  "negative_results": [],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "dataset/dataset.safetensors",
+      "bytes": 27896,
+      "sha256": "577dbb6fdacf2fb09e892614147560240b0e95b6b6e5112b324c6a6e80d79392"
+    },
+    {
+      "path": "dataset/manifest.json",
+      "bytes": 19654,
+      "sha256": "10a7189c24f1cac2a2f9a0486b30c4c6bcb6544380582a590c03e4cca0ee3684"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 1785,
+      "sha256": "f744324eede487be468f91e1f08901b23fface260251dae0b84da382e3addbe0"
+    },
+    {
+      "path": "models/adept_style_rf/manifest.json",
+      "bytes": 283,
+      "sha256": "5a6ef5015e6f12ec83b119f4def56fd7e9c5c2b6be104248b6aac7eb1b2682ba"
+    },
+    {
+      "path": "models/adept_style_rf/model.safetensors",
+      "bytes": 3656,
+      "sha256": "53fd880bb1247803910699871439669499bad9f995eb7c49d4a2889395daee6d"
+    },
+    {
+      "path": "models/direct_linear/manifest.json",
+      "bytes": 305,
+      "sha256": "fa527a8f74e56f85e30e395264e27cdb8629b6bc7ed782eeb2f83a615690c5e7"
+    },
+    {
+      "path": "models/direct_linear/model.safetensors",
+      "bytes": 1864,
+      "sha256": "5af975c6c0a2de4c4d2103975cfebe68e1a8ac7706e9df54f68cb358ed9cdc0a"
+    },
+    {
+      "path": "models/direct_mlp/manifest.json",
+      "bytes": 279,
+      "sha256": "206a3fad12134a0607e1b204bca9f3fd51cf9c2392520ccc8f66527dd9b5aa42"
+    },
+    {
+      "path": "models/direct_mlp/model.safetensors",
+      "bytes": 3680,
+      "sha256": "1ca7fda2dc559479f51f6315f7551e4399931514568e55d980d15f1ec24fa338"
+    },
+    {
+      "path": "models/direct_ridge/manifest.json",
+      "bytes": 305,
+      "sha256": "0b659b229a42435cb546af97ac0dfa22e343b6bfaa11e9fccfefd1270e30a3b5"
+    },
+    {
+      "path": "models/direct_ridge/model.safetensors",
+      "bytes": 1864,
+      "sha256": "e28572da27ff09ef59aba4ed53ce55ad29bef53ec50f583a1f5be183754a3559"
+    },
+    {
+      "path": "models/markov_transition/manifest.json",
+      "bytes": 140,
+      "sha256": "6dc963473df56e6352d72fa289cddddbeca8a415bfbee2d4bfa006525f0832d9"
+    },
+    {
+      "path": "models/markov_transition/model.safetensors",
+      "bytes": 336,
+      "sha256": "661b1ec988ee5f6ec231efcfb29c7995187f837846d2decc6fe95a447cf2060d"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 1224,
+      "sha256": "781a3d323b2152f5b545404d71f35ac1e3d1d89dfcc28a805aaab76f6249e6cb"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 1785,
+      "sha256": "f744324eede487be468f91e1f08901b23fface260251dae0b84da382e3addbe0"
+    },
+    {
+      "path": "training_cost.csv",
+      "bytes": 339,
+      "sha256": "e079c25f4e4c07b6b4a6d37998e6625ba1a76bf1cc70a3121f52eb6c6c6a3de6"
+    }
+  ]
+}

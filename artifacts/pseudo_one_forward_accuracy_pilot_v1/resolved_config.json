@@ -1,0 +1,203 @@
+{
+  "accuracy_gate": {
+    "accuracy_selects_variant": false,
+    "allowed_drop_questions": 1,
+    "conclusion_ceiling": "PILOT_NARROW",
+    "frozen_before_generation": true,
+    "frozen_vanilla_accuracy": 1.0,
+    "frozen_vanilla_successes": 8,
+    "future_exact_selects_deployable_policy": false,
+    "minimum_policy_successes": 7,
+    "paired_bootstrap_samples": 10000,
+    "paired_bootstrap_seed": 20260802,
+    "sample_count": 8,
+    "strong_preservation_successes": 8
+  },
+  "artifact_root": "artifacts/pseudo_one_forward_accuracy_pilot_v1",
+  "audits": {
+    "expected_attention_calls_per_pseudo_traversal": 48,
+    "expected_attention_queries_per_pseudo_traversal": 384,
+    "expected_expert_calls_per_pseudo_traversal": 48,
+    "expected_lm_head_calls_per_pseudo_traversal": 0,
+    "expected_router_calls_per_pseudo_traversal": 48,
+    "require_actual_hard_mask_execution": true,
+    "require_future_v17_tokens_unused": true,
+    "require_identity_materialized_false": true,
+    "require_label_correctness_unused": true,
+    "require_one_causal_pseudo_traversal_per_boundary": true,
+    "require_policy_own_closed_loop_context": true,
+    "require_production_cache_signature_unchanged_by_planning": true,
+    "require_production_rng_unchanged_by_planning": true,
+    "require_shadow_cache_discarded": true
+  },
+  "dataset": {
+    "key": "gsm8k",
+    "new_rows_or_traces": false,
+    "original_v17_max_new_tokens": 512,
+    "sample_count": 8,
+    "source_partition": "closed_loop_wave_1",
+    "source_v17_total_generated_tokens": 2101,
+    "source_v17_vanilla_successes": 8,
+    "split": "test"
+  },
+  "decode": {
+    "answer_parser": "exact_v17_gsm8k_parser",
+    "batch_size": 1,
+    "do_sample": false,
+    "prompt_rendering": "exact_saved_v17_rendered_prompt",
+    "seed": 20260727,
+    "stop_strings": "exact_v17",
+    "use_cache": true
+  },
+  "execution": {
+    "actual": {
+      "expected_sample_policy_rows": 24,
+      "max_new_tokens": "original_v17_cap_512",
+      "policies_per_sample": 3,
+      "sample_count": 8
+    },
+    "assignment": "row_major_policy_order_then_work_index_modulo_two",
+    "atomic_json_rows": true,
+    "checksum_resume": true,
+    "maximum_workers_per_physical_gpu": 1,
+    "mechanism_smoke": {
+      "max_new_tokens": 16,
+      "result_selects_policy_or_ids": false,
+      "row_index": 44,
+      "sample_id": "test-44"
+    },
+    "model_loads": "one_per_gpu_worker",
+    "network_downloads": false,
+    "retain_failed_markers": true,
+    "shard_count": 2
+  },
+  "information_boundary": {
+    "always_forbidden": [
+      "v17_vanilla_future_trajectory",
+      "benchmark_answer",
+      "target_or_correctness_during_policy_execution"
+    ],
+    "common_allowed": [
+      "sampled_next_token",
+      "current_policy_prompt_token_ids",
+      "current_policy_already_realized_token_ids",
+      "current_policy_production_cache_read_only_copy_on_write",
+      "current_policy_previous_realized_layer_local_b32_subset",
+      "current_policy_previous_window_pre_mask_natural_routes",
+      "native_model_parameters"
+    ],
+    "deployable_forbidden": [
+      "future_true_tokens",
+      "v17_vanilla_future_trajectory",
+      "benchmark_answer",
+      "correctness",
+      "task_accuracy",
+      "learned_or_fitted_parameters",
+      "offline_continuation_tables",
+      "offline_route_transition_tables",
+      "offline_expert_priors",
+      "default_vector_values",
+      "retrieved_hidden_states"
+    ],
+    "future_exact_exception": [
+      "current_context_full_expert_greedy_natural_successors"
+    ]
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "key": "qwen3_30b_a3b",
+    "native_top_k": 8,
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "routed_experts_per_layer": 128,
+    "routed_layers": 48,
+    "shared_experts_per_layer": 0
+  },
+  "operating_point": {
+    "actual_execution": "hard_mask_outside_subset_before_native_topk_and_normalization",
+    "boundary_zero_history": "last_eight_full_expert_prefill_natural_routes",
+    "boundary_zero_shadow_expert_access": "full_native_top8",
+    "budget_per_layer": 32,
+    "horizon": 8,
+    "later_history": "current_policy_previous_realized_window_pre_mask_natural_routes",
+    "later_shadow_expert_access": "current_policy_previous_realized_layer_local_b32_subset",
+    "native_top_k": 8,
+    "resident_fraction": 0.25,
+    "routed_experts_per_layer": 128,
+    "shadow_expert_contribution": "fresh_native_moe_residual",
+    "subset_selection": "first_four_anchor_core_plus_history_fill"
+  },
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "policies": {
+    "future_exact_content_oracle": {
+      "anchor_one": "sampled_next_token",
+      "anchors_two_to_eight": "seven_full_expert_greedy_natural_successors",
+      "excluded_from_single_extra_forward_claim": true,
+      "extra_pseudo_traversals_per_boundary": 1,
+      "lookahead_cache": "copy_on_write_or_exact_rewind",
+      "lookahead_context": "current_policy_production_context",
+      "maximum_extra_autoregressive_lookahead_calls_per_boundary": 7,
+      "role": "nondeployable_content_oracle_diagnostic",
+      "terminal_padding": "repeat_terminal_token_to_horizon"
+    },
+    "order": [
+      "recent_sequence_causal",
+      "sampled_unigram_full_continuation",
+      "future_exact_content_oracle"
+    ],
+    "recent_sequence_causal": {
+      "anchor_one": "sampled_next_token",
+      "anchors_two_to_eight": "seven_most_recent_known_tokens_in_chronological_order",
+      "context": "current_policy_prompt_and_already_realized_tokens_only",
+      "extra_autoregressive_lookahead_calls_per_boundary": 0,
+      "extra_pseudo_traversals_per_boundary": 1,
+      "role": "deployable_calibration_free"
+    },
+    "sampled_unigram_full_continuation": {
+      "anchor_one": "sampled_next_token",
+      "context": "current_policy_prompt_and_already_realized_tokens_only",
+      "extra_autoregressive_lookahead_calls_per_boundary": 0,
+      "extra_pseudo_traversals_per_boundary": 1,
+      "fallback": "recent_sequence_causal",
+      "match": "most_recent_earlier_exact_sampled_token_with_seven_known_successors",
+      "role": "deployable_calibration_free",
+      "tie_break": "most_recent_match_start"
+    }
+  },
+  "protocol_document": "docs/pseudo_one_forward_accuracy_pilot_v1.md",
+  "reporting": {
+    "measured": [
+      "actual_closed_loop_gsm8k_accuracy",
+      "exact_token_agreement_and_first_divergence",
+      "v17_token_nll_on_policy_context_and_perplexity",
+      "route_hit_and_selected_mass_on_policy_context",
+      "probe_and_total_generation_runtime",
+      "peak_cuda_memory"
+    ],
+    "prohibited_claims": [
+      "production_runtime_speedup",
+      "full_dataset_accuracy_preservation",
+      "future_exact_deployability",
+      "statistical_GO_from_eight_rows"
+    ],
+    "simulated": [
+      "transfer_bytes_and_reduction"
+    ]
+  },
+  "sample_manifest": "configs/benchmark/pseudo_one_forward_accuracy_pilot_v1_samples.json",
+  "schema_version": 1,
+  "source": {
+    "accuracy_artifact_root": "artifacts/speculating_experts_accuracy_v17",
+    "accuracy_config": "configs/benchmark/speculating_experts_accuracy_v17.yaml",
+    "accuracy_config_sha256": "23687248a85a52cb60b09a337c691fb0c95df018dc195794ddf7775e10015092",
+    "accuracy_suite_id": "speculating_experts_accuracy_v17",
+    "original_pseudo_sample_manifest": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json",
+    "original_pseudo_sample_manifest_sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93",
+    "route_analysis_artifact_manifest_sha256": "1ce50ae324605f7a9ac60e87242c37b9856c9e2db5a5e98879990864c4f854d9",
+    "route_analysis_config_sha256": "519502aa463af860f4f639ff1233bf14d77bfca6ee6cb5aeff28f80817316897",
+    "route_analysis_id": "pseudo_one_forward_context_continuation_v1",
+    "vanilla_rows": "artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/results/vanilla/gsm8k/samples.jsonl",
+    "vanilla_rows_sha256": "4ec5306a98735d7fdad32741d595ff63b468b9e805fc415dbd55998309028fae"
+  },
+  "status": "protocol_frozen_before_accuracy_generation"
+}

@@ -1,0 +1,34 @@
+{
+  "commands": [
+    "oracle-sweep",
+    "dapq-factorial",
+    "train-predictor",
+    "evaluate-probe",
+    "simulate-offload",
+    "simulate-offload",
+    "benchmark-offload"
+  ],
+  "failures": 0,
+  "included_run_ids": [
+    "e0b65f89579f4312",
+    "0a60149a83fdd7cd",
+    "01ca6bfc795cfa5e",
+    "4b9d75cbe9f0228c",
+    "5e50b39e216aaa94",
+    "347ff8a5163a677f",
+    "f0ea1684d396c63f"
+  ],
+  "incomplete_runs": [],
+  "output_root": "artifacts/reproduction/trained_gate_post",
+  "schema_version": 1,
+  "suite": "primary",
+  "tasks": [
+    "oracle",
+    "factorial",
+    "train_predictor",
+    "probe",
+    "simulator",
+    "static_residency",
+    "runtime"
+  ]
+}

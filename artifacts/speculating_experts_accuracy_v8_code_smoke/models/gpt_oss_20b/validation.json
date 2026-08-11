@@ -1,0 +1,47 @@
+{
+  "architecture": "gpt_oss",
+  "default_vector_fingerprint": "262154df6ea9dab967b54a40b0eba79f7eab14dcf37a802d53b9307302fd8c65",
+  "experts": 32,
+  "explicit_natural_stats": {
+    "calls": 24,
+    "compared_tokens": 0,
+    "exact_topk_agreement": 1.0,
+    "exact_topk_tokens": 0,
+    "matching_selected_slots": 0,
+    "selected_route_hit_rate": 1.0,
+    "selected_slots": 0
+  },
+  "hidden_size": 2880,
+  "layers": 24,
+  "model_id": "openai/gpt-oss-20b",
+  "native_explicit_argmax_equal": true,
+  "native_explicit_max_abs_logit_delta": 0.0,
+  "native_oracle_argmax_equal": true,
+  "native_oracle_max_abs_logit_delta": 0.0,
+  "oracle_stats": {
+    "calls": 24,
+    "compared_tokens": 2208,
+    "exact_topk_agreement": 1.0,
+    "exact_topk_tokens": 2208,
+    "matching_selected_slots": 8832,
+    "selected_route_hit_rate": 1.0,
+    "selected_slots": 8832
+  },
+  "parity_tolerance": 0.005,
+  "passed": true,
+  "peak_cuda_allocated_bytes": 14080824320,
+  "precision_tier": "mxfp4",
+  "rendered_prompt_sha256": "69db44a9b7bae274d28190f74af36382c7193ab64089b5ddca3b0f28f1a9fabd",
+  "revision": "6cee5e81ee83917806bbde320786a8fb61efebee",
+  "router_pf_finite": true,
+  "router_pf_stats": {
+    "calls": 24,
+    "compared_tokens": 2208,
+    "exact_topk_agreement": 0.1793478260869565,
+    "exact_topk_tokens": 396,
+    "matching_selected_slots": 7229,
+    "selected_route_hit_rate": 0.8185009057971014,
+    "selected_slots": 8832
+  },
+  "top_k": 4
+}

@@ -1,0 +1,61 @@
+{
+  "experiment": {
+    "information_regime": "oracle",
+    "name": "tiny_oracle_sweep",
+    "seed": 1234
+  },
+  "oracle": {
+    "load_cost_lambda": 0.0001,
+    "selectors": [
+      "binary_count",
+      "selected_routing_mass",
+      "full_router_mass",
+      "cost_aware_selected_mass"
+    ]
+  },
+  "samples": [
+    [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    [
+      12,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3
+    ]
+  ],
+  "schema_version": 1,
+  "tiny_model_config": "configs/model/tiny_moe.yaml",
+  "trace_dir": null,
+  "window": {
+    "budget_ratios": [
+      1.0,
+      1.5,
+      2.0
+    ],
+    "gamma": 0.9,
+    "horizons": [
+      1,
+      2,
+      4,
+      8
+    ]
+  }
+}

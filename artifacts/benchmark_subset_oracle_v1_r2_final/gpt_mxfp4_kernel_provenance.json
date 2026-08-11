@@ -1,0 +1,403 @@
+{
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "files": [
+    {
+      "bytes": 419,
+      "path": "build/torch-cuda/__init__.py",
+      "sha256": "6c4af88110d40649b575798d0ec382f3703d384c3d7d24667a373363806494a1"
+    },
+    {
+      "bytes": 435,
+      "path": "build/torch-cuda/__pycache__/__init__.cpython-314.pyc",
+      "sha256": "6cadca0e257508fa61ba147f16c73e863095502dafb8317018179189f0730e90"
+    },
+    {
+      "bytes": 41555,
+      "path": "build/torch-cuda/__pycache__/matmul_ogs.cpython-314.pyc",
+      "sha256": "7c35369890a93b59e9b14260181e103f0901d7d44cb246340a5f568e1479d64b"
+    },
+    {
+      "bytes": 3581,
+      "path": "build/torch-cuda/__pycache__/numerics.cpython-314.pyc",
+      "sha256": "5ae11527dcb94fd6094ebbc7f975211bf9e29c20f5f80d3eff5a97f284020e67"
+    },
+    {
+      "bytes": 17820,
+      "path": "build/torch-cuda/__pycache__/routing.cpython-314.pyc",
+      "sha256": "f0f8ec4b10573b1ee4f14ddc7771eca8937b7d3d276ab6fabbee8f05d3da767f"
+    },
+    {
+      "bytes": 7969,
+      "path": "build/torch-cuda/__pycache__/specialize.cpython-314.pyc",
+      "sha256": "10b987e7321a6300395e99f33e5d94669ba03b794713767a9b041e68bdf822b2"
+    },
+    {
+      "bytes": 5917,
+      "path": "build/torch-cuda/__pycache__/swiglu.cpython-314.pyc",
+      "sha256": "06887a573d8768126535942c844d85747f7b138d3abf96fbe3abea429173a37b"
+    },
+    {
+      "bytes": 4156,
+      "path": "build/torch-cuda/__pycache__/target_info.cpython-314.pyc",
+      "sha256": "6cd0e09dc5cc647c694c03e682e150415107b04ba1febc27b05f55ae67070d92"
+    },
+    {
+      "bytes": 15002,
+      "path": "build/torch-cuda/__pycache__/tensor.cpython-314.pyc",
+      "sha256": "905dbf6b7cc8a683082e9df6ef9472999d7e62fc2ba4b8a68a6f14a550d6458a"
+    },
+    {
+      "bytes": 5404,
+      "path": "build/torch-cuda/__pycache__/topk.cpython-314.pyc",
+      "sha256": "71a821a751cda64b4c638ebe385f1b0de6ba16d110d6aa8f3df1ce246e054ce1"
+    },
+    {
+      "bytes": 996,
+      "path": "build/torch-cuda/_ops.py",
+      "sha256": "d9ada8658bbd9b84252be17669dfd388358ea22901fec5c3dd2dbcb25cf2f57a"
+    },
+    {
+      "bytes": 2538,
+      "path": "build/torch-cuda/compaction.py",
+      "sha256": "34919681c109b47d3bad6dd2d31a169371cd353e88137feebc1c8c6a49f2c032"
+    },
+    {
+      "bytes": 814,
+      "path": "build/torch-cuda/compaction_details/_masked_compaction.py",
+      "sha256": "80575b48b4d9969169dcef2adc2888d9fe18a15162a0e9a53190802d6b4d7178"
+    },
+    {
+      "bytes": 1035,
+      "path": "build/torch-cuda/gpt_oss_triton_kernels/__init__.py",
+      "sha256": "0c560f96b857c188c4a8297ff27d1299619957c3459a5e433e132329fbfdf066"
+    },
+    {
+      "bytes": 29974,
+      "path": "build/torch-cuda/matmul_ogs.py",
+      "sha256": "698c0c515cba84b07516886357d53d6afcbd457e9179d9687626f79bf673aede"
+    },
+    {
+      "bytes": 10123,
+      "path": "build/torch-cuda/matmul_ogs_details/__pycache__/_common.cpython-314.pyc",
+      "sha256": "66d062a6aaf8fcfc1af2aa16471b00b704a6dfb040a28409b6a5196aabcc7cdc"
+    },
+    {
+      "bytes": 21571,
+      "path": "build/torch-cuda/matmul_ogs_details/__pycache__/_finalize_matmul.cpython-314.pyc",
+      "sha256": "506704f308777a475844f19624fd03730381cff8d84d29438f7824a259c88e9e"
+    },
+    {
+      "bytes": 25130,
+      "path": "build/torch-cuda/matmul_ogs_details/__pycache__/_matmul_ogs.cpython-314.pyc",
+      "sha256": "c7bae163d2eb2ad6502ee873973c5df50e9f84bae41c3e6aac76ddf62a87916e"
+    },
+    {
+      "bytes": 26947,
+      "path": "build/torch-cuda/matmul_ogs_details/__pycache__/_p_matmul_ogs.cpython-314.pyc",
+      "sha256": "4460804697ab3068de31de32764d8fe49dea386f52fa30f3162fa2eb1f8f6af9"
+    },
+    {
+      "bytes": 15080,
+      "path": "build/torch-cuda/matmul_ogs_details/__pycache__/opt_flags.cpython-314.pyc",
+      "sha256": "45b172c7f61da44ae7554384bd6d6405a6547a8a5f37e29f9dff1e04872a2ac5"
+    },
+    {
+      "bytes": 6846,
+      "path": "build/torch-cuda/matmul_ogs_details/_common.py",
+      "sha256": "80aee4ea835a7b8bf9a37ce79b0e9dcc05c5a1a2e614951d936c501cb868ce1f"
+    },
+    {
+      "bytes": 16022,
+      "path": "build/torch-cuda/matmul_ogs_details/_finalize_matmul.py",
+      "sha256": "c383b7a524d9109228797e6e7be41fd660eaf18052eccc91fe65fd31915279ee"
+    },
+    {
+      "bytes": 22155,
+      "path": "build/torch-cuda/matmul_ogs_details/_matmul_ogs.py",
+      "sha256": "75e51914179ac13c1f96fd8e7f7df20166481501a261d2418326c930c939f0f1"
+    },
+    {
+      "bytes": 23810,
+      "path": "build/torch-cuda/matmul_ogs_details/_p_matmul_ogs.py",
+      "sha256": "3ca76bc9f4ad47af6cda988d042107757369ec4d0a927f03dc60591868923021"
+    },
+    {
+      "bytes": 13239,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags.py",
+      "sha256": "fc6dbd1c8ce5acae34a94c0958b6143f100cb372a4c436925a27f2e214c62295"
+    },
+    {
+      "bytes": 1572,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags_details/__pycache__/opt_flags_amd.cpython-314.pyc",
+      "sha256": "8d3b8a701a68768a4c308531b5a8ec6d180587d813bffb8676e4c8aa9510d93e"
+    },
+    {
+      "bytes": 2839,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags_details/__pycache__/opt_flags_intel.cpython-314.pyc",
+      "sha256": "f95930bf06e46c46700d0fc303b31eb5c006e839a32f97e3828a4ecc5e45ae04"
+    },
+    {
+      "bytes": 5801,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags_details/__pycache__/opt_flags_nvidia.cpython-314.pyc",
+      "sha256": "31dc881240883b4ee115435415627ee716f8c8c8a8f9475c9aa29cd069e53bc3"
+    },
+    {
+      "bytes": 1071,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags_details/opt_flags_amd.py",
+      "sha256": "a2c73d1fe7e63fe9aabff8eba45ea0b97ddc47e74c170ca7cfc7ba300a51e608"
+    },
+    {
+      "bytes": 1255,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags_details/opt_flags_intel.py",
+      "sha256": "a6b74af902fe80f10bac19cd345a346eeba7411abdeb238dbe015ba04064e08d"
+    },
+    {
+      "bytes": 4257,
+      "path": "build/torch-cuda/matmul_ogs_details/opt_flags_details/opt_flags_nvidia.py",
+      "sha256": "31d8e422bd0ca00d67d45dc2d2cc20ad685df624f1ebadb872002de837f642e1"
+    },
+    {
+      "bytes": 4067,
+      "path": "build/torch-cuda/metadata.json",
+      "sha256": "ab842b2725b3cb9fc00f150bf8decd8857275e4c72dff223710a3cebd422f7bc"
+    },
+    {
+      "bytes": 10591,
+      "path": "build/torch-cuda/metadata.json.sigstore",
+      "sha256": "2ae677d7df8075c74eea17aa43104822c04cdc9610304ef4233be0172447c396"
+    },
+    {
+      "bytes": 1016,
+      "path": "build/torch-cuda/numerics.py",
+      "sha256": "74e775d0084578bdc668872de76c6a72450406d2f19e86b2c7db7371ee20e860"
+    },
+    {
+      "bytes": 0,
+      "path": "build/torch-cuda/numerics_details/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 282,
+      "path": "build/torch-cuda/numerics_details/__pycache__/__init__.cpython-314.pyc",
+      "sha256": "21d3c0c4ad7a8689f811d8756ccb7e37b0c5125dcd6536c62a98f27c00e86049"
+    },
+    {
+      "bytes": 10268,
+      "path": "build/torch-cuda/numerics_details/__pycache__/flexpoint.cpython-314.pyc",
+      "sha256": "d1d2207fcff3b2bf93ef61a36352f075cac78fe6cca2966465697cec91335275"
+    },
+    {
+      "bytes": 19330,
+      "path": "build/torch-cuda/numerics_details/__pycache__/mxfp.cpython-314.pyc",
+      "sha256": "732658c545eea97653c008c3ad0aedd7ba3097819440221f4eb24772754cb877"
+    },
+    {
+      "bytes": 6994,
+      "path": "build/torch-cuda/numerics_details/flexpoint.py",
+      "sha256": "6e47ca215c5aea2997a3182e39dca65b0679f1f52e4938fe561c58632bfa7d3a"
+    },
+    {
+      "bytes": 14519,
+      "path": "build/torch-cuda/numerics_details/mxfp.py",
+      "sha256": "d1bc6406c77cd74e122d0a0a97a155f08d491b37d362a9b37f75e498498c6c1d"
+    },
+    {
+      "bytes": 10237,
+      "path": "build/torch-cuda/numerics_details/mxfp_details/__pycache__/_downcast_to_mxfp.cpython-314.pyc",
+      "sha256": "a6ef80c7707ce3b51d2f18a3d0990e795cad6c55d5202eafc6340c51c910bdd0"
+    },
+    {
+      "bytes": 8705,
+      "path": "build/torch-cuda/numerics_details/mxfp_details/__pycache__/_upcast_from_mxfp.cpython-314.pyc",
+      "sha256": "9fc01ec2a6e38775bea990774de7b88ea023c39700c991f126064c3db79438e7"
+    },
+    {
+      "bytes": 8193,
+      "path": "build/torch-cuda/numerics_details/mxfp_details/_downcast_to_mxfp.py",
+      "sha256": "dff2bdae3041cd7312e12ff38bacc7c91b5bbb6c73de5f65609de61290727e71"
+    },
+    {
+      "bytes": 6547,
+      "path": "build/torch-cuda/numerics_details/mxfp_details/_upcast_from_mxfp.py",
+      "sha256": "b08e39e0d088096c0fb4de7f7443646fd0a5a199ce049a06f6aa61d422c3c8af"
+    },
+    {
+      "bytes": 456,
+      "path": "build/torch-cuda/proton_opts.py",
+      "sha256": "0443785ec981dcf9267c727f6b3c07e8a3444888be191443edf6afc858b5f1c3"
+    },
+    {
+      "bytes": 6876,
+      "path": "build/torch-cuda/reduction_details/__pycache__/reduce_bitmatrix.cpython-314.pyc",
+      "sha256": "33ce343fb0fa54f8bbea84c40722e0b41f3b187d29a7920cddc8fae277214fbe"
+    },
+    {
+      "bytes": 4069,
+      "path": "build/torch-cuda/reduction_details/reduce_bitmatrix.py",
+      "sha256": "83c92ebb11a35556c7185e3aeb487802f4e280de158f291e5dddf95407d725fd"
+    },
+    {
+      "bytes": 15452,
+      "path": "build/torch-cuda/routing.py",
+      "sha256": "2b479f6cb6bdad96e62d93670c801e830e19b8d91dc1daf573eac10fe1537f85"
+    },
+    {
+      "bytes": 3942,
+      "path": "build/torch-cuda/routing_details/__pycache__/_expt_data.cpython-314.pyc",
+      "sha256": "1811e8a33c6379e669e597dc629fd86baec60869e325a11710a661d71509f58a"
+    },
+    {
+      "bytes": 9956,
+      "path": "build/torch-cuda/routing_details/__pycache__/_routing_compute.cpython-314.pyc",
+      "sha256": "077883b4ec87db5d85022f8c2e91bd07ca3bcc6ccec198d7dec71fa178f7c2ae"
+    },
+    {
+      "bytes": 2062,
+      "path": "build/torch-cuda/routing_details/_expt_data.py",
+      "sha256": "13defd26d0da5bf6b2f3cbd945c748096a9293117de8c1d9f13b877836c1a80e"
+    },
+    {
+      "bytes": 6507,
+      "path": "build/torch-cuda/routing_details/_routing_compute.py",
+      "sha256": "987c5b9e68ea589a40d07854cb49699943f2193a8ef867e9e7708c3a5066719b"
+    },
+    {
+      "bytes": 4541,
+      "path": "build/torch-cuda/specialize.py",
+      "sha256": "618ea08c80cd93a78745798f226c9836ddb0b454b88ee4fd6c0f37aa2fc2a9b0"
+    },
+    {
+      "bytes": 3199,
+      "path": "build/torch-cuda/swiglu.py",
+      "sha256": "edd7e1eb0dc85b346e5f1d783a5f20a20cc936d2d10591cd8c295221bb995f6c"
+    },
+    {
+      "bytes": 8295,
+      "path": "build/torch-cuda/swiglu_details/__pycache__/_swiglu.cpython-314.pyc",
+      "sha256": "e49f2c6227d580817cba32397548973ef53a222ae41298857096e573f63b489b"
+    },
+    {
+      "bytes": 4462,
+      "path": "build/torch-cuda/swiglu_details/_swiglu.py",
+      "sha256": "2bb8da3ad05235f02a5b30862649942c25d253ae649e120173dc0fcd71971b4d"
+    },
+    {
+      "bytes": 2576,
+      "path": "build/torch-cuda/target_info.py",
+      "sha256": "741a1555c8cf66e03c04d8ef70abf24335ddde21e267c20886308aba76cb37e3"
+    },
+    {
+      "bytes": 7219,
+      "path": "build/torch-cuda/tensor.py",
+      "sha256": "656593135404161e915043669265fe15a717a9d5aa6eee8945ba60b4a0815442"
+    },
+    {
+      "bytes": 1846,
+      "path": "build/torch-cuda/tensor_details/__pycache__/layout.cpython-314.pyc",
+      "sha256": "04adfe30efad8d5edee52899f3b197d771177b1b94a4ab0fc526109cfeaa4f1b"
+    },
+    {
+      "bytes": 1042,
+      "path": "build/torch-cuda/tensor_details/layout.py",
+      "sha256": "1c967c363dad2dd2f37f53117fbff1513535059b10c757e3b8c26f0f021c2a4f"
+    },
+    {
+      "bytes": 1466,
+      "path": "build/torch-cuda/tensor_details/layout_details/__pycache__/base.cpython-314.pyc",
+      "sha256": "8988e6eee4eb8fa0aa73252a9241260f76fb8619ebb9b272e7b9d37772d63e3f"
+    },
+    {
+      "bytes": 5750,
+      "path": "build/torch-cuda/tensor_details/layout_details/__pycache__/blackwell_scale.cpython-314.pyc",
+      "sha256": "e52012cca0bc2d8d16e7feda4e511d1b06a68280086aec76f00c48c9da57e891"
+    },
+    {
+      "bytes": 6751,
+      "path": "build/torch-cuda/tensor_details/layout_details/__pycache__/hopper_scale.cpython-314.pyc",
+      "sha256": "6e5a31e34f17b13656d5da1753c2182ef9d0aca064ac5eea196da4e97dc3b375"
+    },
+    {
+      "bytes": 17288,
+      "path": "build/torch-cuda/tensor_details/layout_details/__pycache__/hopper_value.cpython-314.pyc",
+      "sha256": "5268b46795740876b69a22cd24a4fd130b576c2e64bb2477b68d5df79f8df00b"
+    },
+    {
+      "bytes": 1690,
+      "path": "build/torch-cuda/tensor_details/layout_details/__pycache__/strided.cpython-314.pyc",
+      "sha256": "6aab299eb0e82d96d1e0b71ef2aa88e0835f724bc226cdc36a7aecd00b7fc996"
+    },
+    {
+      "bytes": 352,
+      "path": "build/torch-cuda/tensor_details/layout_details/base.py",
+      "sha256": "2223c16c379d5c47adb29eaf8b5e6a4fcd760a7b864f5591fa68847caffb04a2"
+    },
+    {
+      "bytes": 2366,
+      "path": "build/torch-cuda/tensor_details/layout_details/blackwell_scale.py",
+      "sha256": "e60a5969b587dbd8e5fa675cf751cf3b5f93f7d43013a70318c0ac0f49a56611"
+    },
+    {
+      "bytes": 3061,
+      "path": "build/torch-cuda/tensor_details/layout_details/hopper_scale.py",
+      "sha256": "dd7ed682636b6bfa93e394b9087b208e9fe0a013b202adbeac43e3c034115f48"
+    },
+    {
+      "bytes": 11746,
+      "path": "build/torch-cuda/tensor_details/layout_details/hopper_value.py",
+      "sha256": "21e97c9800ff325525d5274344f7e82afcd72af537524b027806df6b31b74faf"
+    },
+    {
+      "bytes": 337,
+      "path": "build/torch-cuda/tensor_details/layout_details/strided.py",
+      "sha256": "86504afe2d2033068e862e21f41c0e8e53b05dca85544412565f6de6b41d4835"
+    },
+    {
+      "bytes": 7719,
+      "path": "build/torch-cuda/testing.py",
+      "sha256": "c2e54609369bd9d7f17c3239e8303379bfb00c64d98908bc5c29616a45217060"
+    },
+    {
+      "bytes": 3723,
+      "path": "build/torch-cuda/topk.py",
+      "sha256": "9be363835e6ce1af3f79c4dbd18738e222932bfa130588f7fc8981accf443c37"
+    },
+    {
+      "bytes": 0,
+      "path": "build/torch-cuda/topk_details/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 278,
+      "path": "build/torch-cuda/topk_details/__pycache__/__init__.cpython-314.pyc",
+      "sha256": "4c72c701c5b99f3a3a3ddfa7799c4220347a2e693d3a0e4c4e73d331e9c876d7"
+    },
+    {
+      "bytes": 2392,
+      "path": "build/torch-cuda/topk_details/__pycache__/_topk_backward.cpython-314.pyc",
+      "sha256": "7b4aa45b33fc288ac761e20abecab4eef1d61c3c237d61c46c9266fd1560b340"
+    },
+    {
+      "bytes": 9442,
+      "path": "build/torch-cuda/topk_details/__pycache__/_topk_forward.cpython-314.pyc",
+      "sha256": "f0ffe7f633b1dbed941a48c58b2808ce1cc4afd3979a14c509380fec9d525c3a"
+    },
+    {
+      "bytes": 1205,
+      "path": "build/torch-cuda/topk_details/_topk_backward.py",
+      "sha256": "4820d74485e8eecfbc62cdbcca6c8b30f95da8e692e623ac3dd4983e6b5467b1"
+    },
+    {
+      "bytes": 5713,
+      "path": "build/torch-cuda/topk_details/_topk_forward.py",
+      "sha256": "b96cd075eec221f009d9a32139605b9966f28edf6385ee166108f3768a6599f6"
+    }
+  ],
+  "network_download": false,
+  "repository": "kernels-community/gpt-oss-triton-kernels",
+  "revision": "9655fcf7d0f638bec4a82f6f1a70014f0aa8cfb0",
+  "schema_version": 1,
+  "snapshot": "/home/justin/.cache/huggingface/hub/kernels--kernels-community--gpt-oss-triton-kernels/snapshots/9655fcf7d0f638bec4a82f6f1a70014f0aa8cfb0",
+  "source": "preexisting_local_cache",
+  "suite_id": "benchmark_subset_oracle_v1",
+  "variant": "torch-cuda"
+}

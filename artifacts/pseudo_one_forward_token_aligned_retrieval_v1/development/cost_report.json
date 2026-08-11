@@ -1,0 +1,62 @@
+{
+  "exact_recent_residual_additive_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_history_state_bank_bytes": 71958528,
+    "max_retrieval_temporary_cuda_bytes": 4522496,
+    "max_temporary_cuda_bytes": 22891520,
+    "mean_probe_latency_seconds": 0.35240657697431743,
+    "mean_retrieval_latency_seconds": 0.0003081628710788209,
+    "mean_total_planning_latency_seconds": 0.35271473984539625,
+    "router_calls": 1536
+  },
+  "exact_recent_residual_replace_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_history_state_bank_bytes": 71958528,
+    "max_retrieval_temporary_cuda_bytes": 4522496,
+    "max_temporary_cuda_bytes": 22891520,
+    "mean_probe_latency_seconds": 0.3443006537745532,
+    "mean_retrieval_latency_seconds": 0.0002876220387406647,
+    "mean_total_planning_latency_seconds": 0.3445882758132939,
+    "router_calls": 1536
+  },
+  "exact_recent_router_input_additive_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_history_state_bank_bytes": 71958528,
+    "max_retrieval_temporary_cuda_bytes": 4522496,
+    "max_temporary_cuda_bytes": 22891520,
+    "mean_probe_latency_seconds": 0.33511235440528253,
+    "mean_retrieval_latency_seconds": 0.0002838527834683191,
+    "mean_total_planning_latency_seconds": 0.33539620718875085,
+    "router_calls": 1536
+  },
+  "exact_then_embedding_nearest_residual_additive_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_history_state_bank_bytes": 71958528,
+    "max_retrieval_temporary_cuda_bytes": 8806912,
+    "max_temporary_cuda_bytes": 22366720,
+    "mean_probe_latency_seconds": 0.33904479254124453,
+    "mean_retrieval_latency_seconds": 0.0016253797984973062,
+    "mean_total_planning_latency_seconds": 0.34067017233974184,
+    "router_calls": 1536
+  },
+  "exact_then_embedding_nearest_router_input_additive_norm": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_history_state_bank_bytes": 71958528,
+    "max_retrieval_temporary_cuda_bytes": 8806912,
+    "max_temporary_cuda_bytes": 22366720,
+    "mean_probe_latency_seconds": 0.33935758985899156,
+    "mean_retrieval_latency_seconds": 0.0007759915861242916,
+    "mean_total_planning_latency_seconds": 0.34013358144511585,
+    "router_calls": 1536
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "atomic_json_tensor_pairs": true,
+  "candidate_sample_policy_rows_validated": 20,
+  "checksum_resume_pass": true,
+  "failed_markers_preserved": [],
+  "source_reference_rows_validated": 4,
+  "state": "complete"
+}

@@ -1,0 +1,324 @@
+{
+  "model_decisions": [
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 1146093568.0,
+          "exact_token_agreement": 0.9166666666666667,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.2690978778220765
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 1657798656.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.6988636363636364,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 887095296.0,
+          "exact_token_agreement": 0.16666666666666666,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 557.2716204292271
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 536870912.0,
+          "exact_token_agreement": 0.16666666666666666,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 2425.138434542528
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "model": "olmoe",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.29639485613786154,
+          "budget": 32,
+          "domain": "gsm8k",
+          "horizon": 8,
+          "mean_hit_rate": 0.96025390625,
+          "mean_selected_mass": 0.981056634303922,
+          "model": "olmoe",
+          "p05_hit_rate": 0.859375,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.78125
+        },
+        {
+          "baseline_improvement": 0.2613480582599794,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 8,
+          "mean_hit_rate": 0.9821111505681818,
+          "mean_selected_mass": 0.9918168394072203,
+          "model": "olmoe",
+          "p05_hit_rate": 0.890625,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.8125
+        },
+        {
+          "baseline_improvement": 0.23613269601565012,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 16,
+          "mean_hit_rate": 0.9315049913194444,
+          "mean_selected_mass": 0.9594139698285409,
+          "model": "olmoe",
+          "p05_hit_rate": 0.828125,
+          "transfer_reduction": 0.75,
+          "worst_hit_rate": 0.7265625
+        }
+      ],
+      "reason": "no predeclared operating point satisfies coverage, tail, baseline, and quality gates",
+      "tier": "floating_point"
+    },
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 697827328.0,
+          "exact_token_agreement": 0.6666666666666666,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 30.289267295574085
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 1131085824.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.731060606060606,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 501022720.0,
+          "exact_token_agreement": 0.29166666666666663,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 1545.205665528581
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 276824064.0,
+          "exact_token_agreement": 0.29166666666666663,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 814.9350285383437
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "model": "qwen",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.323326624567116,
+          "budget": 32,
+          "domain": "gsm8k",
+          "horizon": 16,
+          "mean_hit_rate": 0.9696858723958334,
+          "mean_selected_mass": 0.9903186488201062,
+          "model": "qwen",
+          "p05_hit_rate": 0.890625,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.8125
+        },
+        {
+          "baseline_improvement": 0.30351329934385296,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 16,
+          "mean_hit_rate": 0.9802879050925926,
+          "mean_selected_mass": 0.9929067818539669,
+          "model": "qwen",
+          "p05_hit_rate": 0.90625,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.84375
+        }
+      ],
+      "reason": "no predeclared operating point satisfies coverage, tail, baseline, and quality gates",
+      "tier": "floating_point"
+    },
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 6973030400.0,
+          "exact_token_agreement": 0.5,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 167.3172761483523
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 9453961216.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.23863636363636365,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 5490343936.0,
+          "exact_token_agreement": 0.25,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 94854.1340793304
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 3758096384.0,
+          "exact_token_agreement": 0.45833333333333337,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 167214.0469530857
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "model": "mixtral",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.14798357417540886,
+          "budget": 6,
+          "domain": "gsm8k",
+          "horizon": 8,
+          "mean_hit_rate": 0.9369419642857143,
+          "mean_selected_mass": 0.9609588356245131,
+          "model": "mixtral",
+          "p05_hit_rate": 0.8125,
+          "transfer_reduction": 0.625,
+          "worst_hit_rate": 0.75
+        },
+        {
+          "baseline_improvement": 0.16021930058063427,
+          "budget": 6,
+          "domain": "wikitext",
+          "horizon": 8,
+          "mean_hit_rate": 0.9559659090909091,
+          "mean_selected_mass": 0.9777743145823479,
+          "model": "mixtral",
+          "p05_hit_rate": 0.875,
+          "transfer_reduction": 0.625,
+          "worst_hit_rate": 0.6875
+        }
+      ],
+      "reason": "no predeclared operating point satisfies coverage, tail, baseline, and quality gates",
+      "tier": "floating_point"
+    },
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 1100087296.0,
+          "exact_token_agreement": 0.625,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 1215.32073886935
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 1543438336.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.6013986013986015,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 781451264.0,
+          "exact_token_agreement": 0.20833333333333331,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 40131.595820403
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 449839104.0,
+          "exact_token_agreement": 0.20833333333333331,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 2284.7882656939646
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "model": "deepseek",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.32614913664222034,
+          "budget": 32,
+          "domain": "gsm8k",
+          "horizon": 8,
+          "mean_hit_rate": 0.990665064102564,
+          "mean_selected_mass": 0.9962912727483689,
+          "model": "deepseek",
+          "p05_hit_rate": 0.9375,
+          "transfer_reduction": 0.33333333333333337,
+          "worst_hit_rate": 0.8541666666666666
+        },
+        {
+          "baseline_improvement": 0.3588622298017867,
+          "budget": 24,
+          "domain": "wikitext",
+          "horizon": 8,
+          "mean_hit_rate": 0.9526150932400932,
+          "mean_selected_mass": 0.9808614288072693,
+          "model": "deepseek",
+          "p05_hit_rate": 0.8333333333333334,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.6875
+        },
+        {
+          "baseline_improvement": 0.245068548228898,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 8,
+          "mean_hit_rate": 0.997960372960373,
+          "mean_selected_mass": 0.9993042172449641,
+          "model": "deepseek",
+          "p05_hit_rate": 1.0,
+          "transfer_reduction": 0.33333333333333337,
+          "worst_hit_rate": 0.8958333333333334
+        },
+        {
+          "baseline_improvement": 0.22587979990867157,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 16,
+          "mean_hit_rate": 0.9520788817663818,
+          "mean_selected_mass": 0.9785909553468302,
+          "model": "deepseek",
+          "p05_hit_rate": 0.8541666666666666,
+          "transfer_reduction": 0.6666666666666667,
+          "worst_hit_rate": 0.7291666666666666
+        }
+      ],
+      "reason": "no predeclared operating point satisfies coverage, tail, baseline, and quality gates",
+      "tier": "floating_point"
+    },
+    {
+      "decision": "STOP/PIVOT",
+      "failure": "gpt-oss trace capture requires batch 1 and every MoE layer",
+      "model": "gpt_oss",
+      "reason": "native MXFP4 fused route capture/runtime incompatibility",
+      "tier": "mxfp4"
+    }
+  ],
+  "overall_decision": "STOP/PIVOT",
+  "schema_version": 1,
+  "scope": {
+    "checkpoints": [
+      "allenai/OLMoE-1B-7B-0125@9b0c1aa87e34a20052389dce1f0cf01da783f654",
+      "Qwen/Qwen1.5-MoE-A2.7B@1a758c50ecb6350748b9ce0a99d2352fd9fc11c9",
+      "mistralai/Mixtral-8x7B-v0.1@fc7ac94680e38d7348cfa806e51218e6273104b0",
+      "deepseek-ai/DeepSeek-V2-Lite-Chat@85864749cd611b4353ce1decdb286193298f64c7",
+      "openai/gpt-oss-20b@6cee5e81ee83917806bbde320786a8fb61efebee"
+    ],
+    "datasets": [
+      "Salesforce/wikitext@b08601e04326c79dfdd32d625aee71d232d685c3",
+      "openai/gsm8k@740312add88f781978c0658806c59bc2815b9866"
+    ],
+    "decoding": "batch-1 deterministic greedy, 12 new tokens",
+    "hardware": "2x NVIDIA A100-SXM4-80GB",
+    "precision": "checkpoint dtype; gpt-oss separate native MXFP4 tier",
+    "timing": "transfer/stall simulated, not measured runtime"
+  },
+  "suite_id": "trained_oracle_gate_v1",
+  "thresholds_predeclared_in": "configs/trained/oracle_gate_v1.yaml"
+}

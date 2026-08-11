@@ -1,0 +1,7 @@
+{
+  "decision": "NARROW_NO_SPEEDUP",
+  "pilot_id": "qwen_penultimate_joint_offload_speed_v2",
+  "schema_version": 1,
+  "stage": "complete/report_v1",
+  "state": "complete"
+}

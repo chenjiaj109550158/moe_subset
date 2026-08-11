@@ -1,0 +1,38 @@
+{
+  "content__exact_future_causal": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 10417664,
+    "mean_probe_latency_seconds": 0.11381792352767661,
+    "router_calls": 192
+  },
+  "content__exact_future_independent": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.7943483947310597,
+    "router_calls": 1536
+  },
+  "content__recent_sequence_causal": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 10417664,
+    "mean_probe_latency_seconds": 0.10775677248602733,
+    "router_calls": 192
+  },
+  "content__recent_sequence_independent": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.813749232533155,
+    "router_calls": 1536
+  },
+  "content__sampled_repeat_causal": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 10417664,
+    "mean_probe_latency_seconds": 0.11691872827941552,
+    "router_calls": 192
+  },
+  "content__sampled_repeat_independent": {
+    "attention_queries": 1536,
+    "max_temporary_cuda_bytes": 64560128,
+    "mean_probe_latency_seconds": 0.8014406694856007,
+    "router_calls": 1536
+  }
+}

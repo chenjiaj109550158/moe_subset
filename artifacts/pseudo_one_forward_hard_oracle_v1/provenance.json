@@ -1,0 +1,23 @@
+{
+  "current_policy_closed_loop_context_used": true,
+  "future_v17_tokens_used": false,
+  "hard_oracle_generation_executed": true,
+  "identity_materialized": false,
+  "label_or_correctness_used_during_policy_execution": false,
+  "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "parent_pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "pilot_id": "pseudo_one_forward_hard_oracle_v1",
+  "sample_ids": [
+    "test-44",
+    "test-632",
+    "test-444",
+    "test-519",
+    "test-1311",
+    "test-1264",
+    "test-825",
+    "test-252"
+  ],
+  "vanilla_regenerated": false
+}

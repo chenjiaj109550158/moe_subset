@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "4b9d75cbe9f0228c",
+  "command": "benchmark-offload",
+  "result_kind": "runtime",
+  "information_regime": "online_pre_sample",
+  "config_sha256": "8b3dee56faa0c086ffff7e83952b1655d74377075100819ccd421637b0710d89",
+  "created_utc": "2026-07-27T07:29:34.328798+00:00",
+  "complete": true,
+  "negative_results": [],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 88,
+      "sha256": "b6fa198736b055a7537ac3bd841d473e4e1f5c801d68c760439cc9a69908691b"
+    },
+    {
+      "path": "generated.csv",
+      "bytes": 194,
+      "sha256": "e1d5d20227489ee3cadd268daa9f13d8644ee0af7a8a519abe775af25e5e6cea"
+    },
+    {
+      "path": "hardware.json",
+      "bytes": 148,
+      "sha256": "ca2b08f2657316a7c2c10be12b6846140ae2a5dfad1df0b3f06b9a8bf556e3da"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 1142,
+      "sha256": "65d0883fbf9af44a58eaadc333491b4126ebaf5372c6160c6b3dc9e2b1795827"
+    },
+    {
+      "path": "model_manifest.json",
+      "bytes": 463,
+      "sha256": "9608eb417de7062f67f54ae8aeabf0770ca2bfda1d51f84b9bc130c7c98ef060"
+    },
+    {
+      "path": "repetitions.csv",
+      "bytes": 719,
+      "sha256": "8e8cdab2cb0053e445b3c5e4e7c3f833f753dd97f6b0c6b8089949112c720dc1"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 553,
+      "sha256": "8b3dee56faa0c086ffff7e83952b1655d74377075100819ccd421637b0710d89"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 1142,
+      "sha256": "65d0883fbf9af44a58eaadc333491b4126ebaf5372c6160c6b3dc9e2b1795827"
+    },
+    {
+      "path": "transfers.csv",
+      "bytes": 8704,
+      "sha256": "ed90aa6e64b3f64cea570affb3ffdeed8ce441da2f257fd690d944091dd1f75f"
+    }
+  ]
+}

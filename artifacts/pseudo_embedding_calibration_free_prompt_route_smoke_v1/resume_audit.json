@@ -1,0 +1,11 @@
+{
+  "atomic_json_tensor_pairs": true,
+  "checksum_resume": true,
+  "failed_markers_preserved": [
+    "prompt_route/samples/00786.2048930.FAILED.json"
+  ],
+  "samples_expected": 2,
+  "samples_validated": 2,
+  "schema_version": 1,
+  "state": "complete"
+}

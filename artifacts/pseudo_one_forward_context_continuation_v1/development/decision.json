@@ -1,0 +1,17 @@
+{
+  "analysis_id": "pseudo_one_forward_context_continuation_v1",
+  "decision": "DEVELOPMENT_ROUTE_SIGNAL",
+  "held_out_route_authorized": false,
+  "ranked_candidate_variants": [
+    "sampled_unigram_full_continuation",
+    "longest_suffix_full_continuation",
+    "longest_suffix_partial_recent_fill"
+  ],
+  "route_signal_variants": [
+    "longest_suffix_full_continuation",
+    "sampled_unigram_full_continuation",
+    "longest_suffix_partial_recent_fill"
+  ],
+  "selected_route_signal_variant": "sampled_unigram_full_continuation",
+  "task_accuracy_authorized": false
+}

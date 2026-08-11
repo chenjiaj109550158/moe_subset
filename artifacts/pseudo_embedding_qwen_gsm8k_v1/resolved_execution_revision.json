@@ -1,0 +1,18 @@
+{
+  "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+  "git_head": "b2c20b7801709bd3b7bceaca797bfc0bb8645661",
+  "model_and_dataset_cache_policy": "preexisting_local_cache_only",
+  "network_downloads_authorized": false,
+  "pid": 1883141,
+  "ppid": 1883131,
+  "required_commits": [
+    "cbb0e60",
+    "94b8810",
+    "c0a96e5",
+    "15fb7ae",
+    "04280a3"
+  ],
+  "schema_version": 1,
+  "suite_id": "pseudo_embedding_qwen_gsm8k_v1",
+  "worktree_clean": true
+}

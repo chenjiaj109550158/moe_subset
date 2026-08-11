@@ -1,0 +1,38 @@
+{
+  "artifact_count": 44,
+  "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+  "decision": "STOP/PIVOT",
+  "report": "/home/justin/moe_subset/artifacts/pseudo_embedding_qwen_gsm8k_v1/report.md",
+  "resume_audit": {
+    "actual_sample_policy_rows_validated": 0,
+    "atomic_actual_checksummed_json": true,
+    "atomic_route_tensor_plus_json": true,
+    "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+    "failed_markers_preserved": [
+      "route/development/samples/00000.1875238.FAILED.json",
+      "route/development/samples/00000.1875812.FAILED.json",
+      "route/mechanism_smoke/attempt_001.FAILED.json",
+      "route/mechanism_smoke/samples/00786.1873556.FAILED.json"
+    ],
+    "resume_validation_pass": true,
+    "route_partitions": [
+      {
+        "partition": "mechanism_smoke",
+        "samples": 2
+      },
+      {
+        "partition": "development",
+        "samples": 4
+      }
+    ],
+    "route_sample_rows_validated": 6,
+    "schema_version": 1,
+    "state": "complete",
+    "suite_id": "pseudo_embedding_qwen_gsm8k_v1"
+  },
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "suite_id": "pseudo_embedding_qwen_gsm8k_v1",
+  "updated_at": "2026-08-01T06:21:29.998361+00:00"
+}

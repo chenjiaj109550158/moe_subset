@@ -1,0 +1,9 @@
+{
+  "conclusion_ceiling": "PILOT_NARROW",
+  "decision": "PILOT_NARROW_WITH_ONE_ALLOWED_LOSS",
+  "full_dataset_go": false,
+  "future_exact_deployable": false,
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_eight_row_actual_closed_loop_pilot"
+}

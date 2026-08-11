@@ -1,0 +1,12 @@
+{
+  "atomic_json_tensor_pairs": true,
+  "checksum_resume_pass": true,
+  "failed_markers_preserved": [
+    "development/samples/00000/current_repeat_independent.2248579.FAILED.json",
+    "development/samples/00000/self_top2_particle_probability_weighted.2268189.FAILED.json",
+    "development/samples/00439/current_repeat_independent.2248657.FAILED.json",
+    "development/samples/00439/self_top2_particle_probability_weighted.2268279.FAILED.json"
+  ],
+  "sample_policy_rows_validated": 104,
+  "state": "complete"
+}

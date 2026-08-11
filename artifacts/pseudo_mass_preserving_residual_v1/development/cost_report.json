@@ -1,0 +1,34 @@
+{
+  "captured_natural_plus_substitute_missing_mass": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22160384,
+    "mean_probe_latency_seconds": 0.5088521515629054,
+    "router_calls": 1536
+  },
+  "natural_top8_intersection_zero_missing": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22160384,
+    "mean_probe_latency_seconds": 0.22094568618740595,
+    "router_calls": 1536
+  },
+  "rerouted_top8_scaled_by_captured_natural_mass": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22160384,
+    "mean_probe_latency_seconds": 0.24553390406276776,
+    "router_calls": 1536
+  },
+  "sampled_unigram_full_continuation": {
+    "attention_calls": 1536,
+    "attention_queries": 12288,
+    "expert_calls": 1536,
+    "max_temporary_cuda_bytes": 22170112,
+    "mean_probe_latency_seconds": 0.30553831461656955,
+    "router_calls": 1536
+  }
+}

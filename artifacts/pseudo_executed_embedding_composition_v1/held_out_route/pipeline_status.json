@@ -1,0 +1,7 @@
+{
+  "all_audits_pass": true,
+  "decision": "ROUTE_SIGNAL",
+  "sample_policy_rows": 32,
+  "selected_deployable": "self_greedy_causal",
+  "state": "complete"
+}

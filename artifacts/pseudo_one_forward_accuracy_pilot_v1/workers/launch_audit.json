@@ -1,0 +1,37 @@
+{
+  "incident": {
+    "completed_actual_rows_before_incident": 0,
+    "model_error_or_oom_observed": false,
+    "partial_actual_rows_preserved": 0,
+    "reason": "interactive PTY session was cancelled when monitoring turn was interrupted",
+    "smoke_rows_preserved": 3,
+    "terminated_pids": [
+      2410574,
+      2410678
+    ]
+  },
+  "recorded_at_utc": "2026-08-02T17:50:19.123872+00:00",
+  "relaunch": {
+    "expected_ppid": 1,
+    "gpu_to_shard": {
+      "0": 0,
+      "1": 1
+    },
+    "logs": [
+      "workers/shard_0.log",
+      "workers/shard_1.log"
+    ],
+    "method": "nohup_setsid_detached",
+    "pids": [
+      11344,
+      11394
+    ],
+    "session_ids": [
+      11344,
+      11394
+    ],
+    "workers_per_gpu": 1
+  },
+  "schema_version": 1,
+  "state": "workers_relaunched_detached"
+}

@@ -1,0 +1,12 @@
+{
+  "analysis_config_sha256": "5bac51be6be2ab90aed563eb9208ce23afa772c9b109e9fa1bf66ee319bb81ee",
+  "analysis_id": "pseudo_one_forward_protected_anchor_v2",
+  "artifact_count": 58,
+  "candidate_sample_policy_rows": 20,
+  "decision": "STOP/PIVOT",
+  "schema_version": 1,
+  "source_reference_rows": 4,
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": false
+}

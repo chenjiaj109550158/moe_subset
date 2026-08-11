@@ -1,0 +1,828 @@
+{
+  "history_length": 3,
+  "horizon_scale": 4.0,
+  "information_regime": "offline_teacher_forced",
+  "num_experts": 4,
+  "num_layers": 2,
+  "num_rows": 102,
+  "position_scale": 10.0,
+  "rows": [
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 8,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-0",
+      "split": "test"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 8,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-1",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 8,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-2",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 8,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-3",
+      "split": "test"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 8,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-4",
+      "split": "validation"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 2,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 3,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 4,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 5,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 4,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 6,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 7,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 2,
+      "sample_id": "document-5",
+      "split": "train"
+    },
+    {
+      "boundary_position": 8,
+      "decision_mode": "online_pre_sample",
+      "history_length": 3,
+      "horizon": 1,
+      "sample_id": "document-5",
+      "split": "train"
+    }
+  ],
+  "schema_version": 1
+}

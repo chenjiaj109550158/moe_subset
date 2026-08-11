@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "0a60149a83fdd7cd",
+  "command": "oracle-sweep",
+  "result_kind": "oracle",
+  "information_regime": "oracle",
+  "config_sha256": "f96cb0b1ef994e58075edcd673b3450df232854b2d32c9f5f19636e4d7506772",
+  "created_utc": "2026-07-27T07:25:45.307542+00:00",
+  "complete": true,
+  "negative_results": [],
+  "artifacts": [
+    {
+      "path": "DONE",
+      "bytes": 9,
+      "sha256": "37a40f08d8548dba289b9b0bb35bcf63b359f6d37ee86044ebc6b6da080b9ec1"
+    },
+    {
+      "path": "expert_union_size.svg",
+      "bytes": 832,
+      "sha256": "3a130ab175e5578a9f0fef6f363a7ae3d1d9d794e6c50339950ede54e2e25b96"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 322,
+      "sha256": "b9478b09f466d83eca8672a610cd36271bf54fea2b4494a152ace5a73df1bcfa"
+    },
+    {
+      "path": "oracle_layers.csv",
+      "bytes": 3107,
+      "sha256": "8be86406d6ae7608a2ca81cc54a57c887bd16c0c9ce33e9bb211afe203a9c13a"
+    },
+    {
+      "path": "oracle_windows.csv",
+      "bytes": 116984,
+      "sha256": "d49ef8845e7de5a9391fe59e6cb6c12444c027f51a93feb51a3568c4a835ede0"
+    },
+    {
+      "path": "resolved_config.json",
+      "bytes": 803,
+      "sha256": "f96cb0b1ef994e58075edcd673b3450df232854b2d32c9f5f19636e4d7506772"
+    },
+    {
+      "path": "sch_hit_rate.svg",
+      "bytes": 2756,
+      "sha256": "2a1f46238de890ac27ef9ed60a5e4e745f0b256204bb268d0ccff52536f22152"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 322,
+      "sha256": "b9478b09f466d83eca8672a610cd36271bf54fea2b4494a152ace5a73df1bcfa"
+    }
+  ]
+}

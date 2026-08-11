@@ -1,0 +1,19 @@
+{
+  "measured": [
+    "actual_closed_loop_gsm8k_accuracy",
+    "generated_tokens_and_exact_token_agreement",
+    "v17_token_nll_on_policy_context_and_perplexity",
+    "route_hit_and_selected_routing_mass",
+    "probe_and_total_generation_runtime",
+    "peak_cuda_memory"
+  ],
+  "not_measured": [
+    "production_offloading_runtime",
+    "production_runtime_speedup",
+    "full_dataset_accuracy"
+  ],
+  "simulated": [
+    "expert_transfer_bytes",
+    "transfer_reduction"
+  ]
+}

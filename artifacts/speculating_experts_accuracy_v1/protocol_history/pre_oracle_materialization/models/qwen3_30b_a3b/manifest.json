@@ -1,0 +1,91 @@
+{
+  "config_fingerprint": "ba5c1f8825645ec1861232d43bd8ca9da6bd5d7641e78c7304a3493c463ce7d7",
+  "default_vector_fingerprint": "baae202908e3a2d3f11f980eb99c52e6815b51a7386f47654dd1e25fcbdab1fd",
+  "elapsed_seconds": 237.38104677200317,
+  "max_samples": 1,
+  "model": {
+    "architecture": "qwen3_moe",
+    "device": "cuda:0",
+    "honor_task_stop_strings": true,
+    "key": "qwen3_30b_a3b",
+    "max_new_tokens_overrides": {},
+    "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "precision_tier": "bfloat16",
+    "reasoning_effort": "none",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe"
+  },
+  "policies": [
+    "vanilla",
+    "router_pf",
+    "oracle_pf"
+  ],
+  "schema_version": 1,
+  "software_hardware": {
+    "cuda_runtime": "13.0",
+    "cudnn": 92000,
+    "datasets": "4.8.5",
+    "gpus": [
+      "0, NVIDIA A100-SXM4-80GB, 81920 MiB, 580.126.09",
+      "1, NVIDIA A100-SXM4-80GB, 81920 MiB, 580.126.09"
+    ],
+    "platform": "Linux-6.8.0-100-generic-x86_64-with-glibc2.39",
+    "python": "3.14.6",
+    "safetensors": "0.8.0",
+    "torch": "2.13.0+cu130",
+    "transformers": "5.14.1"
+  },
+  "suite_id": "speculating_experts_accuracy_v1",
+  "tasks": [
+    "humaneval",
+    "mbpp_plus",
+    "gsm8k",
+    "strategyqa"
+  ],
+  "validation": {
+    "architecture": "qwen3_moe",
+    "default_vector_fingerprint": "baae202908e3a2d3f11f980eb99c52e6815b51a7386f47654dd1e25fcbdab1fd",
+    "experts": 128,
+    "explicit_natural_stats": {
+      "calls": 48,
+      "compared_tokens": 0,
+      "exact_topk_agreement": 1.0,
+      "exact_topk_tokens": 0,
+      "matching_selected_slots": 0,
+      "selected_route_hit_rate": 1.0,
+      "selected_slots": 0
+    },
+    "hidden_size": 2048,
+    "layers": 48,
+    "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "native_explicit_argmax_equal": true,
+    "native_explicit_max_abs_logit_delta": 0.0,
+    "native_oracle_argmax_equal": true,
+    "native_oracle_max_abs_logit_delta": 0.0,
+    "oracle_stats": {
+      "calls": 48,
+      "compared_tokens": 1786,
+      "exact_topk_agreement": 1.0,
+      "exact_topk_tokens": 1786,
+      "matching_selected_slots": 14288,
+      "selected_route_hit_rate": 1.0,
+      "selected_slots": 14288
+    },
+    "parity_tolerance": 0.001,
+    "passed": true,
+    "peak_cuda_allocated_bytes": 61255544320,
+    "precision_tier": "bfloat16",
+    "rendered_prompt_sha256": "90d66775d6aae0647229027c318a4ce0fb7981023d4930f76dda71af63279e1c",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "router_pf_finite": true,
+    "router_pf_stats": {
+      "calls": 48,
+      "compared_tokens": 1786,
+      "exact_topk_agreement": 0.02295632698768197,
+      "exact_topk_tokens": 41,
+      "matching_selected_slots": 12269,
+      "selected_route_hit_rate": 0.8586926091825308,
+      "selected_slots": 14288
+    },
+    "top_k": 8
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "analysis_id": "pseudo_state_component_swap_v1",
+  "candidate_execution_requires_separate_frozen_protocol": true,
+  "classification": "moe_residual_dominant",
+  "focused_decision": "NARROW",
+  "gains_over_unpatched": {
+    "attention": {
+      "route_hit": -0.0111083984375,
+      "selected_mass": -0.010740625706567641
+    },
+    "joint": {
+      "route_hit": 0.03328450520833326,
+      "selected_mass": 0.02226572620546019
+    },
+    "moe": {
+      "route_hit": 0.03328450520833326,
+      "selected_mass": 0.02226572620546019
+    }
+  },
+  "held_out_route_authorized": false,
+  "latest_checkpoint_meeting_recovery": null,
+  "next_calibration_free_candidate": "mass_preserving_previous_subset_residual",
+  "passing_checkpoints": [],
+  "task_accuracy_authorized": false
+}

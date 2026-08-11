@@ -1,0 +1,73 @@
+{
+  "analysis_config_sha256": "117ce2f4f05d91760d36a7e20136120dbead5853d97af89b37d95faeefcd7f4c",
+  "analysis_id": "pseudo_executed_previous_subset_smoke_v1",
+  "executed_minus_provided_control": {
+    "mean_route_hit": 0.03955078125,
+    "mean_selected_mass": 0.03665424379558824
+  },
+  "policies": {
+    "previous_route_commitment_reference": {
+      "attention_calls": 0,
+      "attention_queries": 0,
+      "boundaries": 4,
+      "estimated_transfer_reduction": 0.33219401041666663,
+      "expert_calls": 0,
+      "max_temporary_cuda_bytes": 0,
+      "mean_probe_latency_seconds": 0.0,
+      "mean_route_hit": 0.6809895833333334,
+      "mean_sample_policy_elapsed_seconds": 4.949241638183594,
+      "mean_selected_mass": 0.6985619355948135,
+      "natural_reference_bytes": 115964116992,
+      "route_hits": 8368,
+      "route_slots": 12288,
+      "router_calls": 0,
+      "samples": 2,
+      "selected_mass_hit": 1072.9814758300781,
+      "selected_mass_total": 1535.9861755371094,
+      "simulated_lossless_transfer_bytes": 77441531904,
+      "total_sample_policy_elapsed_seconds": 9.898483276367188
+    },
+    "provided_previous_residual_control": {
+      "attention_calls": 1536,
+      "attention_queries": 1536,
+      "boundaries": 4,
+      "estimated_transfer_reduction": 0.346435546875,
+      "expert_calls": 0,
+      "max_temporary_cuda_bytes": 64560128,
+      "mean_probe_latency_seconds": 0.8149406605225522,
+      "mean_route_hit": 0.6978352864583334,
+      "mean_sample_policy_elapsed_seconds": 6.674002528190613,
+      "mean_selected_mass": 0.7189889717576751,
+      "natural_reference_bytes": 115964116992,
+      "route_hits": 8575,
+      "route_slots": 12288,
+      "router_calls": 1536,
+      "samples": 2,
+      "selected_mass_hit": 1104.3757934570312,
+      "selected_mass_total": 1536.0121459960938,
+      "simulated_lossless_transfer_bytes": 75790024704,
+      "total_sample_policy_elapsed_seconds": 13.348005056381226
+    },
+    "pseudo_executed_previous_subset": {
+      "attention_calls": 1536,
+      "attention_queries": 1536,
+      "boundaries": 4,
+      "estimated_transfer_reduction": 0.40022786458333337,
+      "expert_calls": 1536,
+      "max_temporary_cuda_bytes": 64691200,
+      "mean_probe_latency_seconds": 2.0375519475201145,
+      "mean_route_hit": 0.7373860677083334,
+      "mean_sample_policy_elapsed_seconds": 9.925316572189331,
+      "mean_selected_mass": 0.7556432155532633,
+      "natural_reference_bytes": 115964116992,
+      "route_hits": 9061,
+      "route_slots": 12288,
+      "router_calls": 1536,
+      "samples": 2,
+      "selected_mass_hit": 1160.7074584960938,
+      "selected_mass_total": 1536.05224609375,
+      "simulated_lossless_transfer_bytes": 69552046080,
+      "total_sample_policy_elapsed_seconds": 19.850633144378662
+    }
+  }
+}

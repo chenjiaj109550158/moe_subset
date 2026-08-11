@@ -1,0 +1,14 @@
+{
+  "accuracy_used": false,
+  "analysis_config_sha256": "66cc4643310e8d1b1ed0239c57a02c86664510db16489b03fde90bd7f1c5f7f0",
+  "analysis_id": "pseudo_embedding_calibration_free_content_smoke_v1",
+  "best_deployable": "recent_window_equal_history_blend",
+  "best_new_deployable": "recent_window_equal_history_blend",
+  "best_new_route_hit_gain_over_repeat": 0.07470703125,
+  "best_new_selected_mass_gain_over_repeat": 0.08636883672463547,
+  "decision": "MECHANISM_PROMISING_FOR_NEW_FROZEN_DEVELOPMENT",
+  "diagnostic_oracles_excluded_from_ranking": true,
+  "result_role": "two_row_mechanism_hypothesis_only",
+  "schema_version": 1,
+  "terminal_v1_decision_unchanged": true
+}

@@ -1,0 +1,104 @@
+{
+  "artifact_count": 19,
+  "artifacts": [
+    {
+      "bytes": 10347,
+      "path": "actual/00044/hard_oracle_commitment.json",
+      "sha256": "f9be3534ba9509feaf2e2fd6a3f260ba85b997288fdc5d22d7230d807c9282e9"
+    },
+    {
+      "bytes": 9865,
+      "path": "actual/00252/hard_oracle_commitment.json",
+      "sha256": "4bed88ad23d900ed4ad6e09ed732b8eb4d056db18389a3bc546ad6791f384b0c"
+    },
+    {
+      "bytes": 8606,
+      "path": "actual/00444/hard_oracle_commitment.json",
+      "sha256": "91550ef24fa13ab6438d42ed352e80b7307662b7a00304b067afe6dbd0a86e29"
+    },
+    {
+      "bytes": 7565,
+      "path": "actual/00519/hard_oracle_commitment.json",
+      "sha256": "8e9842b19431b4e5d4fc4a3e63e9c9d83a4190def8731727dd1607fbca4be16a"
+    },
+    {
+      "bytes": 7656,
+      "path": "actual/00632/hard_oracle_commitment.json",
+      "sha256": "aea54f723bc0869fb4eb505ef21626f881ccb8996ef4ec375588cac2128aaab2"
+    },
+    {
+      "bytes": 10973,
+      "path": "actual/00825/hard_oracle_commitment.json",
+      "sha256": "617b1a8254c3961f63f7e47e6339b79106af8d744742bbfcbe13b98c7761e8db"
+    },
+    {
+      "bytes": 12473,
+      "path": "actual/01264/hard_oracle_commitment.json",
+      "sha256": "eda64c5fa4bb9bc1979d77385846c07083aa8a5a0dc01b94687c8691f46a1dd2"
+    },
+    {
+      "bytes": 8282,
+      "path": "actual/01311/hard_oracle_commitment.json",
+      "sha256": "d966bad7e105a8e569cd94363938d4075705cc5d808d17dc48202b0845ad5541"
+    },
+    {
+      "bytes": 353,
+      "path": "decision.json",
+      "sha256": "7694576dc26b6cd9a2094b55067d5c9dc27a3861b3a380e20271d3b9a2ef8f80"
+    },
+    {
+      "bytes": 429,
+      "path": "measured_vs_simulated.json",
+      "sha256": "d0ea39eb2ca1e91f9f96945fe223c0d85b6f75885596d685f61bcba80c089372"
+    },
+    {
+      "bytes": 300,
+      "path": "paired_accuracy_bootstrap.json",
+      "sha256": "081983d7b400439cbd7e6dbdf4df9279f5820dc16f9591cd0707896d35748df8"
+    },
+    {
+      "bytes": 667,
+      "path": "provenance.json",
+      "sha256": "55c5f5e7e268b9813cc77594b1fbc188f2a2bc4594f05237a4c2c5de47d17887"
+    },
+    {
+      "bytes": 826,
+      "path": "report.md",
+      "sha256": "a459bf5dfe74d14a02be99dca9779a511b8d76ec26aa1816a025b66c5acda5b3"
+    },
+    {
+      "bytes": 5528,
+      "path": "resolved_config.json",
+      "sha256": "068dc2a8b42cabddbf89f4de540f05786811d8a1231d5cf2b61aa7ee123ce0e7"
+    },
+    {
+      "bytes": 307,
+      "path": "resolved_environment.json",
+      "sha256": "60624810ae9543c3a1972401fc0e38993d9022e97b7f7ccd8c001cfb455e7c9e"
+    },
+    {
+      "bytes": 219,
+      "path": "resolved_execution_revision.json",
+      "sha256": "76721d1ea31f3844844764840bc9fc45fe3ee18447ad5491fda94c1fc67f24a3"
+    },
+    {
+      "bytes": 4362,
+      "path": "resolved_sample_manifest.json",
+      "sha256": "445f05f6b9eb188869eee8cac45041b5c609befd739f2f3c4055b723c84c2473"
+    },
+    {
+      "bytes": 164,
+      "path": "resume_audit.json",
+      "sha256": "6b171aa4e6ed6d834e2abc152416b5771c5d0ddde370653bcfb979fe7b12092c"
+    },
+    {
+      "bytes": 4740,
+      "path": "summary.json",
+      "sha256": "c8b3bb4b9d86a18f3c5bada6d435a92c8e20f96b1398a704d0a0d7a746a305bd"
+    }
+  ],
+  "config_sha256": "60e03148a24ad16859ca21631a3644d4db6930b0bdaddc482060646b77e902b6",
+  "pilot_id": "pseudo_one_forward_hard_oracle_v1",
+  "sample_manifest_sha256": "fe8012f22e7aec13eb3ae553f725b5b8505387c7693ff0aa08f59a29b693b046",
+  "schema_version": 1
+}

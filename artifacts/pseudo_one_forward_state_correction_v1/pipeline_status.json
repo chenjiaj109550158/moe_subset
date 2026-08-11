@@ -1,0 +1,11 @@
+{
+  "analysis_config_sha256": "7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44",
+  "analysis_id": "pseudo_one_forward_state_correction_v1",
+  "artifact_count": 41,
+  "decision": "STOP/PIVOT",
+  "sample_policy_rows": 12,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": false
+}

@@ -1,0 +1,32 @@
+{
+  "actual_full_sample_rows": 1319,
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "evaluated_tasks": [
+    "gsm8k"
+  ],
+  "execution_scope_fingerprint": "a5a908ad0124d2041b589a681e7102d3ea5d3f7df90752075799bb9875871d7c",
+  "execution_scope_id": "benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2",
+  "materialized_closed_loop_rows": 3957,
+  "mechanism_smoke": {
+    "hard_executed_route_changed_by_model": {
+      "gpt_oss_20b": true,
+      "qwen3_30b_a3b": true
+    },
+    "lossless_exact_identity": true,
+    "mechanism_smoke_rows": 24,
+    "smoke_point_is_operating_candidate": false
+  },
+  "natural_trace_manifests": 2,
+  "open_loop_envelopes": 2,
+  "provenance_validation": "passed",
+  "required_full_actual_policies": [
+    "hard_oracle_commitment"
+  ],
+  "resume_atomic_unit": "one_sample_policy_row",
+  "schema_version": 1,
+  "selected_models": 1,
+  "source_v17_rows": 5216,
+  "source_v17_rows_in_scope": 1319,
+  "state": "complete",
+  "suite_id": "benchmark_subset_oracle_v1"
+}

@@ -1,0 +1,14 @@
+{
+  "experiment": {
+    "information_regime": "online_pre_sample",
+    "name": "tiny_m6_probe_evaluation",
+    "seed": 1234
+  },
+  "latency_repetitions": 10,
+  "predictor_dir": "/home/justin/moe_subset/artifacts/reproduction/m11_primary_definitive_v2/runs/train_predictor",
+  "rolling_decay": 0.9,
+  "rolling_lookback": 3,
+  "schema_version": 1,
+  "top_b": 2,
+  "training_config": "configs/experiment/train_predictor_tiny.yaml"
+}

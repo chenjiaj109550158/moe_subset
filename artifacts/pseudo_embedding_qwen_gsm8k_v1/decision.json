@@ -1,0 +1,33 @@
+{
+  "actual_closed_loop_completed": false,
+  "claim_limits": {
+    "default_vectors_are_complete_expert_prior": false,
+    "full_dataset_go": false,
+    "identity_materialized_rows": 0,
+    "runtime_speedup": false,
+    "stall_not_estimated_without_frozen_latency_model": true,
+    "transfer_is_simulated": true,
+    "unobserved_default_layer_expert_pairs_saved_as_zero": 444
+  },
+  "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+  "decision": "STOP/PIVOT",
+  "development_progress_gate_pass": false,
+  "held_out_route_gate_pass": false,
+  "mechanism_smoke_pass": true,
+  "reasons": [
+    "development_progress_gate_failed",
+    "held_out_route_not_run_by_frozen_development_stop_rule"
+  ],
+  "schema_version": 1,
+  "scope": {
+    "budget": 32,
+    "horizon": 8,
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "samples_maximum": 16,
+    "task": "gsm8k"
+  },
+  "selected_variant": null,
+  "state": "complete",
+  "suite_id": "pseudo_embedding_qwen_gsm8k_v1"
+}

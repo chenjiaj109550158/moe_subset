@@ -1,0 +1,23 @@
+{
+  "actual_hard_closed_loop_rows": 8,
+  "identity_materialized_rows": 0,
+  "measured": [
+    "actual_hard_closed_loop_gsm8k_accuracy",
+    "token_agreement_and_divergence",
+    "route_hit_and_selected_routing_mass",
+    "v17_token_nll_and_perplexity_on_policy_context",
+    "logical_simulator_probe_bridge_and_generation_runtime",
+    "cache_rng_and_bridge_parity"
+  ],
+  "not_measured": [
+    "actual_expert_offload_runtime",
+    "prefetch_overlap",
+    "joint_fused_kernel_runtime",
+    "production_speedup",
+    "full_dataset_accuracy"
+  ],
+  "simulated": [
+    "expert_transfer_bytes",
+    "transfer_reduction"
+  ]
+}

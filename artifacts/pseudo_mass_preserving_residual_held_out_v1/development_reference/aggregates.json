@@ -1,0 +1,46 @@
+{
+  "policies": {
+    "natural_top8_intersection_zero_missing": {
+      "attention_calls": 1536,
+      "attention_queries": 12288,
+      "boundaries": 32,
+      "estimated_transfer_reduction": 0.5043538411458333,
+      "expert_calls": 1536,
+      "max_temporary_cuda_bytes": 22160384,
+      "mean_probe_latency_seconds": 0.22094568618740595,
+      "mean_route_hit": 0.730438232421875,
+      "mean_sample_policy_elapsed_seconds": 15.425168812274933,
+      "mean_selected_mass": 0.7473866816317274,
+      "natural_reference_bytes": 927712935936,
+      "route_hits": 71805,
+      "route_slots": 98304,
+      "router_calls": 1536,
+      "samples": 4,
+      "selected_mass_hit": 9183.852966308594,
+      "selected_mass_total": 12287.953735351562,
+      "simulated_lossless_transfer_bytes": 459817353216,
+      "total_sample_policy_elapsed_seconds": 61.70067524909973
+    },
+    "previous_route_commitment": {
+      "attention_calls": 0,
+      "attention_queries": 0,
+      "boundaries": 32,
+      "estimated_transfer_reduction": 0.32338460286458337,
+      "expert_calls": 0,
+      "max_temporary_cuda_bytes": 0,
+      "mean_probe_latency_seconds": 0.0,
+      "mean_route_hit": 0.5893452962239584,
+      "mean_sample_policy_elapsed_seconds": 11.08494758605957,
+      "mean_selected_mass": 0.5930251967201473,
+      "natural_reference_bytes": 927712935936,
+      "route_hits": 57935,
+      "route_slots": 98304,
+      "router_calls": 0,
+      "samples": 4,
+      "selected_mass_hit": 7287.089599609375,
+      "selected_mass_total": 12287.993225097656,
+      "simulated_lossless_transfer_bytes": 627704856576,
+      "total_sample_policy_elapsed_seconds": 44.33979034423828
+    }
+  }
+}

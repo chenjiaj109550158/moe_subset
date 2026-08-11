@@ -1,0 +1,29 @@
+{
+  "hard_oracle_commitment": {
+    "attention_calls": 0,
+    "attention_queries": 0,
+    "expert_calls": 0,
+    "max_temporary_cuda_bytes": 0,
+    "mean_probe_latency_seconds": 0.0,
+    "mean_sample_policy_elapsed_seconds": 37.49170756340027,
+    "router_calls": 0
+  },
+  "natural_top8_intersection_zero_missing": {
+    "attention_calls": 6096,
+    "attention_queries": 48768,
+    "expert_calls": 6096,
+    "max_temporary_cuda_bytes": 26167808,
+    "mean_probe_latency_seconds": 0.17551485010959927,
+    "mean_sample_policy_elapsed_seconds": 24.16000857949257,
+    "router_calls": 6096
+  },
+  "previous_route_commitment": {
+    "attention_calls": 0,
+    "attention_queries": 0,
+    "expert_calls": 0,
+    "max_temporary_cuda_bytes": 0,
+    "mean_probe_latency_seconds": 0.0,
+    "mean_sample_policy_elapsed_seconds": 21.199426352977753,
+    "router_calls": 0
+  }
+}

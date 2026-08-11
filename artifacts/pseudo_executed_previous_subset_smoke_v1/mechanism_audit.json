@@ -1,0 +1,50 @@
+{
+  "all_pass": true,
+  "boundary_zero_full_native_top8": true,
+  "default_vector_values_used": false,
+  "full_pre_mask_router_scores_all_128_experts": true,
+  "future_true_tokens_used_by_pseudo_policy": false,
+  "later_boundaries_restricted_to_previous_realized_subset": true,
+  "learned_or_fitted_parameters_used": false,
+  "native_expert_mlp_executed_on_pseudo_router_input": true,
+  "production_cache_rng_shadow_information_audits_pass": true,
+  "sample_checks": [
+    {
+      "boundary_zero_full_native_top8": true,
+      "cache_rng_shadow_information_audits_pass": true,
+      "expected_tensor_shapes": true,
+      "fresh_residual_differs_from_provided_control": true,
+      "fresh_vs_control_cosine": 0.49128633737564087,
+      "fresh_vs_control_mean_absolute_delta": 0.11621841043233871,
+      "full_pre_mask_scores_all_128_experts": true,
+      "later_executed_ids_within_previous_subset": true,
+      "layers_with_next_subset_escape": 48,
+      "next_subset_escape_expert_slots": 582,
+      "pass": true,
+      "pseudo_residual_finite_nonzero": true,
+      "required_tensors_present": true,
+      "row_index": 786,
+      "sample_id": "test-786"
+    },
+    {
+      "boundary_zero_full_native_top8": true,
+      "cache_rng_shadow_information_audits_pass": true,
+      "expected_tensor_shapes": true,
+      "fresh_residual_differs_from_provided_control": true,
+      "fresh_vs_control_cosine": 0.3957328200340271,
+      "fresh_vs_control_mean_absolute_delta": 0.1197546049952507,
+      "full_pre_mask_scores_all_128_experts": true,
+      "later_executed_ids_within_previous_subset": true,
+      "layers_with_next_subset_escape": 48,
+      "next_subset_escape_expert_slots": 489,
+      "pass": true,
+      "pseudo_residual_finite_nonzero": true,
+      "required_tensors_present": true,
+      "row_index": 394,
+      "sample_id": "test-394"
+    }
+  ],
+  "state": "pass",
+  "task_accuracy_measured": false,
+  "total_next_subset_escape_expert_slots": 1071
+}

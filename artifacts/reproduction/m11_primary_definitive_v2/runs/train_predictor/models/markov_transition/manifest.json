@@ -1,0 +1,6 @@
+{
+  "information_regime": "online_pre_sample",
+  "probe_name": "markov_transition",
+  "safe_format": "safetensors",
+  "schema_version": 1
+}

@@ -1,0 +1,47 @@
+{
+  "architecture": "qwen3_moe",
+  "default_vector_fingerprint": "baae202908e3a2d3f11f980eb99c52e6815b51a7386f47654dd1e25fcbdab1fd",
+  "experts": 128,
+  "explicit_natural_stats": {
+    "calls": 48,
+    "compared_tokens": 0,
+    "exact_topk_agreement": 1.0,
+    "exact_topk_tokens": 0,
+    "matching_selected_slots": 0,
+    "selected_route_hit_rate": 1.0,
+    "selected_slots": 0
+  },
+  "hidden_size": 2048,
+  "layers": 48,
+  "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "native_explicit_argmax_equal": true,
+  "native_explicit_max_abs_logit_delta": 0.0,
+  "native_oracle_argmax_equal": true,
+  "native_oracle_max_abs_logit_delta": 0.0,
+  "oracle_stats": {
+    "calls": 48,
+    "compared_tokens": 1786,
+    "exact_topk_agreement": 1.0,
+    "exact_topk_tokens": 1786,
+    "matching_selected_slots": 14288,
+    "selected_route_hit_rate": 1.0,
+    "selected_slots": 14288
+  },
+  "parity_tolerance": 0.001,
+  "passed": true,
+  "peak_cuda_allocated_bytes": 61255544320,
+  "precision_tier": "bfloat16",
+  "rendered_prompt_sha256": "90d66775d6aae0647229027c318a4ce0fb7981023d4930f76dda71af63279e1c",
+  "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "router_pf_finite": true,
+  "router_pf_stats": {
+    "calls": 48,
+    "compared_tokens": 1786,
+    "exact_topk_agreement": 0.02295632698768197,
+    "exact_topk_tokens": 41,
+    "matching_selected_slots": 12269,
+    "selected_route_hit_rate": 0.8586926091825308,
+    "selected_slots": 14288
+  },
+  "top_k": 8
+}

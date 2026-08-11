@@ -1,0 +1,10 @@
+{
+  "analysis_id": "pseudo_mass_preserving_residual_v1",
+  "decision": "NARROW",
+  "development_progress_gate_pass": true,
+  "held_out_route_authorized": false,
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_four_row_mass_preserving_residual_development",
+  "selected_candidate": "natural_top8_intersection_zero_missing",
+  "task_accuracy_authorized": false
+}

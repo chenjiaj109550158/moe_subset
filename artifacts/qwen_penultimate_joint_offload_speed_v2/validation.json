@@ -1,0 +1,28 @@
+{
+  "actual_rows": 4,
+  "artifacts": 18,
+  "checks": {
+    "actual_h2d": true,
+    "aggregate": true,
+    "all_b32": true,
+    "all_pinned": true,
+    "both_policies": true,
+    "joint_accuracy": true,
+    "joint_actual_overlap": true,
+    "joint_cache_and_calls": true,
+    "joint_zero_production_miss": true,
+    "manifest_checksum": true,
+    "manifest_files": true,
+    "no_full_cuda_experts": true,
+    "no_identity_materialized": true,
+    "row_count": true,
+    "smoke": true,
+    "traditional_identity": true,
+    "two_samples": true
+  },
+  "decision": "NARROW_NO_SPEEDUP",
+  "failure_markers_retained": [],
+  "pilot_id": "qwen_penultimate_joint_offload_speed_v2",
+  "schema_version": 1,
+  "state": "valid"
+}

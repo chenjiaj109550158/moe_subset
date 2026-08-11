@@ -1,0 +1,423 @@
+{
+  "config": {
+    "accuracy_gate": {
+      "allowed_drop_formula": "max_1_ceil_2_sqrt_n_p_one_minus_p",
+      "allowed_drop_questions": 1,
+      "bootstrap_samples": 10000,
+      "bootstrap_seed": 20260801,
+      "frozen_before_generation": true,
+      "minimum_policy_successes": 15,
+      "paired_ci": "paired_sample_bootstrap_percentile_95",
+      "samples": 16,
+      "vanilla_accuracy": 1.0,
+      "vanilla_successes": 16
+    },
+    "artifact_root": "artifacts/pseudo_embedding_qwen_gsm8k_v1",
+    "closed_loop": {
+      "actual_generation": true,
+      "ask_before_second_wave_if_projected_total_hours_exceeds": 24.0,
+      "atomic_unit": "one_sample_policy_row",
+      "checksum_resume": true,
+      "eta_checkpoint_after_first_wave": true,
+      "first_wave_samples": 8,
+      "hard_mask_semantics": "mask_outside_subset_before_native_topk_and_native_normalization",
+      "identity_materialization": "forbidden",
+      "maximum_workers_per_physical_gpu": 1,
+      "oracle_future": "natural_lookahead_from_current_policy_context",
+      "policies_share_exact_rows_prompt_decode_parser_and_caps": true,
+      "previous_first_window": "frozen_static_frequency",
+      "previous_history": "previous_realized_window_pre_mask_natural_routes",
+      "pseudo_context": "current_policy_context_only",
+      "required_only_after_progress_gate": true,
+      "sample_count": 16
+    },
+    "cost_reporting": {
+      "require_attention_queries": true,
+      "require_cpu_gpu_sync_count": true,
+      "require_measured_latency": true,
+      "require_peak_temporary_cuda_memory": true,
+      "require_router_calls": true,
+      "transfer_and_stall": "simulated_not_runtime"
+    },
+    "dataset": {
+      "config": "main",
+      "dataset_id": "openai/gsm8k",
+      "frozen_rows": 1319,
+      "key": "gsm8k",
+      "original_v17_max_new_tokens": 512,
+      "prompt_and_parser": "exact_v17_reuse",
+      "revision": "740312add88f781978c0658806c59bc2815b9866",
+      "split": "test"
+    },
+    "decision": {
+      "labels": [
+        "GO",
+        "NARROW",
+        "STOP/PIVOT"
+      ],
+      "learned_predictor_training": "forbidden",
+      "maximum_positive_label": "NARROW",
+      "no_full_dataset_claim": true,
+      "no_runtime_speedup_claim": true,
+      "progress_gate_failure": "STOP/PIVOT"
+    },
+    "decode": {
+      "batch_size": 1,
+      "do_sample": false,
+      "seed": 20260727,
+      "use_cache": true
+    },
+    "default_vectors": {
+      "artifact_fingerprint": "baae202908e3a2d3f11f980eb99c52e6815b51a7386f47654dd1e25fcbdab1fd",
+      "definition": "mean_unweighted_selected_expert_output",
+      "manifest_sha256": "3c5e645666e12eb96e6d693ca8251d81a8a04200cb5a2abab043226e32077f87",
+      "root": "artifacts/speculating_experts_accuracy_v17/models/qwen3_30b_a3b/default_vectors",
+      "tensor_sha256": "2a315f6f3dc65ff62b656d0eb92b6781267e5dd13cbcaf4c09a5b5806060fd30",
+      "unobserved_layer_expert_pairs": 444,
+      "unobserved_value": "zero_vector"
+    },
+    "held_out_strong_candidate_gate": {
+      "minimum_oracle_minus_previous_gap_recovery": 0.25,
+      "reference_minimum_mean_route_hit": 0.6967,
+      "reference_minimum_mean_selected_mass": 0.7162
+    },
+    "information_boundary": {
+      "deployable_input": "sampled_next_token_and_current_policy_production_cache_only",
+      "forbidden_inputs": [
+        "future_true_tokens",
+        "vanilla_future_trajectory",
+        "benchmark_answer",
+        "correctness"
+      ],
+      "primary_regime": "online_post_sample",
+      "production_cache": "read_only_or_copy_on_write",
+      "production_hidden_state_mutation": "forbidden",
+      "production_rng_mutation": "forbidden",
+      "shadow_cache_lifetime": "discard_after_each_boundary"
+    },
+    "model": {
+      "architecture": "qwen3_moe",
+      "key": "qwen3_30b_a3b",
+      "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "native_top_k": 8,
+      "precision": "bfloat16",
+      "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+      "routed_experts_per_layer": 128,
+      "routed_layers": 48,
+      "shared_experts_per_layer": 0
+    },
+    "operating_point": {
+      "budget_per_layer": 32,
+      "horizon": 8,
+      "native_top_k": 8,
+      "resident_fraction": 0.25,
+      "routed_experts_per_layer": 128
+    },
+    "optional_expected_embedding": {
+      "required_blocker_artifact_if_not_run": "expected_top_m_blocker.json",
+      "status": "deferred_unless_measured_cost_is_reasonable",
+      "top_m": 8
+    },
+    "policies": [
+      "hard_oracle_commitment",
+      "previous_route_commitment",
+      "pseudo_embedding_commitment"
+    ],
+    "probe": {
+      "anchors": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "attention_semantics": "native_qwen_attention",
+      "contribution_mixture": "native_topk_ids_and_normalized_weights",
+      "position_rule": "exact_future_cache_positions_with_native_qwen_rope",
+      "router_semantics": "exact_native_qwen_gate",
+      "subset_selection": "deterministic_exact_top32_per_layer",
+      "tie_break": "ascending_layer_scoped_expert_id",
+      "utility": "sum_full_pre_topk_probabilities_over_anchors"
+    },
+    "progress_gate": {
+      "minimum_estimated_transfer_reduction": 0.3,
+      "minimum_route_hit_improvement_over_previous": 0.05,
+      "minimum_selected_mass_improvement_over_previous": 0.05,
+      "ranking_uses_task_accuracy": false,
+      "require_cache_rng_information_tests": true,
+      "require_measured_probe_costs": true,
+      "require_not_worse_than_static_frequency": true,
+      "required_resident_fraction": 0.25,
+      "variant_ordering": [
+        "highest_mean_selected_mass",
+        "highest_mean_route_hit",
+        "lowest_probe_latency",
+        "lexical_variant_key"
+      ]
+    },
+    "protocol_document": "docs/pseudo_embedding_qwen_gsm8k_v1_protocol.md",
+    "protocol_revision": 1,
+    "route_evaluation": {
+      "bootstrap_samples": 10000,
+      "bootstrap_seed": 20260801,
+      "bootstrap_unit": "sample",
+      "boundary_rule": "non_overlapping_start_zero_h8",
+      "context_buckets": [
+        "0-31",
+        "32-63",
+        "64-127"
+      ],
+      "development_source": "existing_authoritative_four_trace_rows",
+      "held_out_source": "teacher_forced_replay_of_saved_v17_token_trajectories_only",
+      "max_decode_tokens_per_sample": 128,
+      "router_margin_buckets": "held_out_per_layer_tertiles",
+      "stratify_by": [
+        "layer",
+        "context_bucket",
+        "router_margin_bucket"
+      ],
+      "worst_case_count": 100
+    },
+    "sample_manifest": {
+      "path": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json",
+      "sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93"
+    },
+    "schema_version": 1,
+    "source_accuracy": {
+      "artifact_root": "artifacts/speculating_experts_accuracy_v17",
+      "config": "configs/benchmark/speculating_experts_accuracy_v17.yaml",
+      "config_fingerprint": "896744077611beaf7692ee2c9ac94fcc5326268f86e8b5ff297960a0da152ff9",
+      "required_pipeline_stage": "oracle_v17",
+      "required_pipeline_state": "complete",
+      "suite_id": "speculating_experts_accuracy_v17"
+    },
+    "suite_id": "pseudo_embedding_qwen_gsm8k_v1",
+    "variants": [
+      {
+        "attention": "independent",
+        "content": "sampled_next_token",
+        "expert_contribution": "default_vector_selected_topk_mixture",
+        "key": "sampled_next_independent_default_topk",
+        "role": "primary"
+      },
+      {
+        "attention": "independent",
+        "content": "current_token",
+        "expert_contribution": "default_vector_selected_topk_mixture",
+        "key": "current_token_independent_default_topk",
+        "role": "content_baseline"
+      },
+      {
+        "attention": "causal",
+        "content": "sampled_next_token",
+        "expert_contribution": "default_vector_selected_topk_mixture",
+        "key": "sampled_next_causal_default_topk",
+        "role": "causal_ablation"
+      },
+      {
+        "attention": "independent",
+        "content": "sampled_next_token",
+        "expert_contribution": "zero",
+        "key": "sampled_next_independent_zero",
+        "role": "expert_contribution_ablation"
+      }
+    ]
+  },
+  "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+  "sample_manifest": {
+    "partitions": {
+      "closed_loop_wave_1": {
+        "purpose": "first eight rows of the held-out actual closed-loop pilot and ETA checkpoint",
+        "rows": [
+          {
+            "row_index": 44,
+            "sample_id": "test-44",
+            "sha256_rank": "0319517d5d3ce043565fa8868fc08f0a1db763d3232bf8819439c46a5966cd18"
+          },
+          {
+            "row_index": 632,
+            "sample_id": "test-632",
+            "sha256_rank": "03257319b8083115c0a7817996362f3531656cca8f53cd2cae4a6cc0bacf9e35"
+          },
+          {
+            "row_index": 444,
+            "sample_id": "test-444",
+            "sha256_rank": "03c62c763655370dc07612e5c20903df6eda816eddbfc6c1708b461232980a34"
+          },
+          {
+            "row_index": 519,
+            "sample_id": "test-519",
+            "sha256_rank": "03f9b9b5f48073db1b2857302d35a683c010c8ffeb8e4708a7b2120c1d7b0971"
+          },
+          {
+            "row_index": 1311,
+            "sample_id": "test-1311",
+            "sha256_rank": "03fd62942057799269c2ddd6b199c22223b63dccecd2434febea857d88fb52aa"
+          },
+          {
+            "row_index": 1264,
+            "sample_id": "test-1264",
+            "sha256_rank": "04132224888deb0fbe82e9e6d840d959480e922068492455b661c35ce1cc1414"
+          },
+          {
+            "row_index": 825,
+            "sample_id": "test-825",
+            "sha256_rank": "04467f247a2eb27e93d948293e78c4d7e31286c974529f1d5060ee415589a383"
+          },
+          {
+            "row_index": 252,
+            "sample_id": "test-252",
+            "sha256_rank": "044c12b17d5c702aa97b53799243c5b9b83be27b4293ab59a5f9f68efbdf042d"
+          }
+        ]
+      },
+      "closed_loop_wave_2": {
+        "purpose": "second eight rows of the held-out actual closed-loop pilot",
+        "rows": [
+          {
+            "row_index": 668,
+            "sample_id": "test-668",
+            "sha256_rank": "0451cfd072f0f6fc90036df04d5b826ed296e8467c3d9fb9bedd8f7f01be1e58"
+          },
+          {
+            "row_index": 892,
+            "sample_id": "test-892",
+            "sha256_rank": "0487d4d391a0b584462d6fd8122ea1e9886eccd098edf30433036ed6c6dae1df"
+          },
+          {
+            "row_index": 1136,
+            "sample_id": "test-1136",
+            "sha256_rank": "0489c147ad329d256a75f2dadc167f674b25fa63e2877d565c77c9f2df75fc3b"
+          },
+          {
+            "row_index": 850,
+            "sample_id": "test-850",
+            "sha256_rank": "04c0dd974f3e6e8fc07db3741d3c22c654a5379d14952d22fdc2244bb41c1793"
+          },
+          {
+            "row_index": 760,
+            "sample_id": "test-760",
+            "sha256_rank": "04f377fd245f10496b23391c9c7ee958d0d241bf38a07d76286500185e531d8a"
+          },
+          {
+            "row_index": 842,
+            "sample_id": "test-842",
+            "sha256_rank": "050146d06744c2efe51e30028b1c4e642d5e9d15e694a0fc3564b62a53624990"
+          },
+          {
+            "row_index": 87,
+            "sample_id": "test-87",
+            "sha256_rank": "050ff439446e27c05f31cf627500b2883fa980fc91d5f7a1955c7a1d76ebd195"
+          },
+          {
+            "row_index": 658,
+            "sample_id": "test-658",
+            "sha256_rank": "0527dc4ed067d4c82fbf20fb69ed25e8ab8d3b7061e0ccfa35620fa5b454b6b3"
+          }
+        ]
+      },
+      "development": {
+        "purpose": "variant development using only the four pre-existing authoritative Qwen/GSM8K traces",
+        "rows": [
+          {
+            "row_index": 0,
+            "sample_id": "test-0",
+            "sha256_rank": null
+          },
+          {
+            "row_index": 439,
+            "sample_id": "test-439",
+            "sha256_rank": null
+          },
+          {
+            "row_index": 879,
+            "sample_id": "test-879",
+            "sha256_rank": null
+          },
+          {
+            "row_index": 1318,
+            "sample_id": "test-1318",
+            "sha256_rank": null
+          }
+        ]
+      },
+      "held_out_route": {
+        "purpose": "disjoint teacher-forced held-out route gate",
+        "rows": [
+          {
+            "row_index": 539,
+            "sample_id": "test-539",
+            "sha256_rank": "012f3f93a89cf9adddbaa463f10b8d3ef78ef142368e4eb216bae0d3d72957c6"
+          },
+          {
+            "row_index": 978,
+            "sample_id": "test-978",
+            "sha256_rank": "0153528d27e5b8bb7b3fe6f02aafac5929ec1b0d830d20dfd2162d43dfa492f4"
+          },
+          {
+            "row_index": 143,
+            "sample_id": "test-143",
+            "sha256_rank": "017dab6ddacb99370fcb56ef83364e99ccd731ac8d4a14277164a85a605ce3c7"
+          },
+          {
+            "row_index": 604,
+            "sample_id": "test-604",
+            "sha256_rank": "0206a387a2d5c83bb8bccef69e4c7da9a511aa4cdf39b301231c5c7c221765b9"
+          },
+          {
+            "row_index": 611,
+            "sample_id": "test-611",
+            "sha256_rank": "02468b49d4cf24a2127ce3805ae8ab175ac5ffa10e7766a5856d6b8589f1cf68"
+          },
+          {
+            "row_index": 1300,
+            "sample_id": "test-1300",
+            "sha256_rank": "02548ba1d09e4afdced1ef79b3e624c1e7f7261a14184bbc799c676b40252e9c"
+          },
+          {
+            "row_index": 229,
+            "sample_id": "test-229",
+            "sha256_rank": "02e010fd144ebae3c1eccd2b79d432afe273285544d1388ee94679ff35483c93"
+          },
+          {
+            "row_index": 925,
+            "sample_id": "test-925",
+            "sha256_rank": "031377ca5c4b020f78db0db1f089f22a4bc498ffba442e9cff9c3b0489db96ea"
+          }
+        ]
+      },
+      "mechanism_smoke": {
+        "purpose": "native eight-token-window cache, RNG, route-change, and evaluator smoke",
+        "rows": [
+          {
+            "row_index": 786,
+            "sample_id": "test-786",
+            "sha256_rank": "0027e12c760eeefa70e6095c4d54e05b2571e42d36eb524e2db7f80c1eb4f04d"
+          },
+          {
+            "row_index": 394,
+            "sample_id": "test-394",
+            "sha256_rank": "00b3a8369d094e3b42277dca534ee20ae89210ba22b374ed159b18360a700dd1"
+          }
+        ]
+      }
+    },
+    "schema_version": 1,
+    "selection": {
+      "accuracy_correctness_or_ground_truth_used": false,
+      "development_rule": "explicit_reuse_of_four_preexisting_frozen_qwen_gsm8k_trace_rows",
+      "eligible_population": 1315,
+      "partition_assignment": "sort_once_then_allocate_mechanism_2_held_out_route_8_closed_loop_8_plus_8",
+      "rank_payload": "pseudo_embedding_qwen_gsm8k_v1|sample-ranking-v1|{row_index}|{sample_id}",
+      "ranking": "ascending_sha256_then_ascending_row_index",
+      "source_population": 1319
+    },
+    "suite_id": "pseudo_embedding_qwen_gsm8k_v1"
+  },
+  "sample_manifest_payload_sha256": "610ee19836ce08ed5ddb094679eac85fa0856f3372b1f85ad0a59c2a313984ce",
+  "schema_version": 1,
+  "suite_id": "pseudo_embedding_qwen_gsm8k_v1"
+}

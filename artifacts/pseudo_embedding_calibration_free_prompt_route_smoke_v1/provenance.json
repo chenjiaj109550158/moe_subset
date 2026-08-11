@@ -1,0 +1,26 @@
+{
+  "actual_closed_loop_generation": false,
+  "analysis_config_sha256": "6c348925820b914b1b8a021f68e121373b085e2973c19dc50030a1477bc3cf03",
+  "analysis_elapsed_seconds_measured": 32.7080921989982,
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_smoke_v1",
+  "default_vector_values_loaded_or_used": false,
+  "future_true_tokens_used_by_candidates": false,
+  "gpu_used_for_prompt_route_generation": true,
+  "gpu_used_this_invocation": true,
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_loaded_for_prompt_route_generation": true,
+  "model_loaded_this_invocation": true,
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "offline_calibration_statistics_used": false,
+  "precision": "bfloat16",
+  "route_scoring": "saved_v17_teacher_forced_open_loop",
+  "schema_version": 1,
+  "source_samples": [
+    "test-786",
+    "test-394"
+  ],
+  "task_accuracy_measured": false,
+  "transfer_kind": "simulated"
+}

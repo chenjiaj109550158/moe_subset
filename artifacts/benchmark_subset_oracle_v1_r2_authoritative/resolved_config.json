@@ -1,0 +1,726 @@
+{
+  "config": {
+    "closed_loop": {
+      "aime_gpt_max_new_tokens": 32768,
+      "atomic_unit": "one_sample_policy_row",
+      "cache_semantics": "rewind_natural_lookahead_then_replay_policy_window",
+      "decode_semantics": "exact_v17_per_model_task_settings",
+      "full_sample_scope": "all_v17_rows",
+      "hard_mask_semantics": "mask_outside_subset_before_native_topk_and_native_renormalization",
+      "max_concurrent_workers_per_physical_gpu": 1,
+      "metrics": [
+        "task_correct",
+        "exact_token_agreement",
+        "first_token_divergence",
+        "first_route_divergence",
+        "vanilla_token_nll_on_policy_context",
+        "perplexity",
+        "fallback_frequency",
+        "route_coverage",
+        "transfer_bytes",
+        "subset_churn",
+        "simulated_exposed_stall",
+        "measured_runtime"
+      ],
+      "oracle_future": "natural_rollout_from_current_policy_boundary_state",
+      "policies": [
+        "natural_v17_reuse",
+        "lossless_oracle_residency",
+        "hard_oracle_commitment",
+        "previous_route_commitment"
+      ],
+      "sample_shards": 4,
+      "smoke_budget_rule": "native_top_k",
+      "smoke_horizon": 16,
+      "smoke_max_new_tokens": 8,
+      "smoke_point_is_not_an_operating_candidate": true,
+      "smoke_rows": {
+        "aime24": "train-0",
+        "aime25": "test-0",
+        "gsm8k": "test-0",
+        "humaneval": "HumanEval/0",
+        "mbpp_plus": "2",
+        "strategyqa": "7a0e419ffb6009156828"
+      }
+    },
+    "decision": {
+      "labels": [
+        "GO",
+        "NARROW",
+        "STOP/PIVOT"
+      ],
+      "no_macro_average_override": true,
+      "per_model_task_point": true,
+      "perfect_oracle_failure_action": "stop_predictor_training",
+      "predictor_authorization": "only_all_task_GO_or_explicit_task_scoped_NARROW"
+    },
+    "models": [
+      {
+        "architecture": "qwen3_moe",
+        "budgets": [
+          8,
+          16,
+          32,
+          64,
+          128
+        ],
+        "full_router_mass": "native_full_softmax",
+        "key": "qwen3_30b_a3b",
+        "native_top_k": 8,
+        "physical_gpu": 1,
+        "routed_experts_per_layer": 128,
+        "routed_layers": 48,
+        "shared_experts_per_layer": 0
+      },
+      {
+        "architecture": "gpt_oss",
+        "budgets": [
+          4,
+          8,
+          16,
+          24,
+          32
+        ],
+        "full_router_mass": "unavailable_selected_logits_softmax_only",
+        "key": "gpt_oss_20b",
+        "native_top_k": 4,
+        "physical_gpu": 0,
+        "routed_experts_per_layer": 32,
+        "routed_layers": 24,
+        "shared_experts_per_layer": 0
+      }
+    ],
+    "open_loop": {
+      "aggregate_statistics": [
+        "mean",
+        "median",
+        "p05",
+        "p95",
+        "worst"
+      ],
+      "context_buckets": [
+        "0-31",
+        "32-63",
+        "64-127"
+      ],
+      "raw_format": "csv_gzip",
+      "router_margin_buckets": "per_model_task_layer_tertiles",
+      "stratify_by": [
+        "model",
+        "task",
+        "layer",
+        "context_bucket",
+        "router_margin_bucket"
+      ],
+      "worst_case_count_per_model_task_metric": 100
+    },
+    "operating_point_selection": {
+      "deterministic_order": [
+        "lowest_resident_fraction",
+        "lowest_worst_task_estimated_h2d_bytes_per_token",
+        "highest_worst_task_route_hit",
+        "highest_horizon",
+        "lowest_budget"
+      ],
+      "exclude_all_expert_budget": true,
+      "hard_oracle_method": "future_selected_routing_mass",
+      "maximum_lossless_fallback_frequency": 0.1,
+      "maximum_points_per_model": 1,
+      "maximum_resident_fraction": 0.75,
+      "minimum_mean_route_hit": 0.9,
+      "minimum_mean_selected_routing_mass": 0.95,
+      "minimum_p05_route_hit": 0.8,
+      "minimum_selected_mass_improvement_over_best_baseline": 0.05,
+      "minimum_transfer_reduction": 0.3,
+      "minimum_worst_route_hit": 0.8,
+      "require_every_task_before_selection": true
+    },
+    "paired_accuracy_gate": {
+      "confidence_interval": "paired_difference_normal_95",
+      "definition": "hard successes must be at least vanilla successes minus allowed_drop_questions; allowed_drop_questions is frozen as ceil(2*sqrt(N*p_vanilla*(1-p_vanilla))), with a minimum of one question\n",
+      "require_each_task": true,
+      "vanilla": {
+        "gpt_oss_20b": {
+          "aime24": {
+            "allowed_drop_questions": 6,
+            "samples": 30,
+            "successes": 19
+          },
+          "aime25": {
+            "allowed_drop_questions": 6,
+            "samples": 30,
+            "successes": 19
+          },
+          "gsm8k": {
+            "allowed_drop_questions": 18,
+            "samples": 1319,
+            "successes": 1242
+          },
+          "humaneval": {
+            "allowed_drop_questions": 5,
+            "samples": 164,
+            "successes": 158
+          },
+          "mbpp_plus": {
+            "allowed_drop_questions": 17,
+            "samples": 378,
+            "successes": 287
+          },
+          "strategyqa": {
+            "allowed_drop_questions": 23,
+            "samples": 687,
+            "successes": 513
+          }
+        },
+        "qwen3_30b_a3b": {
+          "aime24": {
+            "allowed_drop_questions": 5,
+            "samples": 30,
+            "successes": 22
+          },
+          "aime25": {
+            "allowed_drop_questions": 6,
+            "samples": 30,
+            "successes": 20
+          },
+          "gsm8k": {
+            "allowed_drop_questions": 17,
+            "samples": 1319,
+            "successes": 1245
+          },
+          "humaneval": {
+            "allowed_drop_questions": 7,
+            "samples": 164,
+            "successes": 154
+          },
+          "mbpp_plus": {
+            "allowed_drop_questions": 17,
+            "samples": 378,
+            "successes": 289
+          },
+          "strategyqa": {
+            "allowed_drop_questions": 24,
+            "samples": 687,
+            "successes": 488
+          }
+        }
+      }
+    },
+    "protocol_revision": 2,
+    "schema_version": 1,
+    "selection": {
+      "exact_cardinality": true,
+      "methods": [
+        "future_selected_routing_mass",
+        "future_binary_count",
+        "previous_route",
+        "static_frequency"
+      ],
+      "previous_route_first_window": "static_frequency",
+      "previous_route_history": "previous_realized_window_same_horizon",
+      "qwen_additional_methods": [
+        "future_full_router_mass"
+      ],
+      "static_frequency_source": "v17_disjoint_wikitext_default_vector_counts",
+      "tie_break": "ascending_layer_scoped_expert_id"
+    },
+    "source_accuracy": {
+      "artifact_root": "artifacts/speculating_experts_accuracy_v17",
+      "config": "configs/benchmark/speculating_experts_accuracy_v17.yaml",
+      "config_fingerprint": "896744077611beaf7692ee2c9ac94fcc5326268f86e8b5ff297960a0da152ff9",
+      "required_pipeline_stage": "oracle_v17",
+      "required_pipeline_state": "complete",
+      "reuse": [
+        "rendered prompts",
+        "targets",
+        "generated token IDs and text",
+        "task scorers and execution sandbox",
+        "checkpoint and dataset revisions",
+        "per-task decoding and token caps"
+      ],
+      "suite_id": "speculating_experts_accuracy_v17"
+    },
+    "suite_id": "benchmark_subset_oracle_v1",
+    "trace": {
+      "autoregressive_parity_max_tokens": 8,
+      "autoregressive_parity_smoke_rows": {
+        "aime24": "train-0",
+        "aime25": "test-0",
+        "gsm8k": "test-0",
+        "humaneval": "HumanEval/0",
+        "mbpp_plus": "2",
+        "strategyqa": "7a0e419ffb6009156828"
+      },
+      "boundary_rule": "non_overlapping_start_zero_per_horizon",
+      "horizons": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "information_regime": "offline_teacher_forced_saved_v17_trajectory",
+      "max_decode_tokens_per_sample": 128,
+      "replay_chunk_tokens": 1,
+      "sample_rows": {
+        "aime24": [
+          {
+            "row_index": 0,
+            "sample_id": "train-0"
+          },
+          {
+            "row_index": 10,
+            "sample_id": "train-10"
+          },
+          {
+            "row_index": 19,
+            "sample_id": "train-19"
+          },
+          {
+            "row_index": 29,
+            "sample_id": "train-29"
+          }
+        ],
+        "aime25": [
+          {
+            "row_index": 0,
+            "sample_id": "test-0"
+          },
+          {
+            "row_index": 10,
+            "sample_id": "test-10"
+          },
+          {
+            "row_index": 19,
+            "sample_id": "test-19"
+          },
+          {
+            "row_index": 29,
+            "sample_id": "test-29"
+          }
+        ],
+        "gsm8k": [
+          {
+            "row_index": 0,
+            "sample_id": "test-0"
+          },
+          {
+            "row_index": 439,
+            "sample_id": "test-439"
+          },
+          {
+            "row_index": 879,
+            "sample_id": "test-879"
+          },
+          {
+            "row_index": 1318,
+            "sample_id": "test-1318"
+          }
+        ],
+        "humaneval": [
+          {
+            "row_index": 0,
+            "sample_id": "HumanEval/0"
+          },
+          {
+            "row_index": 54,
+            "sample_id": "HumanEval/54"
+          },
+          {
+            "row_index": 109,
+            "sample_id": "HumanEval/109"
+          },
+          {
+            "row_index": 163,
+            "sample_id": "HumanEval/163"
+          }
+        ],
+        "mbpp_plus": [
+          {
+            "row_index": 0,
+            "sample_id": "2"
+          },
+          {
+            "row_index": 126,
+            "sample_id": "264"
+          },
+          {
+            "row_index": 251,
+            "sample_id": "579"
+          },
+          {
+            "row_index": 377,
+            "sample_id": "809"
+          }
+        ],
+        "strategyqa": [
+          {
+            "row_index": 0,
+            "sample_id": "7a0e419ffb6009156828"
+          },
+          {
+            "row_index": 229,
+            "sample_id": "5ab66b27a0caee886970"
+          },
+          {
+            "row_index": 457,
+            "sample_id": "15271da5457a404509c4"
+          },
+          {
+            "row_index": 686,
+            "sample_id": "9a923e94373f79fa80e5"
+          }
+        ]
+      },
+      "source_policy": "vanilla",
+      "store_native_dtype": true,
+      "store_router_logits": true
+    },
+    "transfer_model": {
+      "bandwidth_gib_per_second": 25.0,
+      "fallback": "transient_load_each_missing_natural_expert_per_layer_token",
+      "fixed_latency_microseconds_per_load": 10.0,
+      "reference": "natural_on_demand_transient_native_selected_experts",
+      "resident_capacity": "exact_budget_per_layer",
+      "shared_experts": "excluded_from_routed_budget_and_transfer",
+      "timing_kind": "simulated_not_measured_runtime",
+      "window_prefetch": "load_new_subset_members_at_boundary"
+    }
+  },
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "config_path": "/home/justin/moe_subset/configs/benchmark/benchmark_subset_oracle_v1.yaml",
+  "schema_version": 1,
+  "source_accuracy_fingerprint": "896744077611beaf7692ee2c9ac94fcc5326268f86e8b5ff297960a0da152ff9",
+  "source_accuracy_resolved": {
+    "alignment": {
+      "minimum_discrete_questions": 1,
+      "require_all_tasks": true,
+      "standard_errors": 2.0
+    },
+    "cache_dir": ".cache/pseudoroute/huggingface/hub",
+    "calibration": {
+      "config": "wikitext-2-raw-v1",
+      "dataset_id": "Salesforce/wikitext",
+      "definition": "mean_unweighted_selected_expert_output",
+      "max_tokens_per_row": 128,
+      "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+      "row_ids": [
+        3,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        17,
+        18,
+        22,
+        23,
+        24,
+        28,
+        29,
+        30,
+        31,
+        35,
+        36,
+        37,
+        41,
+        42,
+        43,
+        44,
+        49,
+        50,
+        54,
+        55,
+        56,
+        60,
+        61,
+        62,
+        63,
+        67,
+        68,
+        69,
+        70,
+        71,
+        75,
+        80,
+        84,
+        85,
+        92,
+        96,
+        97,
+        105,
+        106,
+        110,
+        117,
+        118,
+        119,
+        123,
+        124,
+        128,
+        129,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        158,
+        159,
+        160,
+        161,
+        165,
+        166,
+        168,
+        169,
+        170,
+        173,
+        174,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        189,
+        190,
+        191,
+        192,
+        193,
+        197,
+        198,
+        202,
+        203,
+        204,
+        205,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        233,
+        234,
+        235,
+        236,
+        243,
+        247,
+        248,
+        254,
+        255,
+        258
+      ],
+      "split": "validation",
+      "unobserved_expert_value": "zero"
+    },
+    "code_execution_sandbox_revision": "v4_prompt_helpers_candidate_source_unit_non_main",
+    "dataset_cache_dir": ".cache/pseudoroute/datasets",
+    "datasets": [
+      {
+        "config": null,
+        "dataset_id": "openai/openai_humaneval",
+        "expected_samples": 164,
+        "key": "humaneval",
+        "max_new_tokens": 1024,
+        "revision": "7dce6050a7d6d172f3cc5c32aa97f52fa1a2e544",
+        "split": "test"
+      },
+      {
+        "config": null,
+        "dataset_id": "evalplus/mbppplus",
+        "expected_samples": 378,
+        "key": "mbpp_plus",
+        "max_new_tokens": 1024,
+        "revision": "b2d74c91837c3f2a20c1299ae98133cbe7cfa077",
+        "split": "test"
+      },
+      {
+        "config": "main",
+        "dataset_id": "openai/gsm8k",
+        "expected_samples": 1319,
+        "key": "gsm8k",
+        "max_new_tokens": 512,
+        "revision": "740312add88f781978c0658806c59bc2815b9866",
+        "split": "test"
+      },
+      {
+        "config": null,
+        "dataset_id": "Maxwell-Jia/AIME_2024",
+        "expected_samples": 30,
+        "key": "aime24",
+        "max_new_tokens": 32768,
+        "revision": "8d88b2876a82a080e2f172cc9b25d0d9d2cb4792",
+        "split": "train"
+      },
+      {
+        "config": null,
+        "dataset_id": "math-ai/aime25",
+        "expected_samples": 30,
+        "key": "aime25",
+        "max_new_tokens": 32768,
+        "revision": "563bb8404243c5f09de6ec262f2db674fe5bce9b",
+        "split": "test"
+      },
+      {
+        "config": null,
+        "dataset_id": "ChilleD/StrategyQA",
+        "expected_samples": 687,
+        "key": "strategyqa",
+        "max_new_tokens": 128,
+        "revision": "705562638fe1d8ca6bb98c66fc8f94d45fda8c83",
+        "split": "test"
+      }
+    ],
+    "decode": {
+      "batch_size": 1,
+      "chat_template_current_date": "2026-03-09",
+      "deterministic": true,
+      "do_sample": false,
+      "seed": 20260727,
+      "use_cache": true
+    },
+    "evalplus_revision": "26d6d00bb1fd0fa37f39c99d5290da67891d1c5e",
+    "harness_revision": "d800e04dcb1ce96791d8b2926cf0cc7703d58457",
+    "models": [
+      {
+        "architecture": "qwen3_moe",
+        "code_assistant_prefill": true,
+        "device": "cuda:1",
+        "do_sample_overrides": {
+          "aime24": true,
+          "aime25": true
+        },
+        "honor_task_stop_strings": true,
+        "key": "qwen3_30b_a3b",
+        "max_new_tokens_overrides": {},
+        "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+        "precision_tier": "bfloat16",
+        "reasoning_effort": "none",
+        "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe"
+      },
+      {
+        "architecture": "gpt_oss",
+        "code_assistant_prefill": false,
+        "device": "cuda:0",
+        "do_sample_overrides": {
+          "humaneval": true
+        },
+        "honor_task_stop_strings": false,
+        "key": "gpt_oss_20b",
+        "max_new_tokens_overrides": {
+          "gsm8k": 4096,
+          "humaneval": 16384,
+          "mbpp_plus": 4096,
+          "strategyqa": 4096
+        },
+        "model_id": "openai/gpt-oss-20b",
+        "precision_tier": "mxfp4",
+        "reasoning_effort": "medium",
+        "revision": "6cee5e81ee83917806bbde320786a8fb61efebee"
+      }
+    ],
+    "oracle_evaluation": "validated_identity_materialization",
+    "paper_code_revision": "b1970f7881129d92448e2f83b0702fea48644b92",
+    "paper_code_url": "https://github.com/axonn-ai/yalis/tree/offload_prefetch",
+    "paper_results": {
+      "gpt_oss_20b": {
+        "aime24": {
+          "router_pf_accuracy": 0.667,
+          "vanilla_accuracy": 0.667,
+          "vanilla_standard_error": 0.086
+        },
+        "aime25": {
+          "router_pf_accuracy": 0.6,
+          "vanilla_accuracy": 0.667,
+          "vanilla_standard_error": 0.086
+        },
+        "gsm8k": {
+          "router_pf_accuracy": 0.929,
+          "vanilla_accuracy": 0.942,
+          "vanilla_standard_error": 0.006
+        },
+        "humaneval": {
+          "router_pf_accuracy": 0.933,
+          "vanilla_accuracy": 0.97,
+          "vanilla_standard_error": 0.013
+        },
+        "mbpp_plus": {
+          "router_pf_accuracy": 0.804,
+          "vanilla_accuracy": 0.794,
+          "vanilla_standard_error": 0.021
+        },
+        "strategyqa": {
+          "router_pf_accuracy": 0.738,
+          "vanilla_accuracy": 0.753,
+          "vanilla_standard_error": 0.016
+        }
+      },
+      "qwen3_30b_a3b": {
+        "aime24": {
+          "router_pf_accuracy": 0.467,
+          "vanilla_accuracy": 0.8,
+          "vanilla_standard_error": 0.073
+        },
+        "aime25": {
+          "router_pf_accuracy": 0.6,
+          "vanilla_accuracy": 0.733,
+          "vanilla_standard_error": 0.081
+        },
+        "gsm8k": {
+          "router_pf_accuracy": 0.576,
+          "vanilla_accuracy": 0.95,
+          "vanilla_standard_error": 0.006
+        },
+        "humaneval": {
+          "router_pf_accuracy": 0.86,
+          "vanilla_accuracy": 0.939,
+          "vanilla_standard_error": 0.019
+        },
+        "mbpp_plus": {
+          "router_pf_accuracy": 0.659,
+          "vanilla_accuracy": 0.762,
+          "vanilla_standard_error": 0.022
+        },
+        "strategyqa": {
+          "router_pf_accuracy": 0.683,
+          "vanilla_accuracy": 0.719,
+          "vanilla_standard_error": 0.017
+        }
+      }
+    },
+    "paper_url": "https://arxiv.org/abs/2603.19289",
+    "policies": [
+      "vanilla",
+      "router_pf",
+      "oracle_pf"
+    ],
+    "protocol_revision": 16,
+    "schema_version": 1,
+    "suite_id": "speculating_experts_accuracy_v17"
+  },
+  "suite_id": "benchmark_subset_oracle_v1"
+}

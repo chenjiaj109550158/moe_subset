@@ -1,0 +1,13 @@
+{
+  "artifact_count": 25,
+  "checkpoint": "awaiting_user_confirmation_before_fused_or_offload_implementation",
+  "config_sha256": "57242f91f204c4e765d893dd754e4e523f8fdce62c303827d2e375cec4cc654c",
+  "decision": "PILOT_NARROW_ONE_ALLOWED_LOSS_AWAITING_USER_CONFIRMATION",
+  "external_online_baseline_rows": 8,
+  "new_actual_rows": 8,
+  "pilot_id": "pseudo_penultimate_joint_qwen_gsm8k_wave1_v1",
+  "sample_manifest_sha256": "0f4fd75760390fb8ea468af888c8dcd0b22483cdb2af0f96f51a9833c6614d10",
+  "schema_version": 1,
+  "stage": "wave_1_report_v1",
+  "state": "complete"
+}

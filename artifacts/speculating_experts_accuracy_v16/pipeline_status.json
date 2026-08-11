@@ -1,0 +1,39 @@
+{
+  "alignment": {
+    "gpt_oss_20b": false,
+    "qwen3_30b_a3b": true
+  },
+  "failed": [
+    {
+      "accuracy": 0.7513227513227513,
+      "model": "gpt_oss_20b",
+      "paper": 0.794,
+      "task": "mbpp_plus",
+      "tolerance": 0.042
+    },
+    {
+      "accuracy": 0.9294920394238059,
+      "model": "gpt_oss_20b",
+      "paper": 0.942,
+      "task": "gsm8k",
+      "tolerance": 0.012
+    },
+    {
+      "accuracy": 0.3,
+      "model": "gpt_oss_20b",
+      "paper": 0.667,
+      "task": "aime24",
+      "tolerance": 0.172
+    },
+    {
+      "accuracy": 0.26666666666666666,
+      "model": "gpt_oss_20b",
+      "paper": 0.667,
+      "task": "aime25",
+      "tolerance": 0.172
+    }
+  ],
+  "stage": "vanilla_alignment_gate",
+  "state": "blocked",
+  "updated_at": "2026-07-30T01:25:56.536240+00:00"
+}

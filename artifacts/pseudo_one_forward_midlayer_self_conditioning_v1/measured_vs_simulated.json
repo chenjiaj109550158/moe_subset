@@ -1,0 +1,20 @@
+{
+  "measured": [
+    "teacher_forced_policy_state_route_hit",
+    "teacher_forced_policy_state_selected_mass",
+    "native_one_forward_probe_lm_head_latency_and_memory",
+    "attention_router_expert_lm_head_calls"
+  ],
+  "not_measured": [
+    "task_accuracy",
+    "free_generation",
+    "exact_token_identity",
+    "nll_or_perplexity",
+    "closed_loop_runtime",
+    "runtime_speedup"
+  ],
+  "simulated": [
+    "expert_transfer_bytes",
+    "transfer_reduction"
+  ]
+}

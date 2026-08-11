@@ -1,0 +1,460 @@
+{
+  "analysis_config_sha256": "6fc9c4cd92de0108c198de03de63badd38f0a5c9885aad33e15a893ea5efe53f",
+  "analysis_id": "pseudo_state_component_swap_v1",
+  "artifact_count": 90,
+  "artifacts": [
+    {
+      "bytes": 406,
+      "path": "decision.json",
+      "sha256": "76c234c57dc9b19d6c598547c425c91b5bdb85d2779398704b5c7567e5515b54"
+    },
+    {
+      "bytes": 7717,
+      "path": "development/aggregates.json",
+      "sha256": "e4874850e42e5f93e19dbe65eb79644ed3bb193491d48c6a45c39499e994ebec"
+    },
+    {
+      "bytes": 649,
+      "path": "development/attribution.json",
+      "sha256": "9c63475772e377a8a2a09be915c195142e4b3eb0e561111b2fa57db4384c5b2b"
+    },
+    {
+      "bytes": 164,
+      "path": "development/audit.json",
+      "sha256": "e9e01a740323fe83d1f827c849052a12543ba1e920b8987568ef04b9435e6ab9"
+    },
+    {
+      "bytes": 4902,
+      "path": "development/comparisons.json",
+      "sha256": "6d3d63c4cf62742f2009a510d9554420cf00585c25bd6075c383ed4768693ee7"
+    },
+    {
+      "bytes": 4359,
+      "path": "development/cost_report.json",
+      "sha256": "6a6210993c2ab3109d1772f317c4d17c69b84b29524298eca4c5157fa26b3e15"
+    },
+    {
+      "bytes": 775,
+      "path": "development/decision.json",
+      "sha256": "210cb2cdb262196a01552d13d84f8d0f07948b980ea70fc1ba3e29dc5f1cd6f2"
+    },
+    {
+      "bytes": 158,
+      "path": "development/pipeline_status.json",
+      "sha256": "87903e454ac6d01bad91a1882c57a368c3d68cade2334efa06e7e882257f64c7"
+    },
+    {
+      "bytes": 569279,
+      "path": "development/samples/00000/exact_future_attention_and_moe_oracle.json",
+      "sha256": "ed5b875a37a3bb988fe81ca2496b110bec490ebbd343276300310cc763ee4704"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_attention_and_moe_oracle.safetensors",
+      "sha256": "f46e1e7426511ea22b4902542aafb86f570e2e3b8e2512fcf30560ce5bc23885"
+    },
+    {
+      "bytes": 569195,
+      "path": "development/samples/00000/exact_future_attention_output_oracle.json",
+      "sha256": "d9d5a6517856fc7d2387818eae86d754c156d933c55e6b11518489f8d5c65e96"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_attention_output_oracle.safetensors",
+      "sha256": "df393deec0e3841d6be6b4ac59e4105d55bae1431e6215940131884ef7a118d2"
+    },
+    {
+      "bytes": 570896,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_15_oracle.json",
+      "sha256": "571444bc4a51f2fab39fc228dfcd799106ceffb1eb52150c862e3c744093354f"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_15_oracle.safetensors",
+      "sha256": "879d1b5c8b61310fa285cfafb23f24554a1e71620256f0508e0b0a3cef94121f"
+    },
+    {
+      "bytes": 570821,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_23_oracle.json",
+      "sha256": "a4a85054ce3bf6b16f9d68d96c0efacd4999c9aa491bbd6e4b4787c870366faa"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_23_oracle.safetensors",
+      "sha256": "cc6827c1176a349bf5ac788e393cc382a6c1cacc7e65e3a82976608cf0d196b7"
+    },
+    {
+      "bytes": 570883,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_31_oracle.json",
+      "sha256": "08e8dbeea0fc798bd4b8aee724a4afa88d61e29298ec9740444b8ceeb9ec3d5e"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_31_oracle.safetensors",
+      "sha256": "c8e5baee16b332487248346ced603b0b5262a410e7452479ae6125e350a09d82"
+    },
+    {
+      "bytes": 570815,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_39_oracle.json",
+      "sha256": "aa788bbf5875cb77ae567fb02f7eb60cc681b7f400c7b82dd67adf1ce039bdb0"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_39_oracle.safetensors",
+      "sha256": "77f32dc7a87f8406fd3eef1d728b88e6965c5e4946db5f6c61c6a0dbe2eb17bd"
+    },
+    {
+      "bytes": 570562,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_7_oracle.json",
+      "sha256": "e58dbd8283d37f25736819f442afb4fbe0821a7f7017af10f7a65a9d5c5a6492"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_hidden_after_layer_7_oracle.safetensors",
+      "sha256": "5cb5127cc2fbe1ae268eb5c4c0941a03143904957e3d1e991addeebbee64f7f1"
+    },
+    {
+      "bytes": 567293,
+      "path": "development/samples/00000/exact_future_moe_residual_oracle.json",
+      "sha256": "737fc562b9430f9f07132ba76aea76cb90a02c278fb47b8aaa6138a2432e0fb4"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_moe_residual_oracle.safetensors",
+      "sha256": "f46e1e7426511ea22b4902542aafb86f570e2e3b8e2512fcf30560ce5bc23885"
+    },
+    {
+      "bytes": 563362,
+      "path": "development/samples/00000/exact_future_unpatched.json",
+      "sha256": "db7216bbec1b50ade8c5242bb255e6643616107a354aec8a96cb5ea3b5e1f424"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00000/exact_future_unpatched.safetensors",
+      "sha256": "01b2c3b773a8a8cc95a05e81d6e2c96f08c8efefcd4a7bec9ea6b2696b433645"
+    },
+    {
+      "bytes": 570582,
+      "path": "development/samples/00439/exact_future_attention_and_moe_oracle.json",
+      "sha256": "b374880ef856a46eb68cf393ecfaa8783027d074b6baff859cc18591c688c58f"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_attention_and_moe_oracle.safetensors",
+      "sha256": "f215a85eaa125d603407960540ca2f2fcdde87a53b31b9beb952205141570f58"
+    },
+    {
+      "bytes": 570009,
+      "path": "development/samples/00439/exact_future_attention_output_oracle.json",
+      "sha256": "53fc298190de5129340dcc269d44a1474e843d3b7ead101da367b528beda40f9"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_attention_output_oracle.safetensors",
+      "sha256": "6b1091efead376f0ee97a1685dbba33f23e887cc11cae03942f8936fddfb79a7"
+    },
+    {
+      "bytes": 572248,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_15_oracle.json",
+      "sha256": "fc19a0dfad5f2d8817432ae56db34b6808a4b80daa90ee57fc544416c702afef"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_15_oracle.safetensors",
+      "sha256": "4bc95f4aae027ce2b035031ce83dac3f659121f16756b0ad948fa4479735b2f6"
+    },
+    {
+      "bytes": 572280,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_23_oracle.json",
+      "sha256": "68ee93bac2e32a48a597ea2dbe33e74915f91f432372755a0720517ca4950a46"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_23_oracle.safetensors",
+      "sha256": "8e847b83b0f89de96eb777dbf3a2fb4626e938abc8f5547f44fa6044f6df633a"
+    },
+    {
+      "bytes": 572043,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_31_oracle.json",
+      "sha256": "6e09b31f3372337d403730d07d4f92538177c9ad10ca9fce390c911734cf0d56"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_31_oracle.safetensors",
+      "sha256": "4e49924cff1b05c340014792d33e12126afa6be5ca27146db18492e85751e469"
+    },
+    {
+      "bytes": 572187,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_39_oracle.json",
+      "sha256": "ae97e71840870a8961f6ad07c8dfb1248649646f062727e2079439992d4e4b52"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_39_oracle.safetensors",
+      "sha256": "b98fc2771d80647b6659895e890bf8b78013559f7c218e8926c5746ad9eaae65"
+    },
+    {
+      "bytes": 571815,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_7_oracle.json",
+      "sha256": "7311c43e1393073644503a545e67901ff1c5ebb1c7b37413ee8add63ba69cbc9"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_hidden_after_layer_7_oracle.safetensors",
+      "sha256": "60dee9d4938523bc24826b560ec81d79f802335ec5119a961c82280799749093"
+    },
+    {
+      "bytes": 568596,
+      "path": "development/samples/00439/exact_future_moe_residual_oracle.json",
+      "sha256": "5217edf71846318db5ef16c8136a5fb7ce734174bb00c3f11bf45195cd8d7287"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_moe_residual_oracle.safetensors",
+      "sha256": "f215a85eaa125d603407960540ca2f2fcdde87a53b31b9beb952205141570f58"
+    },
+    {
+      "bytes": 564736,
+      "path": "development/samples/00439/exact_future_unpatched.json",
+      "sha256": "d285b6359579e30184ff221e1b597f2111df9cab5b1e5b0a169b4bdd16234508"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00439/exact_future_unpatched.safetensors",
+      "sha256": "52d6dc3462987d1d7e6b3583ffba4ad767da637e36f593f84471876fcc20c3ca"
+    },
+    {
+      "bytes": 570159,
+      "path": "development/samples/00879/exact_future_attention_and_moe_oracle.json",
+      "sha256": "55458fc7a75149729d86f6fda554941094d3db74760a9372136b474463f06f17"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_attention_and_moe_oracle.safetensors",
+      "sha256": "e43ea5da2a192a13a6627fd1f31bd3d56ad9a73b606f21d47c9fb4cd89240632"
+    },
+    {
+      "bytes": 569946,
+      "path": "development/samples/00879/exact_future_attention_output_oracle.json",
+      "sha256": "1886c43274b6e6b05abf76b37489073a1c607b7b2f43b03f76110dd6bbcfe918"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_attention_output_oracle.safetensors",
+      "sha256": "86bb83f0f4d6537dddb6199bbedd5d892885883bbc095acc8342bb04959112bf"
+    },
+    {
+      "bytes": 571935,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_15_oracle.json",
+      "sha256": "287ff92cce15892a6dd2db85351949b21d71b319211e45d5c5aba25f3bbc2544"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_15_oracle.safetensors",
+      "sha256": "49057386dd647d0ab1db6f99337add1f170f126d69a35d5606be5e6edb378de3"
+    },
+    {
+      "bytes": 571614,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_23_oracle.json",
+      "sha256": "5f894db6e66a1d1d1f1d5d9f19b34eb887fbcde4c06e901d919f2e55ff91aac3"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_23_oracle.safetensors",
+      "sha256": "8de4350a6416c43b5a47c73da023c33dd4f18a0947a1d05a112a16ccd80f0fea"
+    },
+    {
+      "bytes": 571785,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_31_oracle.json",
+      "sha256": "f82bbe1fae88b7c1cb7aa349554d370186cc82002d1e6f4f12c6f3c2cd28d2fb"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_31_oracle.safetensors",
+      "sha256": "66e56b150ceb5d1df64a369832b9a2164c2391fb3b3f5a30828bd3a00570d8b5"
+    },
+    {
+      "bytes": 571785,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_39_oracle.json",
+      "sha256": "a7a390d3a4b5932b4dc41d645cedf990c46ff3be7910275bbd238c8f95832c88"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_39_oracle.safetensors",
+      "sha256": "4344ad4f4889d7c27573356e4c0f808fc0d19e3f84c57e96c2daf0fc46d1cfb0"
+    },
+    {
+      "bytes": 571421,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_7_oracle.json",
+      "sha256": "957bb14544b3968556fdc13fac99e250728cbc0793162907e02d3a9d43e372ff"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_hidden_after_layer_7_oracle.safetensors",
+      "sha256": "24f003c7b8f1b46ae7e7f30ba53147acabf6b1f4fc256ea201c4f06f1a5443b4"
+    },
+    {
+      "bytes": 568175,
+      "path": "development/samples/00879/exact_future_moe_residual_oracle.json",
+      "sha256": "6c2fd6cc9ebef164a98a5578dd03baa3821793ac2dbfdbe886c5588112f2fc1c"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_moe_residual_oracle.safetensors",
+      "sha256": "e43ea5da2a192a13a6627fd1f31bd3d56ad9a73b606f21d47c9fb4cd89240632"
+    },
+    {
+      "bytes": 564213,
+      "path": "development/samples/00879/exact_future_unpatched.json",
+      "sha256": "88e0517fae88cf6f462adba0f583449a29fea5af8d0011e3268e3cfe31567660"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/00879/exact_future_unpatched.safetensors",
+      "sha256": "11b26a4ca0ae85f15f81dcacf76a97f26331f27c6f789ed5ed3b32fb6fd33f80"
+    },
+    {
+      "bytes": 570848,
+      "path": "development/samples/01318/exact_future_attention_and_moe_oracle.json",
+      "sha256": "71ffab784e0c333590e48ce77350e1a7a521db82ba45ff9d340fcd7c03c47aa8"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_attention_and_moe_oracle.safetensors",
+      "sha256": "03477525df6170bb786dcb20c40ace5cae09bc68711d7b94e63f0ba10239ad7d"
+    },
+    {
+      "bytes": 570196,
+      "path": "development/samples/01318/exact_future_attention_output_oracle.json",
+      "sha256": "8d37038891d7fe146fb36917bac789bb054413b49402dd099e3c7f612569b251"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_attention_output_oracle.safetensors",
+      "sha256": "53741372cc11cfee85d093dac4352b797a18557930f87f8229de1ac8a71b5302"
+    },
+    {
+      "bytes": 572063,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_15_oracle.json",
+      "sha256": "7e134eacf2f945d2ec631f29e55563e7a43742583b8c76a7dc8461b6365c619e"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_15_oracle.safetensors",
+      "sha256": "05f70e50f7af2a18a58ec0446ee0b8409b4a5c6a39a144837fca334fb265a01e"
+    },
+    {
+      "bytes": 572208,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_23_oracle.json",
+      "sha256": "1f53aee192b3589a4e7a09017bf7ffcad5d06f63fac85ec7af2d3ff1a243d593"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_23_oracle.safetensors",
+      "sha256": "60e97346ee5d0ffd0bebc9b86fc42ee6d89542651e575de11f2c92702845974b"
+    },
+    {
+      "bytes": 571948,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_31_oracle.json",
+      "sha256": "5b599fd58fa3ec7ca57391497a563886362214c1bd57a6733967b29a25215c56"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_31_oracle.safetensors",
+      "sha256": "9370be9c41863ee7d285ffe99850215fde0e64bfcdc50f9335f8018cc186ceef"
+    },
+    {
+      "bytes": 572208,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_39_oracle.json",
+      "sha256": "1c970ede2207532aa637f45552337b0fcb499649766541617218fc29511e0472"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_39_oracle.safetensors",
+      "sha256": "707117b53493c3787c1da63498bc11256728196ffe9289575ac392e4ae0486bc"
+    },
+    {
+      "bytes": 571882,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_7_oracle.json",
+      "sha256": "f4459e3653cd61f7924e3cefd94f3bf6e4939df836ed658c0c39d1c74189e904"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_hidden_after_layer_7_oracle.safetensors",
+      "sha256": "cce4b21d8b0de37acff9969a58eca4921b8fb5af263791443fa037f098aebfb0"
+    },
+    {
+      "bytes": 568859,
+      "path": "development/samples/01318/exact_future_moe_residual_oracle.json",
+      "sha256": "26fdec4bb098e472f549710d8e007be3abf7ce140e30752921df6c538dd4db14"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_moe_residual_oracle.safetensors",
+      "sha256": "03477525df6170bb786dcb20c40ace5cae09bc68711d7b94e63f0ba10239ad7d"
+    },
+    {
+      "bytes": 564548,
+      "path": "development/samples/01318/exact_future_unpatched.json",
+      "sha256": "b4041075167fd67fa6451719cdc32ee8ac07d59cc9c1c7140e59644879baef26"
+    },
+    {
+      "bytes": 19271648,
+      "path": "development/samples/01318/exact_future_unpatched.safetensors",
+      "sha256": "fa4e5723bdd4b72850ef43fc92b860aaaa66ab32ce933816fe439b96c1d68ff1"
+    },
+    {
+      "bytes": 33239,
+      "path": "development/state_alignment.json",
+      "sha256": "5f10a9f5cacb6a18e6e4aa0778fa12ec8ba7a93b50a733de592edc3813c76f60"
+    },
+    {
+      "bytes": 9162,
+      "path": "development/worst_cases.json",
+      "sha256": "baee2491fddff82dda56c799da3e7949c58a4cff43fc147427f83cc7a79e8768"
+    },
+    {
+      "bytes": 481,
+      "path": "measured_vs_simulated.json",
+      "sha256": "81aedffb8946f7697c35475187fad848fa38e2be6181527a6333efd5b893741b"
+    },
+    {
+      "bytes": 500,
+      "path": "provenance.json",
+      "sha256": "969993b575622cedaf9762bd35bb5f7e2ccc239535979bc9e5a15c3a93ac1fa7"
+    },
+    {
+      "bytes": 3807,
+      "path": "report.md",
+      "sha256": "7ed38d3d1b5624d35fa086af9462fa5fe1429e3875749df47834c274d570973e"
+    },
+    {
+      "bytes": 10103,
+      "path": "resolved_config.json",
+      "sha256": "0619b9d46d98597285a44e5406063484c839f55c49d74f0555f512f26993e60e"
+    },
+    {
+      "bytes": 307,
+      "path": "resolved_environment.json",
+      "sha256": "60624810ae9543c3a1972401fc0e38993d9022e97b7f7ccd8c001cfb455e7c9e"
+    },
+    {
+      "bytes": 189,
+      "path": "resolved_execution_revision.json",
+      "sha256": "7c30adc720370cbb92c9db778bc740a5ff49e5362aaab8de9aec8c15fb509068"
+    },
+    {
+      "bytes": 1071,
+      "path": "resolved_sample_manifest.json",
+      "sha256": "899a6509c53788339d8884094f0e3f727ccef42b75254838e0abec01c6d30bae"
+    },
+    {
+      "bytes": 166,
+      "path": "resume_audit.json",
+      "sha256": "fb8615beef7aa91f607b0a8baaa0aed78c8a973c5d17e9115682458409504124"
+    }
+  ],
+  "sample_manifest_sha256": "2a75b1cb96f46189d469d1d5a431174351fa726f44a71909cd1708c5ed27bb17",
+  "schema_version": 1,
+  "state": "complete"
+}

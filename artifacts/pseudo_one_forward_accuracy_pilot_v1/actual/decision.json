@@ -1,0 +1,9 @@
+{
+  "accuracy_selected_or_tuned_variant": false,
+  "decision": "PILOT_NARROW_WITH_ONE_ALLOWED_LOSS",
+  "full_dataset_go": false,
+  "future_exact_deployable": false,
+  "pilot_id": "pseudo_one_forward_accuracy_pilot_v1",
+  "sampled_unigram_accuracy_gate_pass": true,
+  "selected_deployable_policy": null
+}

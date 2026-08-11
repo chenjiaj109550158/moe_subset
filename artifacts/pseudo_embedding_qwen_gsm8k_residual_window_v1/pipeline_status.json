@@ -1,0 +1,13 @@
+{
+  "actual_closed_loop_executed": false,
+  "analysis_config_sha256": "361ba85b995b1c2d8573816eadf73861ea0f9f89bed5158221ae6e26f87caf7b",
+  "analysis_id": "pseudo_embedding_qwen_gsm8k_residual_window_v1",
+  "artifact_count": 171,
+  "decision": "STOP/PIVOT",
+  "held_out_route_executed": false,
+  "progress_gate_pass": false,
+  "sample_policy_rows": 64,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete"
+}

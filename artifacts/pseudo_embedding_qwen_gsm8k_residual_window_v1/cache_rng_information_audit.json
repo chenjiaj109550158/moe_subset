@@ -1,0 +1,56 @@
+{
+  "future_token_leakage_in_selectable_candidates": false,
+  "generation_rng_unchanged": true,
+  "hard_mask_executed": true,
+  "identity_materialized": false,
+  "label_or_correctness_leakage": false,
+  "native_qwen_attention_rope_router_topk_normalization": true,
+  "previous_route_control_parity": {
+    "all_pass": true,
+    "rows": [
+      {
+        "metrics_equal": true,
+        "sample_id": "test-0",
+        "subsets_routes_weights_equal": true
+      },
+      {
+        "metrics_equal": true,
+        "sample_id": "test-439",
+        "subsets_routes_weights_equal": true
+      },
+      {
+        "metrics_equal": true,
+        "sample_id": "test-879",
+        "subsets_routes_weights_equal": true
+      },
+      {
+        "metrics_equal": true,
+        "sample_id": "test-1318",
+        "subsets_routes_weights_equal": true
+      }
+    ]
+  },
+  "production_cache_identity_pointer_version_and_length_unchanged": true,
+  "shadow_cache_discarded_after_boundary": true,
+  "stage_audits": {
+    "content_smoke": {
+      "all_pass": true,
+      "calibration_artifact_loaded_by_pseudo_probe": false,
+      "production_cache_rng_shadow_audits": true,
+      "sample_policy_rows": 12
+    },
+    "development": {
+      "all_pass": true,
+      "calibration_artifact_loaded_by_pseudo_probe": false,
+      "production_cache_rng_shadow_audits": true,
+      "sample_policy_rows": 44
+    },
+    "residual_smoke": {
+      "all_pass": true,
+      "calibration_artifact_loaded_by_pseudo_probe": false,
+      "production_cache_rng_shadow_audits": true,
+      "sample_policy_rows": 8
+    }
+  },
+  "state": "pass"
+}

@@ -1,0 +1,27 @@
+{
+  "analysis_id": "pseudo_executed_previous_subset_smoke_v1",
+  "default_vector_values_loaded": false,
+  "execution_pids": [
+    2245114
+  ],
+  "execution_ppids": [
+    2171486
+  ],
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "new_natural_traces": false,
+  "physical_gpus": [
+    1
+  ],
+  "precision": "bfloat16",
+  "route_evaluation": "teacher_forced_saved_v17_tokens_on_policy_own_hard_subset_state",
+  "sample_ids": [
+    "test-786",
+    "test-394"
+  ],
+  "schema_version": 1,
+  "task_accuracy_measured": false,
+  "transfer_kind": "simulated"
+}

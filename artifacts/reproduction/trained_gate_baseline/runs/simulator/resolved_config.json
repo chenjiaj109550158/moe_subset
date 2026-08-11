@@ -1,0 +1,50 @@
+{
+  "baselines": [
+    "on_demand",
+    "lru",
+    "lfu",
+    "lossless_predictor",
+    "one_step_commitment",
+    "multi_step_commitment"
+  ],
+  "dense_compute_us_per_token": 50.0,
+  "experiment": {
+    "information_regime": "offline_teacher_forced",
+    "name": "tiny_m8_offload_simulation",
+    "seed": 1234
+  },
+  "expert_compute_us": 8.0,
+  "generated_tokens": 8,
+  "max_concurrent_transfers": 2,
+  "per_layer_budget": 2,
+  "probe_us": 25.0,
+  "prompt_tokens": [
+    1,
+    2,
+    3
+  ],
+  "schema_version": 1,
+  "sweep": {
+    "bandwidth_bytes_per_s": [
+      12000000000.0,
+      24000000000.0
+    ],
+    "capacity_experts": [
+      4,
+      6
+    ],
+    "fixed_latency_us": [
+      5.0,
+      10.0
+    ],
+    "horizons": [
+      1,
+      4
+    ],
+    "overlap_transfers": [
+      false,
+      true
+    ]
+  },
+  "tiny_model_config": "configs/model/tiny_moe.yaml"
+}

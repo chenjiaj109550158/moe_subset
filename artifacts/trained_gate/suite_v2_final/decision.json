@@ -1,0 +1,539 @@
+{
+  "model_decisions": [
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 843841536.0,
+          "exact_token_agreement": 0.203125,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 27951.387512225177
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 1186922496.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.47966269841269843,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 427819008.0,
+          "exact_token_agreement": 0.0703125,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 3214.3334468838884
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 100663296.0,
+          "exact_token_agreement": 0.109375,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 5366.550420793697
+        }
+      },
+      "closed_loop_quality_by_domain": {
+        "gsm8k": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 765591552.0,
+            "exact_token_agreement": 0.125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 54983.03810475413
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 1111621632.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.4642857142857143,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 567803904.0,
+            "exact_token_agreement": 0.0625,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 3887.537250796065
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 100663296.0,
+            "exact_token_agreement": 0.171875,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 1558.0520240482722
+          }
+        },
+        "wikitext": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 922091520.0,
+            "exact_token_agreement": 0.28125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 919.7369196962225
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 1262223360.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.49503968253968256,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 287834112.0,
+            "exact_token_agreement": 0.078125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 2541.1296429717113
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 100663296.0,
+            "exact_token_agreement": 0.046875,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 9175.048817539122
+          }
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "gate_evidence": {
+        "hard_commitment_quality_pass": false,
+        "lossless_fallback_pass": false,
+        "requires_budget_below_all_routed_experts": true,
+        "worst_hit_uses_predeclared_p05_floor": 0.8
+      },
+      "model": "olmoe",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.2613480582599794,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 8,
+          "mean_hit_rate": 0.9821111505681818,
+          "mean_selected_mass": 0.9918168394072203,
+          "model": "olmoe",
+          "p05_hit_rate": 0.890625,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.8125
+        }
+      ],
+      "reason": "open-loop points pass, but hard-commitment quality and lossless fallback fail the predeclared gates",
+      "tier": "floating_point"
+    },
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 668811264.0,
+          "exact_token_agreement": 0.1953125,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 82580.98965060855
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 1225568256.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.8022486772486772,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 374685696.0,
+          "exact_token_agreement": 0.046875,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 555234.0409600791
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 51904512.0,
+          "exact_token_agreement": 0.0859375,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 36448.68212721271
+        }
+      },
+      "closed_loop_quality_by_domain": {
+        "gsm8k": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 685301760.0,
+            "exact_token_agreement": 0.28125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 161847.06678234297
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 1276256256.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.8095238095238095,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 381173760.0,
+            "exact_token_agreement": 0.03125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 1105757.1212433812
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 51904512.0,
+            "exact_token_agreement": 0.109375,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 40419.838784428146
+          }
+        },
+        "wikitext": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 652320768.0,
+            "exact_token_agreement": 0.109375,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 3314.9125188741236
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 1174880256.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.794973544973545,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 368197632.0,
+            "exact_token_agreement": 0.0625,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 4710.960676776997
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 51904512.0,
+            "exact_token_agreement": 0.0625,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 32477.525469997276
+          }
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "gate_evidence": {
+        "hard_commitment_quality_pass": false,
+        "lossless_fallback_pass": false,
+        "requires_budget_below_all_routed_experts": true,
+        "worst_hit_uses_predeclared_p05_floor": 0.8
+      },
+      "model": "qwen",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.323326624567116,
+          "budget": 32,
+          "domain": "gsm8k",
+          "horizon": 16,
+          "mean_hit_rate": 0.9696858723958334,
+          "mean_selected_mass": 0.9903186488201062,
+          "model": "qwen",
+          "p05_hit_rate": 0.890625,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.8125
+        },
+        {
+          "baseline_improvement": 0.30351329934385296,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 16,
+          "mean_hit_rate": 0.9802879050925926,
+          "mean_selected_mass": 0.9929067818539669,
+          "model": "qwen",
+          "p05_hit_rate": 0.90625,
+          "transfer_reduction": 0.5,
+          "worst_hit_rate": 0.84375
+        }
+      ],
+      "reason": "open-loop points pass, but hard-commitment quality and lossless fallback fail the predeclared gates",
+      "tier": "floating_point"
+    },
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 5276565504.0,
+          "exact_token_agreement": 0.265625,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 221159.51684749115
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 8497004544.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.2881944444444444,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 3663593472.0,
+          "exact_token_agreement": 0.0703125,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 261859.44905708998
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 704643072.0,
+          "exact_token_agreement": 0.1171875,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 77663.03663180929
+        }
+      },
+      "closed_loop_quality_by_domain": {
+        "gsm8k": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 5207752704.0,
+            "exact_token_agreement": 0.453125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 456.873725763146
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 8455716864.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.29117063492063494,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 3941597184.0,
+            "exact_token_agreement": 0.046875,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 36815.31029729266
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 704643072.0,
+            "exact_token_agreement": 0.0625,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 25862.939228052655
+          }
+        },
+        "wikitext": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 5345378304.0,
+            "exact_token_agreement": 0.078125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 441862.1599692191
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 8538292224.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.28521825396825395,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 3385589760.0,
+            "exact_token_agreement": 0.09375,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 486903.5878168873
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 704643072.0,
+            "exact_token_agreement": 0.171875,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 129463.1340355659
+          }
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "gate_evidence": {
+        "hard_commitment_quality_pass": false,
+        "lossless_fallback_pass": false,
+        "requires_budget_below_all_routed_experts": true,
+        "worst_hit_uses_predeclared_p05_floor": 0.8
+      },
+      "model": "mixtral",
+      "qualifying_operating_points": [],
+      "reason": "no below-all-expert operating point jointly satisfies coverage, P05/worst tail, baseline, and transfer gates",
+      "tier": "floating_point"
+    },
+    {
+      "closed_loop_quality": {
+        "hard_oracle_commitment": {
+          "bytes_per_token": 983617536.0,
+          "exact_token_agreement": 0.0625,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 55784.02282352743
+        },
+        "lossless_oracle_residency": {
+          "bytes_per_token": 1543213056.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.706959706959707,
+          "relative_perplexity_increase": 0.0
+        },
+        "natural": {
+          "bytes_per_token": 0.0,
+          "exact_token_agreement": 1.0,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 0.0
+        },
+        "previous_route_commitment": {
+          "bytes_per_token": 579059712.0,
+          "exact_token_agreement": 0.0546875,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 90964.95412421142
+        },
+        "static_frequency_commitment": {
+          "bytes_per_token": 84344832.0,
+          "exact_token_agreement": 0.046875,
+          "fallback_frequency": 0.0,
+          "relative_perplexity_increase": 42738.12473605515
+        }
+      },
+      "closed_loop_quality_by_domain": {
+        "gsm8k": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 1049444352.0,
+            "exact_token_agreement": 0.046875,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 12612.823381589304
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 1714741248.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.7991452991452992,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 601497600.0,
+            "exact_token_agreement": 0.0625,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 32317.349344981976
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 84344832.0,
+            "exact_token_agreement": 0.03125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 68682.56668919566
+          }
+        },
+        "wikitext": {
+          "hard_oracle_commitment": {
+            "bytes_per_token": 917790720.0,
+            "exact_token_agreement": 0.078125,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 98955.22226546556
+          },
+          "lossless_oracle_residency": {
+            "bytes_per_token": 1371684864.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.6147741147741148,
+            "relative_perplexity_increase": 0.0
+          },
+          "natural": {
+            "bytes_per_token": 0.0,
+            "exact_token_agreement": 1.0,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 0.0
+          },
+          "previous_route_commitment": {
+            "bytes_per_token": 556621824.0,
+            "exact_token_agreement": 0.046875,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 149612.55890344086
+          },
+          "static_frequency_commitment": {
+            "bytes_per_token": 84344832.0,
+            "exact_token_agreement": 0.0625,
+            "fallback_frequency": 0.0,
+            "relative_perplexity_increase": 16793.68278291463
+          }
+        }
+      },
+      "decision": "STOP/PIVOT",
+      "gate_evidence": {
+        "hard_commitment_quality_pass": false,
+        "lossless_fallback_pass": false,
+        "requires_budget_below_all_routed_experts": true,
+        "worst_hit_uses_predeclared_p05_floor": 0.8
+      },
+      "model": "deepseek",
+      "qualifying_operating_points": [
+        {
+          "baseline_improvement": 0.32614913664222034,
+          "budget": 32,
+          "domain": "gsm8k",
+          "horizon": 8,
+          "mean_hit_rate": 0.990665064102564,
+          "mean_selected_mass": 0.9962912727483689,
+          "model": "deepseek",
+          "p05_hit_rate": 0.9375,
+          "transfer_reduction": 0.33333333333333337,
+          "worst_hit_rate": 0.8541666666666666
+        },
+        {
+          "baseline_improvement": 0.245068548228898,
+          "budget": 32,
+          "domain": "wikitext",
+          "horizon": 8,
+          "mean_hit_rate": 0.997960372960373,
+          "mean_selected_mass": 0.9993042172449641,
+          "model": "deepseek",
+          "p05_hit_rate": 1.0,
+          "transfer_reduction": 0.33333333333333337,
+          "worst_hit_rate": 0.8958333333333334
+        }
+      ],
+      "reason": "open-loop points pass, but hard-commitment quality and lossless fallback fail the predeclared gates",
+      "tier": "floating_point"
+    },
+    {
+      "decision": "STOP/PIVOT",
+      "failure": "gpt-oss trace capture requires batch 1 and every MoE layer",
+      "model": "gpt_oss",
+      "reason": "native MXFP4 fused route capture/runtime incompatibility",
+      "tier": "mxfp4"
+    }
+  ],
+  "overall_decision": "STOP/PIVOT",
+  "schema_version": 1,
+  "scope": {
+    "checkpoints": [
+      "allenai/OLMoE-1B-7B-0125@9b0c1aa87e34a20052389dce1f0cf01da783f654",
+      "Qwen/Qwen1.5-MoE-A2.7B@1a758c50ecb6350748b9ce0a99d2352fd9fc11c9",
+      "mistralai/Mixtral-8x7B-v0.1@fc7ac94680e38d7348cfa806e51218e6273104b0",
+      "deepseek-ai/DeepSeek-V2-Lite-Chat@85864749cd611b4353ce1decdb286193298f64c7",
+      "openai/gpt-oss-20b@6cee5e81ee83917806bbde320786a8fb61efebee"
+    ],
+    "datasets": [
+      "Salesforce/wikitext@b08601e04326c79dfdd32d625aee71d232d685c3",
+      "openai/gsm8k@740312add88f781978c0658806c59bc2815b9866"
+    ],
+    "decoding": "batch-1 deterministic greedy, 64 new tokens",
+    "hardware": "2x NVIDIA A100-SXM4-80GB",
+    "precision": "checkpoint dtype; gpt-oss separate native MXFP4 tier",
+    "timing": "transfer/stall simulated, not measured runtime"
+  },
+  "suite_id": "trained_oracle_gate_v2",
+  "thresholds_predeclared_in": "versioned suite trained_oracle_gate_v2"
+}

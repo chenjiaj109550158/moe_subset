@@ -1,0 +1,68 @@
+{
+  "candidate__equal_pseudo_history": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8260550873801549,
+    "router_calls": 24576
+  },
+  "candidate__first_four_anchor_core_plus_history_fill": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8297142547926342,
+    "router_calls": 24576
+  },
+  "candidate__inverse_anchor_decay": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8245304805386695,
+    "router_calls": 24576
+  },
+  "candidate__linear_horizon_decay": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8329753625148442,
+    "router_calls": 24576
+  },
+  "candidate__previous_window_route_only": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8249824856902706,
+    "router_calls": 24576
+  },
+  "candidate__residual_pseudo_only": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8300223672813445,
+    "router_calls": 24576
+  },
+  "candidate__sampled_anchor_one_plus_previous_window_route": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.826984489131064,
+    "router_calls": 24576
+  },
+  "candidate__sampled_top8_core_plus_history_fill": {
+    "attention_queries": 24576,
+    "max_temporary_cuda_bytes": 195133440,
+    "mean_probe_latency_seconds": 0.8324450913096371,
+    "router_calls": 24576
+  },
+  "reference__hard_oracle_commitment": {
+    "attention_queries": 0,
+    "max_temporary_cuda_bytes": 0,
+    "mean_probe_latency_seconds": 0.0,
+    "router_calls": 0
+  },
+  "reference__previous_route_commitment": {
+    "attention_queries": 0,
+    "max_temporary_cuda_bytes": 0,
+    "mean_probe_latency_seconds": 0.0,
+    "router_calls": 0
+  },
+  "reference__static_frequency": {
+    "attention_queries": 0,
+    "max_temporary_cuda_bytes": 0,
+    "mean_probe_latency_seconds": 0.0,
+    "router_calls": 0
+  }
+}

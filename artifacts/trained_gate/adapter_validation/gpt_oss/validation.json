@@ -1,0 +1,10 @@
+{
+  "failure": "gpt-oss trace capture requires batch 1 and every MoE layer",
+  "failure_type": "RuntimeError",
+  "full_router_mass_valid": false,
+  "model": "openai/gpt-oss-20b",
+  "quantization": "mxfp4",
+  "revision": "6cee5e81ee83917806bbde320786a8fb61efebee",
+  "status": "failed",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 12, in <module>\n  File \"/home/justin/moe_subset/src/pseudoroute/models/adapters/hf_gpt_oss.py\", line 213, in run_base_forward\n    raise RuntimeError(\"gpt-oss trace capture requires batch 1 and every MoE layer\")\nRuntimeError: gpt-oss trace capture requires batch 1 and every MoE layer\n"
+}

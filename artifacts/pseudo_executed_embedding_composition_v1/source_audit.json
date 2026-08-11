@@ -1,0 +1,9 @@
+{
+  "all_frozen_hashes_match": true,
+  "analysis_config_sha256": "35d9ef891c4bccf8603cc0e4b98d8cbb51022a82f11ed72782293e374938e8f9",
+  "network_downloads": false,
+  "new_rows_or_traces": false,
+  "sample_manifest_sha256": "d554e10eed706e9bc35bdfbb91c58347c7e7a23fe23526460b06fc4e76bdaac1",
+  "source_mechanism_manifest_sha256": "c2d9b729dc3517b0a5ea07e783b251638896d942b3eba57d3e3025d2a59b7b1e",
+  "source_suite_manifest_sha256": "b5c71fbe49eee2aad35d2f66da136f3e814818c312057598cc5301334444a337"
+}

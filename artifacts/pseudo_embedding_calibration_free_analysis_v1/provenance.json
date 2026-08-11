@@ -1,0 +1,24 @@
+{
+  "accuracy_or_answers_used": false,
+  "analysis_elapsed_seconds_measured": 104.22112780396128,
+  "analysis_id": "pseudo_embedding_calibration_free_analysis_v1",
+  "config_fingerprint": "c09d70901bacafabdbacda398390574f7c24f67f634909d39b2084be3e04f898",
+  "default_vector_values_used_by_candidate_methods": false,
+  "future_true_tokens_used_by_candidate_methods": false,
+  "gpu_used": false,
+  "learned_or_fitted_parameters": false,
+  "model_loaded": false,
+  "network_downloads": false,
+  "offline_calibration_statistics_used_by_candidate_methods": false,
+  "online_history_reference": "teacher_forced_natural_history_for_open_loop_analysis",
+  "runtime_kind": "cpu_analysis_only_not_model_runtime",
+  "schema_version": 1,
+  "source_kind": "existing_authoritative_open_loop_development_tensors",
+  "source_samples": [
+    "test-0",
+    "test-439",
+    "test-879",
+    "test-1318"
+  ],
+  "transfer_kind": "simulated"
+}

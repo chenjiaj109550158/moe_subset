@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420">
+<rect width="100%" height="100%" fill="white"/>
+<line x1="58" y1="362" x2="662" y2="362"
+stroke="black"/>
+<line x1="58" y1="58" x2="58" y2="362" stroke="black"/>
+<text x="360.0" y="408" text-anchor="middle">expert budget B</text>
+<text x="16" y="210.0" transform="rotate(-90 16 210.0)"
+text-anchor="middle">subset regret</text>
+<polyline points="58.00,131.74 662.00,63.02" fill="none" stroke="#2864dc" stroke-width="2"/><polyline points="58.00,128.10 662.00,64.80" fill="none" stroke="#d84a3a" stroke-width="2"/><polyline points="58.00,128.10 662.00,63.02" fill="none" stroke="#2a9d55" stroke-width="2"/><polyline points="58.00,128.10 662.00,63.02" fill="none" stroke="#7d4bc6" stroke-width="2"/><polyline points="58.00,131.74 662.00,63.02" fill="none" stroke="#d28b18" stroke-width="2"/><polyline points="58.00,128.10 662.00,58.00" fill="none" stroke="#168a91" stroke-width="2"/><polyline points="58.00,128.10 662.00,63.02" fill="none" stroke="#2864dc" stroke-width="2"/><polyline points="58.00,128.10 662.00,63.02" fill="none" stroke="#d84a3a" stroke-width="2"/><polyline points="58.00,128.10 662.00,63.02" fill="none" stroke="#2a9d55" stroke-width="2"/><polyline points="58.00,128.10 662.00,62.05" fill="none" stroke="#7d4bc6" stroke-width="2"/></svg>

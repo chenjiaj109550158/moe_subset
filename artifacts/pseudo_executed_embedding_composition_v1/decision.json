@@ -1,0 +1,16 @@
+{
+  "analysis_id": "pseudo_executed_embedding_composition_v1",
+  "decision": "NARROW",
+  "held_out_route_decision": {
+    "all_available_strong_conditions_pass": true,
+    "decision": "ROUTE_SIGNAL",
+    "oracle_gap_recovery_computed": false,
+    "selected_deployable": "self_greedy_causal",
+    "selected_minus_previous_route_hit": 0.1539514505259698,
+    "selected_minus_previous_selected_mass": 0.1634316470823014,
+    "task_accuracy_authorized": false
+  },
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_embedding_composition_route_analysis",
+  "task_accuracy_authorized": false
+}

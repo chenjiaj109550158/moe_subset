@@ -1,0 +1,8 @@
+{
+  "all_pass": true,
+  "candidate_sample_policy_rows": 12,
+  "future_token_or_accuracy_used": false,
+  "one_causal_forward_per_boundary": true,
+  "one_midlayer_refresh_per_boundary": true,
+  "source_reference_rows": 4
+}

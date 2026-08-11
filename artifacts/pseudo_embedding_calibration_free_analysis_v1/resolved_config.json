@@ -1,0 +1,120 @@
+{
+  "analyses": [
+    "horizon_route_coverage",
+    "natural_temporal_persistence",
+    "layer_sensitivity",
+    "router_margin_sensitivity",
+    "component_intervention_sensitivity",
+    "calibration_free_candidate_comparison",
+    "leave_one_sample_out_stability"
+  ],
+  "analysis_id": "pseudo_embedding_calibration_free_analysis_v1",
+  "artifact_root": "artifacts/pseudo_embedding_calibration_free_analysis_v1",
+  "calibration_free": {
+    "default_vector_values_in_candidate_methods": "forbidden",
+    "first_boundary_fallback": "zero_pseudo_all_anchors",
+    "fitted_mixture_weights": "forbidden",
+    "learned_parameters": "forbidden",
+    "offline_expert_priors": "forbidden",
+    "offline_route_transition_tables": "forbidden",
+    "online_history_scope": "current_policy_only"
+  },
+  "candidate_constructions": [
+    {
+      "key": "zero_pseudo_all_anchors",
+      "rule": "sum_zero_pseudo_probabilities_all_anchors"
+    },
+    {
+      "key": "recent_route_prior_w8",
+      "rule": "previous_window_selected_mass_frequency"
+    },
+    {
+      "key": "one_known_plus_seven_history",
+      "rule": "p_anchor1_plus_h_minus_1_recent_prior"
+    },
+    {
+      "key": "equal_evidence_future_blend",
+      "rule": "p_anchor1_plus_half_future_pseudo_plus_half_history_per_unknown_anchor"
+    },
+    {
+      "key": "native_topk_core_plus_history_reserve",
+      "rule": "anchor1_topk_core_then_recent_history_fill"
+    }
+  ],
+  "candidate_progress_reference": {
+    "baseline": "previous_route_commitment",
+    "minimum_route_hit_improvement": 0.05,
+    "minimum_selected_mass_improvement": 0.05,
+    "minimum_simulated_transfer_reduction": 0.3,
+    "result_role": "hypothesis_generation_only_requires_new_frozen_held_out_scope",
+    "selection_uses_accuracy": false
+  },
+  "information_boundary": {
+    "deployable_allowed_inputs": [
+      "sampled_next_token",
+      "current_policy_cache",
+      "current_policy_realized_route_history"
+    ],
+    "deployable_forbidden_inputs": [
+      "future_true_tokens",
+      "vanilla_future_trajectory",
+      "benchmark_answer",
+      "correctness",
+      "offline_calibration_statistics"
+    ],
+    "diagnostic_oracles_excluded_from_candidate_ranking": true,
+    "diagnostic_oracles_must_be_separate": true
+  },
+  "metrics": [
+    "route_hit",
+    "selected_mass",
+    "centered_router_logit_cosine",
+    "pseudo_natural_topk_overlap",
+    "subset_jaccard",
+    "fallback_frequency",
+    "subset_churn",
+    "simulated_transfer_reduction"
+  ],
+  "operating_point": {
+    "budget": 32,
+    "horizon": 8,
+    "native_top_k": 8,
+    "routed_experts": 128
+  },
+  "schema_version": 1,
+  "source": {
+    "artifact_manifest_sha256": "b5c71fbe49eee2aad35d2f66da136f3e814818c312057598cc5301334444a337",
+    "artifact_root": "artifacts/pseudo_embedding_qwen_gsm8k_v1",
+    "config": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml",
+    "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+    "partition": "development",
+    "samples": [
+      {
+        "row_index": 0,
+        "sample_id": "test-0",
+        "tensor_path": "artifacts/pseudo_embedding_qwen_gsm8k_v1/route/development/samples/00000.safetensors",
+        "tensor_sha256": "84d1b8e58c88d1e7721064b5df847292c9026547dd1e9c4d53d0505ed26b25e1"
+      },
+      {
+        "row_index": 439,
+        "sample_id": "test-439",
+        "tensor_path": "artifacts/pseudo_embedding_qwen_gsm8k_v1/route/development/samples/00439.safetensors",
+        "tensor_sha256": "16f0aae7011026d48998b87b7d5f3c353391a0052b51198a7d525955e2892f91"
+      },
+      {
+        "row_index": 879,
+        "sample_id": "test-879",
+        "tensor_path": "artifacts/pseudo_embedding_qwen_gsm8k_v1/route/development/samples/00879.safetensors",
+        "tensor_sha256": "9fc09f10ec0283722c15dcbdb8c719b02661ac2e4335d94c33ad326d0ea16f7a"
+      },
+      {
+        "row_index": 1318,
+        "sample_id": "test-1318",
+        "tensor_path": "artifacts/pseudo_embedding_qwen_gsm8k_v1/route/development/samples/01318.safetensors",
+        "tensor_sha256": "769163fb5e9af6013e3b67e076e40d0914bcb98f1cfed0a890862b0cd1ea3c9f"
+      }
+    ],
+    "suite_id": "pseudo_embedding_qwen_gsm8k_v1"
+  },
+  "status": "protocol_frozen_before_analysis"
+}

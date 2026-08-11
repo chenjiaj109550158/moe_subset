@@ -1,0 +1,121 @@
+{
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_held_out_v1",
+  "artifact_root": "artifacts/pseudo_embedding_calibration_free_prompt_route_held_out_v1",
+  "bootstrap": {
+    "interval": "percentile_95",
+    "samples": 10000,
+    "seed": 20260801,
+    "unit": "sample"
+  },
+  "calibration_free": {
+    "default_vector_values": "forbidden",
+    "fitted_coefficients": "forbidden",
+    "future_true_tokens_in_candidate": "forbidden",
+    "learned_parameters": "forbidden",
+    "offline_expert_priors_in_candidate": "forbidden",
+    "offline_route_transition_tables": "forbidden"
+  },
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "precision": "bfloat16",
+    "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe"
+  },
+  "operating_point": {
+    "budget": 32,
+    "horizon": 8,
+    "native_top_k": 8,
+    "routed_experts": 128
+  },
+  "references": [
+    "hard_oracle_commitment",
+    "previous_route_commitment",
+    "static_frequency",
+    "sampled_repeat_independent_zero"
+  ],
+  "result_role": "held_out_route_evidence_no_accuracy_or_closed_loop_authorization",
+  "route_evaluation": {
+    "maximum_workers_per_physical_gpu": 1,
+    "mode": "teacher_forced_saved_v17_trajectory_open_loop",
+    "prompt_route_capture": "native_same_request_prefill",
+    "sample_atomic_checksum_resume": true
+  },
+  "route_token_cap": 128,
+  "rows": [
+    {
+      "row_index": 539,
+      "sample_id": "test-539",
+      "sha256_rank": "012f3f93a89cf9adddbaa463f10b8d3ef78ef142368e4eb216bae0d3d72957c6"
+    },
+    {
+      "row_index": 978,
+      "sample_id": "test-978",
+      "sha256_rank": "0153528d27e5b8bb7b3fe6f02aafac5929ec1b0d830d20dfd2162d43dfa492f4"
+    },
+    {
+      "row_index": 143,
+      "sample_id": "test-143",
+      "sha256_rank": "017dab6ddacb99370fcb56ef83364e99ccd731ac8d4a14277164a85a605ce3c7"
+    },
+    {
+      "row_index": 604,
+      "sample_id": "test-604",
+      "sha256_rank": "0206a387a2d5c83bb8bccef69e4c7da9a511aa4cdf39b301231c5c7c221765b9"
+    },
+    {
+      "row_index": 611,
+      "sample_id": "test-611",
+      "sha256_rank": "02468b49d4cf24a2127ce3805ae8ab175ac5ffa10e7766a5856d6b8589f1cf68"
+    },
+    {
+      "row_index": 1300,
+      "sample_id": "test-1300",
+      "sha256_rank": "02548ba1d09e4afdced1ef79b3e624c1e7f7261a14184bbc799c676b40252e9c"
+    },
+    {
+      "row_index": 229,
+      "sample_id": "test-229",
+      "sha256_rank": "02e010fd144ebae3c1eccd2b79d432afe273285544d1388ee94679ff35483c93"
+    },
+    {
+      "row_index": 925,
+      "sample_id": "test-925",
+      "sha256_rank": "031377ca5c4b020f78db0db1f089f22a4bc498ffba442e9cff9c3b0489db96ea"
+    }
+  ],
+  "schema_version": 1,
+  "selected_candidate": {
+    "boundary_zero_history": "same_request_last_8_prompt_routes",
+    "formula": "p_sampled_anchor_1_plus_half_sampled_anchors_2_8_plus_3_5_history",
+    "key": "equal_sampled_pseudo_prompt_or_recent_history",
+    "later_history": "current_policy_previous_8_realized_routes"
+  },
+  "source_development": {
+    "artifact_manifest_sha256": "f6f36ac0f73c9b141fc7df3bd2387704cdf06093a0db450fde41432b287b8452",
+    "artifact_root": "artifacts/pseudo_embedding_calibration_free_prompt_route_development_v1",
+    "config": "configs/analysis/pseudo_embedding_calibration_free_prompt_route_development_v1.yaml",
+    "config_sha256": "f1384397deba1e2cdb702dd4878af4092eaa64cd7625617900a22802d4813a25"
+  },
+  "source_suite": {
+    "config": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1.yaml",
+    "config_fingerprint": "a81f36b5ec4a4222ca7a459f9f9c1536d88bef5ba143c151c9e70498157d8cbc",
+    "sample_manifest": "configs/benchmark/pseudo_embedding_qwen_gsm8k_v1_samples.json",
+    "sample_manifest_sha256": "21da318e97315e3f0c19bc5213d24e5781456d980b3048677f3b748bccde9c93"
+  },
+  "static_reference": {
+    "default_mean_tensor_access": "forbidden",
+    "source": "default_vector_count_tensor_only",
+    "tensor_sha256": "2a315f6f3dc65ff62b656d0eb92b6781267e5dd13cbcaf4c09a5b5806060fd30"
+  },
+  "status": "protocol_frozen_before_model_execution",
+  "strong_candidate_gate": {
+    "failure_decision": "STOP/PIVOT",
+    "minimum_mean_route_hit": 0.6967,
+    "minimum_mean_selected_mass": 0.7162,
+    "minimum_oracle_minus_previous_gap_recovery": 0.25,
+    "minimum_route_hit_improvement_over_previous": 0.05,
+    "minimum_selected_mass_improvement_over_previous": 0.05,
+    "minimum_simulated_transfer_reduction": 0.3,
+    "pass_decision": "CANDIDATE_FOR_SEPARATELY_FROZEN_CLOSED_LOOP_PILOT",
+    "require_cache_rng_information_audit": true
+  }
+}

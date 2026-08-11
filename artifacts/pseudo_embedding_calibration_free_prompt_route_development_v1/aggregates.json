@@ -1,0 +1,72 @@
+{
+  "equal_sampled_pseudo_prompt_or_recent_history": {
+    "estimated_transfer_reduction": 0.4450706110013175,
+    "fallback_frequency": 0.3352632987483531,
+    "fallback_loads": 65143,
+    "mean_route_hit": 0.6647367012516469,
+    "mean_selected_mass": 0.6882479580321156,
+    "prefetch_loads": 42682,
+    "route_hits": 129161,
+    "route_slots": 194304,
+    "rows": 3072,
+    "selected_mass_hit": 16716.173461914062,
+    "selected_mass_total": 24288.01025390625,
+    "subset_churn": 79220
+  },
+  "prompt_or_recent_route_prior": {
+    "estimated_transfer_reduction": 0.39135581357048743,
+    "fallback_frequency": 0.3673316040843215,
+    "fallback_loads": 71374,
+    "mean_route_hit": 0.6326683959156785,
+    "mean_selected_mass": 0.6551392142772348,
+    "prefetch_loads": 46888,
+    "route_hits": 122930,
+    "route_slots": 194304,
+    "rows": 3072,
+    "selected_mass_hit": 15912.027954101562,
+    "selected_mass_total": 24288.01025390625,
+    "subset_churn": 87632
+  },
+  "sampled_known_plus_prompt_or_recent_history": {
+    "estimated_transfer_reduction": 0.42219923418972327,
+    "fallback_frequency": 0.3436264822134387,
+    "fallback_loads": 66768,
+    "mean_route_hit": 0.6563735177865613,
+    "mean_selected_mass": 0.6797793135739135,
+    "prefetch_loads": 45501,
+    "route_hits": 127536,
+    "route_slots": 194304,
+    "rows": 3072,
+    "selected_mass_hit": 16510.486938476562,
+    "selected_mass_total": 24288.01025390625,
+    "subset_churn": 84858
+  },
+  "sampled_repeat_independent_zero": {
+    "estimated_transfer_reduction": 0.3452991189064558,
+    "fallback_frequency": 0.43350111166007904,
+    "fallback_loads": 84231,
+    "mean_route_hit": 0.5664988883399209,
+    "mean_selected_mass": 0.5754016010061549,
+    "prefetch_loads": 42980,
+    "route_hits": 110073,
+    "route_slots": 194304,
+    "rows": 3072,
+    "selected_mass_hit": 13975.359985351562,
+    "selected_mass_total": 24288.01025390625,
+    "subset_churn": 79816
+  },
+  "sampled_top8_core_plus_prompt_or_recent_history_fill": {
+    "estimated_transfer_reduction": 0.42852952075098816,
+    "fallback_frequency": 0.34283905632411066,
+    "fallback_loads": 66615,
+    "mean_route_hit": 0.6571609436758893,
+    "mean_selected_mass": 0.6844668658752002,
+    "prefetch_loads": 44424,
+    "route_hits": 127689,
+    "route_slots": 194304,
+    "rows": 3072,
+    "selected_mass_hit": 16624.338256835938,
+    "selected_mass_total": 24288.01025390625,
+    "subset_churn": 82704
+  }
+}

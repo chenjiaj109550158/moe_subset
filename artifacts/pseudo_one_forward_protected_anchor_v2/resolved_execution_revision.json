@@ -1,0 +1,9 @@
+{
+  "git_head_at_report": "8ff2e7f1c4c6265a02031670f60d7bee6597432d",
+  "pid": 2316915,
+  "ppid": 2171486,
+  "row_execution_git_heads": [
+    "f1614ee4834a6247d835b3d61d6e574e83628f3b"
+  ],
+  "source_reference_manifest_sha256": "b01f9ce91a9c636b5ad7db9fd8a343920f5a6b70910fc4047536ee0fbdc1ac21"
+}

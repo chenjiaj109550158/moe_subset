@@ -1,0 +1,22 @@
+{
+  "config_fingerprint": "b68e18f45d373b31c45d99e8555e25fbf2816d7da8a68946536d6402668767a2",
+  "decision": "NARROW",
+  "execution_scope_fingerprint": "a5a908ad0124d2041b589a681e7102d3ea5d3f7df90752075799bb9875871d7c",
+  "execution_scope_id": "benchmark_subset_oracle_v1_gpt_gsm8k_hard_v2",
+  "orchestrator_pid": 1712420,
+  "orchestrator_ppid": 1398456,
+  "predictor_authorization": "only explicitly NARROW task scopes are authorized",
+  "progress": {
+    "closed_loop_json_rows": {
+      "full": 1601,
+      "mechanism_smoke": 25,
+      "selected_smoke": 18
+    },
+    "natural_trace_shards": 48
+  },
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "suite_id": "benchmark_subset_oracle_v1",
+  "updated_at": "2026-07-31T21:48:28.089155+00:00"
+}

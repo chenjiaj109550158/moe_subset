@@ -1,0 +1,12 @@
+{
+  "analysis_config_sha256": "75f4c028871632139a3f68f290726cb4834931a3a89cd2cc16883e050ebbb67b",
+  "analysis_id": "pseudo_one_forward_midlayer_self_conditioning_v1",
+  "artifact_count": 44,
+  "candidate_sample_policy_rows": 12,
+  "decision": "STOP/PIVOT",
+  "schema_version": 1,
+  "source_reference_rows": 4,
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": false
+}

@@ -1,0 +1,9 @@
+{
+  "analysis_id": "pseudo_one_forward_token_aligned_retrieval_v1",
+  "decision": "STOP/PIVOT",
+  "held_out_route_authorized": false,
+  "runtime_speedup_claim": false,
+  "scope": "Qwen_GSM8K_H8_B32_one_forward_token_aligned_development",
+  "selected_route_signal_variant": null,
+  "task_accuracy_authorized": false
+}

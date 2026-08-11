@@ -1,0 +1,17 @@
+{
+  "analysis_id": "pseudo_state_component_swap_v1",
+  "component_swaps_deployable": false,
+  "default_vector_values_loaded": false,
+  "development_sample_ids": [
+    "test-0",
+    "test-439",
+    "test-879",
+    "test-1318"
+  ],
+  "future_token_and_component_oracle_inputs": true,
+  "learned_or_fitted_parameters": false,
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "network_downloads": false,
+  "task_accuracy_measured": false
+}

@@ -1,0 +1,153 @@
+{
+  "accuracy_used": false,
+  "analysis_config_sha256": "f1384397deba1e2cdb702dd4878af4092eaa64cd7625617900a22802d4813a25",
+  "analysis_id": "pseudo_embedding_calibration_free_prompt_route_development_v1",
+  "best_observed_candidate": "equal_sampled_pseudo_prompt_or_recent_history",
+  "candidates": [
+    {
+      "candidate": "prompt_or_recent_route_prior",
+      "checks": {
+        "cache_rng_information_audit_pass": true,
+        "not_worse_than_static_frequency_pass": true,
+        "route_hit_improvement_pass": false,
+        "selected_mass_improvement_pass": false,
+        "simulated_transfer_reduction_pass": true
+      },
+      "eligible_for_held_out_protocol": false,
+      "metrics": {
+        "estimated_transfer_reduction": 0.39135581357048743,
+        "fallback_frequency": 0.3673316040843215,
+        "fallback_loads": 71374,
+        "mean_route_hit": 0.6326683959156785,
+        "mean_selected_mass": 0.6551392142772348,
+        "prefetch_loads": 46888,
+        "route_hits": 122930,
+        "route_slots": 194304,
+        "rows": 3072,
+        "selected_mass_hit": 15912.027954101562,
+        "selected_mass_total": 24288.01025390625,
+        "subset_churn": 87632
+      },
+      "route_hit_improvement_over_previous": 0.023283102766798347,
+      "selected_mass_improvement_over_previous": 0.025711088923219494
+    },
+    {
+      "candidate": "sampled_known_plus_prompt_or_recent_history",
+      "checks": {
+        "cache_rng_information_audit_pass": true,
+        "not_worse_than_static_frequency_pass": true,
+        "route_hit_improvement_pass": false,
+        "selected_mass_improvement_pass": true,
+        "simulated_transfer_reduction_pass": true
+      },
+      "eligible_for_held_out_protocol": false,
+      "metrics": {
+        "estimated_transfer_reduction": 0.42219923418972327,
+        "fallback_frequency": 0.3436264822134387,
+        "fallback_loads": 66768,
+        "mean_route_hit": 0.6563735177865613,
+        "mean_selected_mass": 0.6797793135739135,
+        "prefetch_loads": 45501,
+        "route_hits": 127536,
+        "route_slots": 194304,
+        "rows": 3072,
+        "selected_mass_hit": 16510.486938476562,
+        "selected_mass_total": 24288.01025390625,
+        "subset_churn": 84858
+      },
+      "route_hit_improvement_over_previous": 0.04698822463768115,
+      "selected_mass_improvement_over_previous": 0.05035118821989826
+    },
+    {
+      "candidate": "equal_sampled_pseudo_prompt_or_recent_history",
+      "checks": {
+        "cache_rng_information_audit_pass": true,
+        "not_worse_than_static_frequency_pass": true,
+        "route_hit_improvement_pass": true,
+        "selected_mass_improvement_pass": true,
+        "simulated_transfer_reduction_pass": true
+      },
+      "eligible_for_held_out_protocol": true,
+      "metrics": {
+        "estimated_transfer_reduction": 0.4450706110013175,
+        "fallback_frequency": 0.3352632987483531,
+        "fallback_loads": 65143,
+        "mean_route_hit": 0.6647367012516469,
+        "mean_selected_mass": 0.6882479580321156,
+        "prefetch_loads": 42682,
+        "route_hits": 129161,
+        "route_slots": 194304,
+        "rows": 3072,
+        "selected_mass_hit": 16716.173461914062,
+        "selected_mass_total": 24288.01025390625,
+        "subset_churn": 79220
+      },
+      "route_hit_improvement_over_previous": 0.05535140810276673,
+      "selected_mass_improvement_over_previous": 0.058819832678100314
+    },
+    {
+      "candidate": "sampled_top8_core_plus_prompt_or_recent_history_fill",
+      "checks": {
+        "cache_rng_information_audit_pass": true,
+        "not_worse_than_static_frequency_pass": true,
+        "route_hit_improvement_pass": false,
+        "selected_mass_improvement_pass": true,
+        "simulated_transfer_reduction_pass": true
+      },
+      "eligible_for_held_out_protocol": false,
+      "metrics": {
+        "estimated_transfer_reduction": 0.42852952075098816,
+        "fallback_frequency": 0.34283905632411066,
+        "fallback_loads": 66615,
+        "mean_route_hit": 0.6571609436758893,
+        "mean_selected_mass": 0.6844668658752002,
+        "prefetch_loads": 44424,
+        "route_hits": 127689,
+        "route_slots": 194304,
+        "rows": 3072,
+        "selected_mass_hit": 16624.338256835938,
+        "selected_mass_total": 24288.01025390625,
+        "subset_churn": 82704
+      },
+      "route_hit_improvement_over_previous": 0.04777565052700916,
+      "selected_mass_improvement_over_previous": 0.05503874052118496
+    }
+  ],
+  "decision": "CANDIDATE_FOR_NEW_FROZEN_HELD_OUT_ROUTE_PROTOCOL",
+  "qualifying_candidate": "equal_sampled_pseudo_prompt_or_recent_history",
+  "references": {
+    "previous_route_commitment": {
+      "estimated_transfer_reduction": 0.3613152585638999,
+      "fallback_frequency": 0.3906147068511199,
+      "fallback_loads": 75898,
+      "lossless_transfer_bytes": 1171145097216,
+      "mean_full_router_mass": 0.3758830836441521,
+      "mean_route_hit": 0.6093852931488801,
+      "mean_selected_mass": 0.6294281253540153,
+      "natural_reference_bytes": 1833682599936,
+      "prefetch_loads": 48201,
+      "route_hits": 118406,
+      "route_slots": 194304,
+      "rows": 3072,
+      "subset_churn": 90258
+    },
+    "static_frequency": {
+      "estimated_transfer_reduction": 0.3080842391304348,
+      "fallback_frequency": 0.6602952075098814,
+      "fallback_loads": 128298,
+      "lossless_transfer_bytes": 1268753891328,
+      "mean_full_router_mass": 0.28057459608526275,
+      "mean_route_hit": 0.3397047924901186,
+      "mean_selected_mass": 0.34642643432305337,
+      "natural_reference_bytes": 1833682599936,
+      "prefetch_loads": 6144,
+      "route_hits": 66006,
+      "route_slots": 194304,
+      "rows": 3072,
+      "subset_churn": 6144
+    }
+  },
+  "result_role": "four_row_development_route_evidence",
+  "schema_version": 1,
+  "terminal_v1_decision_unchanged": true
+}

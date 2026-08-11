@@ -1,0 +1,215 @@
+{
+  "analysis_config_sha256": "7f3c519996c0a190930ef9de4edc138200e3a659287bc171d966e09219803c44",
+  "analysis_id": "pseudo_one_forward_state_correction_v1",
+  "artifact_count": 41,
+  "artifacts": [
+    {
+      "bytes": 272,
+      "path": "decision.json",
+      "sha256": "f541cfe793124b6ad8c0b4252554f3ca22057c93d124164b1f1efadd4a266443"
+    },
+    {
+      "bytes": 2653,
+      "path": "development/aggregates.json",
+      "sha256": "28b8b2f9df91afd4e590b0abc79d0403c1d06fff45e2a86e522c5080e4dd8545"
+    },
+    {
+      "bytes": 3425,
+      "path": "development/anchor_strata.json",
+      "sha256": "c286624f6cf8f43ef9c0b0a112e533c2fb477fb27f2521d9340814620d04cd55"
+    },
+    {
+      "bytes": 135,
+      "path": "development/audit.json",
+      "sha256": "b56c084afa86c6e92844697f034a89748d5bf7526a155cf74fcb7a3aa473d8dc"
+    },
+    {
+      "bytes": 1563,
+      "path": "development/comparisons.json",
+      "sha256": "d46688284889b7bb40c3a50fbcbcfe26968feb4b40a84bd3acc7999d84376521"
+    },
+    {
+      "bytes": 988,
+      "path": "development/cost_report.json",
+      "sha256": "8746bacae675f822f9580fbcce8a850dc6a2318952f1d2a9258d553518cc6606"
+    },
+    {
+      "bytes": 196,
+      "path": "development/decision.json",
+      "sha256": "18c75891f103ae32b5e59abdb4974ebc86c3df0b1937a2045537c6e11bccd917"
+    },
+    {
+      "bytes": 109,
+      "path": "development/pipeline_status.json",
+      "sha256": "8784065edfc8fa5361b19c1f9db8938d5281b8b315fe5f9206d753f707bf6777"
+    },
+    {
+      "bytes": 540,
+      "path": "development/router_sensitivity.json",
+      "sha256": "8b474401643b01c29878d6b8a0957f997b259b7ea590f685e64e161d2677de0e"
+    },
+    {
+      "bytes": 553309,
+      "path": "development/samples/00000/recent_sequence_causal_hidden_velocity_linear_norm.json",
+      "sha256": "da6bcf636910262ee8647a1a3c818465171885981ecc167bca9a21e9e8e429fd"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/recent_sequence_causal_hidden_velocity_linear_norm.safetensors",
+      "sha256": "0544e52afb20ff5cc2b58e93d36a68767955f45944081f3a528383e63c3e0270"
+    },
+    {
+      "bytes": 553862,
+      "path": "development/samples/00000/recent_sequence_causal_residual_velocity_linear_norm.json",
+      "sha256": "24008214a20724b213e7e1cf524b5879d7c1df92da451b17f7d44cfa42784c64"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/recent_sequence_causal_residual_velocity_linear_norm.safetensors",
+      "sha256": "011a035ceafea17f51ec37eb5fb150301442ea68291d2717f653a0fdaaca0010"
+    },
+    {
+      "bytes": 545487,
+      "path": "development/samples/00000/recent_sequence_causal_uncorrected.json",
+      "sha256": "0643c790ab6216640a1e944571ffac7a1102635b5d692e0122e724c018d10c84"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/recent_sequence_causal_uncorrected.safetensors",
+      "sha256": "ccff8273849aa9850ed9612ab9e44f10c62f44d3781a3e83152e4cd7ab168611"
+    },
+    {
+      "bytes": 553898,
+      "path": "development/samples/00439/recent_sequence_causal_hidden_velocity_linear_norm.json",
+      "sha256": "dde0faa5c5f48d91b3411dee93ab2d10f67450285fd5cebf65c13ec5751c29c4"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/recent_sequence_causal_hidden_velocity_linear_norm.safetensors",
+      "sha256": "e842554bd2fface274333d100e607d9cebabbb31434532838eecc4664588d8f2"
+    },
+    {
+      "bytes": 554956,
+      "path": "development/samples/00439/recent_sequence_causal_residual_velocity_linear_norm.json",
+      "sha256": "bac3aa9800f860e3125b42234e6e3f2a96deefa818c0045d7caedbc124acad2c"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/recent_sequence_causal_residual_velocity_linear_norm.safetensors",
+      "sha256": "7b89db217f33dea56675c4ed6b28f6c96369222c2ad12d495d8008c8357897e3"
+    },
+    {
+      "bytes": 546136,
+      "path": "development/samples/00439/recent_sequence_causal_uncorrected.json",
+      "sha256": "c2c464ff38fd9ecedeadcd64a92aa6f9155fa0667bd4d381487d3a7e21ca687e"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/recent_sequence_causal_uncorrected.safetensors",
+      "sha256": "fc6a2bb8cab7eae308a450e719b00d001cef4f753e9c6818692d670a07984a46"
+    },
+    {
+      "bytes": 554202,
+      "path": "development/samples/00879/recent_sequence_causal_hidden_velocity_linear_norm.json",
+      "sha256": "fb0cc90c68ae4c6aeca3a71bdc4b8bd42850ca8cb4135e838f4b58cc2dcac62b"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/recent_sequence_causal_hidden_velocity_linear_norm.safetensors",
+      "sha256": "2895416d52b78e892ff0aa0fe935e5996a5b96c8e5a8f5508816fbf816e96e22"
+    },
+    {
+      "bytes": 554389,
+      "path": "development/samples/00879/recent_sequence_causal_residual_velocity_linear_norm.json",
+      "sha256": "5ac6af65daf516735d4c0b61c0b4b4c47a56f27403e4ea89a72fe4f9b53a0230"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/recent_sequence_causal_residual_velocity_linear_norm.safetensors",
+      "sha256": "e81e95d0ae5c1ee3b5f28fbbdadabb4937810f797cb77d39f9bb7731e503968e"
+    },
+    {
+      "bytes": 545995,
+      "path": "development/samples/00879/recent_sequence_causal_uncorrected.json",
+      "sha256": "7d8ada7be139223fd745d84a35f1d7370f929e56e8bb5cb11b6238bf907ab51e"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/recent_sequence_causal_uncorrected.safetensors",
+      "sha256": "d7adc2e97b471f92660000897c17b254fd4d29872f797e27c4914d1b8edf6a5d"
+    },
+    {
+      "bytes": 554557,
+      "path": "development/samples/01318/recent_sequence_causal_hidden_velocity_linear_norm.json",
+      "sha256": "ef0cc757799b0e9dc90aa360d19a6db8a6020f00abdd156f6c19ec5f6a8b2964"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/recent_sequence_causal_hidden_velocity_linear_norm.safetensors",
+      "sha256": "345cc5a82fd5454c5f6a6858a08a8b74dab84dca61f3b39ac4cc75ba784780d6"
+    },
+    {
+      "bytes": 554988,
+      "path": "development/samples/01318/recent_sequence_causal_residual_velocity_linear_norm.json",
+      "sha256": "80a10a90a9c10ef22d01c5d3c73f5420ce26e1a1a44b998224bd6504203dbf87"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/recent_sequence_causal_residual_velocity_linear_norm.safetensors",
+      "sha256": "653d0318255cf45d1746c13756f589f846cb3a7b3e32375b706369d33c4a4908"
+    },
+    {
+      "bytes": 546386,
+      "path": "development/samples/01318/recent_sequence_causal_uncorrected.json",
+      "sha256": "3f750741634d33444142b680396f0416d0fc010546e546003f8a5d6cd6449a6c"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/recent_sequence_causal_uncorrected.safetensors",
+      "sha256": "9f8f81d90eca69fa7ef3b85fe21b51d857eb6e2a311b1f258dfcb382344955ad"
+    },
+    {
+      "bytes": 452,
+      "path": "measured_vs_simulated.json",
+      "sha256": "adb6360433bed6291297150d27578f9a96e38998d8d62499307216cffa82fa8f"
+    },
+    {
+      "bytes": 417,
+      "path": "provenance.json",
+      "sha256": "d62dceee4068765acd4b326389d28548713c7eafd760c9ecb9b2301f6888c5c8"
+    },
+    {
+      "bytes": 2077,
+      "path": "report.md",
+      "sha256": "df6ebec6e4eafdb6d5cb65292ea466292375f7cb704eb9bff0af471df321208e"
+    },
+    {
+      "bytes": 5692,
+      "path": "resolved_config.json",
+      "sha256": "dfa73712a2de99418c403d284c7f2e029badf6a753bdba05116ce6fee194dae1"
+    },
+    {
+      "bytes": 362,
+      "path": "resolved_environment.json",
+      "sha256": "6cffdbbb39d2784f82d35f5c440e51bcb9207f7ca2db5aa1fd454ea5824d8741"
+    },
+    {
+      "bytes": 191,
+      "path": "resolved_execution_revision.json",
+      "sha256": "b79abbcc4333475f49b91183d0b7a6ac24bc3039e7130dfadc13d5642171e161"
+    },
+    {
+      "bytes": 720,
+      "path": "resolved_sample_manifest.json",
+      "sha256": "4299baa1d129742d16c0b387c91616b19f12d39ba1b06a016a042dc43a331c9d"
+    },
+    {
+      "bytes": 166,
+      "path": "resume_audit.json",
+      "sha256": "e7ab97d2609a5ea944f6daf018076dbfc61b1f6c087e80f572834e358735e5b6"
+    }
+  ],
+  "sample_manifest_sha256": "350cc9ddcc003daa6973d247434bc600ecfc108ad7b9773f5e0cb997936ec80c",
+  "schema_version": 1,
+  "state": "complete"
+}

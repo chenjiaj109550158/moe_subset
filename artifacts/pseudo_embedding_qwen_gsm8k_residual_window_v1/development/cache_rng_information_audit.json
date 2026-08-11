@@ -1,0 +1,6 @@
+{
+  "all_pass": true,
+  "calibration_artifact_loaded_by_pseudo_probe": false,
+  "production_cache_rng_shadow_audits": true,
+  "sample_policy_rows": 44
+}

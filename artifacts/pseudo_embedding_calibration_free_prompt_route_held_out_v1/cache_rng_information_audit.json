@@ -1,0 +1,83 @@
+{
+  "candidate_default_vector_values_used": false,
+  "candidate_future_token_leakage": false,
+  "default_mean_tensor_accessed": false,
+  "probe_calls": 128,
+  "prompt_audits": [
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001953125,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001953125,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001953125,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001953125,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001953125,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.002197265625,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001708984375,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    },
+    {
+      "future_generated_tokens_used": false,
+      "generation_rng_unchanged": true,
+      "max_selected_weight_sum_error": 0.001953125,
+      "native_weight_sum_tolerance": 0.0078125,
+      "production_cache_signature_unchanged_after_extraction": true,
+      "same_request_native_prefill": true,
+      "window": 8
+    }
+  ],
+  "prompt_capture_calls": 8,
+  "state": "pass",
+  "static_reference_count_only": true
+}

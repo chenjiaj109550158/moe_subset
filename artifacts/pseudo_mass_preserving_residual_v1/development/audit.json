@@ -1,0 +1,9 @@
+{
+  "accuracy_or_correctness_used": false,
+  "all_pass": true,
+  "baseline_rows_reused": 4,
+  "bfloat16_absolute_weight_tolerance": 0.0078125,
+  "future_tokens_or_component_oracle_used": false,
+  "learned_or_fitted_parameters": false,
+  "new_sample_policy_rows": 12
+}

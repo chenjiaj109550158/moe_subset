@@ -1,0 +1,11 @@
+{
+  "analysis_config_sha256": "35d9ef891c4bccf8603cc0e4b98d8cbb51022a82f11ed72782293e374938e8f9",
+  "analysis_id": "pseudo_executed_embedding_composition_v1",
+  "artifact_count": 242,
+  "decision": "NARROW",
+  "sample_policy_rows": 104,
+  "schema_version": 1,
+  "stage": "report_v1",
+  "state": "complete",
+  "task_accuracy_executed": false
+}

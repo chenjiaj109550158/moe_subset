@@ -1,0 +1,300 @@
+{
+  "analysis_config_sha256": "5bac51be6be2ab90aed563eb9208ce23afa772c9b109e9fa1bf66ee319bb81ee",
+  "analysis_id": "pseudo_one_forward_protected_anchor_v2",
+  "artifact_count": 58,
+  "artifacts": [
+    {
+      "bytes": 313,
+      "path": "decision.json",
+      "sha256": "28a5f9d8118e78f7bb43f31e7b31e1b43ea3739e2c28c6532af9a24743f686ce"
+    },
+    {
+      "bytes": 5228,
+      "path": "development/aggregates.json",
+      "sha256": "65c1a6a48f723c89180d864c8079a924e048e99a0080d1b779948b4c02374d27"
+    },
+    {
+      "bytes": 6827,
+      "path": "development/anchor_strata.json",
+      "sha256": "a49cb13f7f1ff56818d2e911f7cf5c3a889164634fe9266bac1bb90b6ac3871b"
+    },
+    {
+      "bytes": 175,
+      "path": "development/audit.json",
+      "sha256": "8615bbd61fdc578bff06dede8d68fabd48e667267ddcce47d6f434bbb4370226"
+    },
+    {
+      "bytes": 4497,
+      "path": "development/comparisons.json",
+      "sha256": "fa31e1143c64a55aa5468959c187d7fc4c415681ac64fed7ed34e5b857f98835"
+    },
+    {
+      "bytes": 1978,
+      "path": "development/cost_report.json",
+      "sha256": "3cf69f9a3401ac63af6a5bfad00d04a7e922bcc9d6ea4e6f471a0badb06c441c"
+    },
+    {
+      "bytes": 556,
+      "path": "development/decision.json",
+      "sha256": "7e828f7be624bd9b68bfe10b0e97177ba04b03eb6743ac588b40a96e6a0d1484"
+    },
+    {
+      "bytes": 2128,
+      "path": "development/per_sample.json",
+      "sha256": "f91676251939e7dd3665218b2a3679fc5cb4c20ca1e601fc78bafa6fbff2fb7c"
+    },
+    {
+      "bytes": 149,
+      "path": "development/pipeline_status.json",
+      "sha256": "1a6beb82a05221e70dddc2b46485472edb393f1cfcd441d05aa021420ba11c81"
+    },
+    {
+      "bytes": 1903,
+      "path": "development/router_sensitivity.json",
+      "sha256": "2ee5e2e22f3d6cf88c1e8cff6be4a7a673810b522aa5c261fba73ae37eeeb300"
+    },
+    {
+      "bytes": 551756,
+      "path": "development/samples/00000/hidden_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "26d2361541eb6d5c873eba012700f793ea9066925d576597c0dcfc48a4b3020c"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/hidden_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "84e9440cdb4a11c480b6f32fe5eff05fbe71d6d1dc6cfa38e5379ffaf494209a"
+    },
+    {
+      "bytes": 552765,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "62d12fc51d6566232c2012129c8acc960aeb8f8d8eae2d0ed4d11f573ae6599c"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "2a9b21cdbae5a2582b9ea00fcb399d38a21dc5e37d24e25c4f995951933cd23d"
+    },
+    {
+      "bytes": 554994,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_horizon_damped_cap25.json",
+      "sha256": "d7151c082fbfbb22158dcc0c6e47cad7459ef553af6faf3e623df32d8177765e"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_horizon_damped_cap25.safetensors",
+      "sha256": "a33eff3dcbb246f777d057fd0123bede17719e6e92a5a5e24c81d9e1e1fd8d73"
+    },
+    {
+      "bytes": 559962,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.json",
+      "sha256": "63daf12257eb3eb12edb2eced694001257b4400e28c71004dfcc6e50e7ee6636"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.safetensors",
+      "sha256": "dea03b26c8b10443cb6a92f138f4131e22dad812af7a71f33d2e1e65ec43e491"
+    },
+    {
+      "bytes": 550228,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_undamped.json",
+      "sha256": "18212b191f6b82e6c1a9d037d459a5327a3f1a022004e41f9425bb738b15f123"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00000/residual_velocity_anchor1_zero_undamped.safetensors",
+      "sha256": "fadce1d323d44420c12e2a065aea7021787ac4961d62393a0f3e0879a72324b6"
+    },
+    {
+      "bytes": 552613,
+      "path": "development/samples/00439/hidden_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "5018841964a3297fba61966a741c50596d2049915cb952ec23534132c517db3b"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/hidden_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "2bdc03562202e1c69e776aeb2ed2fcc740173890582c18a097d05cfb1c504c7b"
+    },
+    {
+      "bytes": 553548,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "81df3020dfe799b6a60cbc67919bbc6a1c2c961931b9dbe6d3c6b13c5f89be41"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "19684a8fb907256e03b4d2fa8891afc6b58f0c2bd83caa31a30c938dd44febb9"
+    },
+    {
+      "bytes": 555889,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_horizon_damped_cap25.json",
+      "sha256": "470b0e5e5dcef6ed4026e065db736f711a862cdaf98d41d7c6a2cdc492b0d53e"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_horizon_damped_cap25.safetensors",
+      "sha256": "631b08cd72410cb2c2a573a262205642303a7815b0575d5bb399e8fd556dae1b"
+    },
+    {
+      "bytes": 561064,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.json",
+      "sha256": "26759b078fabba1a9d5325185ca16ad04be512f3c2abc83614349d4a1f1712de"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.safetensors",
+      "sha256": "39dce86c692d715c17847a7dc56c335f530934ca4b3cbef59063a5fe8924521c"
+    },
+    {
+      "bytes": 551072,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_undamped.json",
+      "sha256": "d60ee7bb762f0ad8a454b6baab459936b7acc95cac26f96aff64feaba3789a8e"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00439/residual_velocity_anchor1_zero_undamped.safetensors",
+      "sha256": "0c15d19b4f197ad3ea86efab186d53ab7b679575bbd31e12ab9b0a9f16030cfa"
+    },
+    {
+      "bytes": 552553,
+      "path": "development/samples/00879/hidden_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "987c7e424c086550a31bec6e02d1ecff8c6a8cdfc4d0f41329eb7a60ff9d0f84"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/hidden_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "4ab141b6e3364146c1e276146abe2b51acd6f972877bd6c05d65b9f73387c0c7"
+    },
+    {
+      "bytes": 553351,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "a4b1f4b5db8421113125ea660e61dd36bf03131572c15e2c48e8bfd5cdc0e8b8"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "dad7ee45a0b769b54608f46df52d3a1d76361c6c8c59d871f8d500d4c7e3fb85"
+    },
+    {
+      "bytes": 555345,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_horizon_damped_cap25.json",
+      "sha256": "1792ecc567d0b88d57d2811c2e69bae1289fb63723019c7c9c723938da4ac1e2"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_horizon_damped_cap25.safetensors",
+      "sha256": "173012b2e2a5e1156b5d159b14016e609c52fd2c6da4d5efcd5f801f83f07171"
+    },
+    {
+      "bytes": 560671,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.json",
+      "sha256": "37cf004f440b8f4930111a99a4aa861cf2f175a7e0abda1f06a749449e58ea2e"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.safetensors",
+      "sha256": "20181b9c2e708ada94705ff628b9992849de90cbf30c75a45ab5df0fde98e564"
+    },
+    {
+      "bytes": 550723,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_undamped.json",
+      "sha256": "514fc673df12d72decd2e6b3244d8d17561bde6dd84f0347564503631c542bba"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/00879/residual_velocity_anchor1_zero_undamped.safetensors",
+      "sha256": "0190620ba936647832731f72fb1edf6bc93a3df1c8631b88ec3c841ef55febff"
+    },
+    {
+      "bytes": 552840,
+      "path": "development/samples/01318/hidden_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "aa85034df7915c1473364f8d27bff18c23fda86e0a3dee811ef7850d2902a43f"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/hidden_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "1635efb366185a01c8724dce6c8897d117e03c3931657bf2e2e75f597595ae13"
+    },
+    {
+      "bytes": 553512,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_horizon_damped.json",
+      "sha256": "5c51037ec83fbc36270ae41b11e07def41e9dd13020cc45730a9adf7370069bc"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_horizon_damped.safetensors",
+      "sha256": "3820c06ff659a9bef995bbf84ab069b7186472efb60a5af9f744ba012ddd9289"
+    },
+    {
+      "bytes": 556055,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_horizon_damped_cap25.json",
+      "sha256": "d6e4da0cbba294455add91fea3c83eb1b96f8d20e6e39cc8f7d78f0486efc6f4"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_horizon_damped_cap25.safetensors",
+      "sha256": "b860e9e376282271a800f5ac2b9c79036bec078bf7b947e56914509a768767d4"
+    },
+    {
+      "bytes": 561457,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.json",
+      "sha256": "6af7150362ab267c7c04cee605928d487b4b1349e9016b5c5f54e0790ed29d01"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_horizon_damped_cap25_anchor1_core.safetensors",
+      "sha256": "c4a555566d4be8b0e7e3227d47378f63240d1848c0e5364293c9b9c7aca2b755"
+    },
+    {
+      "bytes": 551199,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_undamped.json",
+      "sha256": "07f2113db899eccc026f42c4cb8b0a0827eec79f6dadf70c145cf5f03d7458a8"
+    },
+    {
+      "bytes": 17327928,
+      "path": "development/samples/01318/residual_velocity_anchor1_zero_undamped.safetensors",
+      "sha256": "cdbefe1371712725f3c5ccf885c5555216915468d7ce8e0e0fb286a71eae44fb"
+    },
+    {
+      "bytes": 452,
+      "path": "measured_vs_simulated.json",
+      "sha256": "adb6360433bed6291297150d27578f9a96e38998d8d62499307216cffa82fa8f"
+    },
+    {
+      "bytes": 490,
+      "path": "provenance.json",
+      "sha256": "8ccacdf2a880eb07496d9bb662fdbb2b031c0791ed104d95d90bc31d3816413f"
+    },
+    {
+      "bytes": 3080,
+      "path": "report.md",
+      "sha256": "cfd10916d9bdba6dcf0fb2a8ee8ab5ec9eae2b0f3aefd7e116bb2c5f96549d0d"
+    },
+    {
+      "bytes": 6781,
+      "path": "resolved_config.json",
+      "sha256": "38e392055f9de196490cd2ab250e0712f6105c4349d9b970953c323bda6249ed"
+    },
+    {
+      "bytes": 362,
+      "path": "resolved_environment.json",
+      "sha256": "6cffdbbb39d2784f82d35f5c440e51bcb9207f7ca2db5aa1fd454ea5824d8741"
+    },
+    {
+      "bytes": 297,
+      "path": "resolved_execution_revision.json",
+      "sha256": "127b6074cfbfddc3501c923f8ce07c9ed733d9d6c8c2beaf413850c2fc4bb230"
+    },
+    {
+      "bytes": 718,
+      "path": "resolved_sample_manifest.json",
+      "sha256": "e09be7c4cfb4c32f0715f0bbd091ed7054b79e05a0b058dd468a2497a6ea6e16"
+    },
+    {
+      "bytes": 216,
+      "path": "resume_audit.json",
+      "sha256": "fd9ab70388024556757f9ad2b86fa9770ade19bad9df87fb3ca1fc3d3e8841b7"
+    }
+  ],
+  "sample_manifest_sha256": "d37ff792acb6cb0d2fe0158040f7e3db8d3555783492c46ad4349362ada302ea",
+  "schema_version": 1,
+  "state": "complete"
+}
