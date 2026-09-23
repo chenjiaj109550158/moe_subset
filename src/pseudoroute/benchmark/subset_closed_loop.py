@@ -244,12 +244,16 @@ def _fork_cache_copy_on_write(cache: object) -> object:
 
 
 def _rng_state(device: torch.device) -> tuple[Tensor, Tensor]:
-    return torch.random.get_rng_state(), torch.cuda.get_rng_state(device)
+    return (
+        torch.random.get_rng_state(),
+        torch.cuda.get_rng_state(device) if device.type == "cuda" else torch.empty(0, dtype=torch.uint8),
+    )
 
 
 def _restore_rng(device: torch.device, state: tuple[Tensor, Tensor]) -> None:
     torch.random.set_rng_state(state[0])
-    torch.cuda.set_rng_state(state[1], device)
+    if device.type == "cuda":
+        torch.cuda.set_rng_state(state[1], device)
 
 
 def _forward_capture(

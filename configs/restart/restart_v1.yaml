@@ -1,0 +1,182 @@
+# 本次新 protocol 的預設值；agent需解析硬體與版本後另存resolved/frozen設定。
+# 這不是現有pseudoroute CLI config；需新增restart config model及驗證。
+schema_version: 1
+protocol_id: restart_v1
+source:
+  repository: https://github.com/chenjiaj109550158/moe_subset
+  checkout_ref: main
+  pin_resolved_commit: true
+  never_pull_after_freeze: true
+workspace:
+  repository_directory: moe_subset
+  branch_prefix: restart/
+  artifact_root: artifacts/restart_v1
+  preserve_legacy_artifacts: true
+  allow_push: false
+  allow_sudo: false
+  allow_paid_cloud: false
+  log_environment_allowlist_only: true
+execution:
+  requested_device: cuda
+  primary_gpu_count: 1
+  primary_batch_size: 1
+  max_workers_per_physical_gpu: 1
+  allow_tiny_cpu_tests: true
+  allow_silent_cpu_fallback: false
+  automatic_stage_progression: true
+  max_repair_cycles_per_stage: 3
+  max_environment_candidates: 2
+  max_official_backend_candidates: 2
+  max_custom_kernel_configs: 12
+  max_policy_development_configs: 10
+  checkpoint_after_each_row: true
+  verify_before_terminal_report: true
+resources:
+  max_gpu_hours: 48
+  max_wall_hours: 72
+  reserve_final_fraction: 0.10
+  minimum_free_disk_headroom_gib: 20
+  maximum_artifacts_gib: 16
+  minimum_gpu_headroom_gib: 2
+  minimum_gpu_headroom_fraction: 0.10
+  minimum_host_headroom_gib: 8
+  maximum_pinned_staging_gib: 4
+  require_all_expert_weights_in_host_ram: true
+  allow_disk_paging_as_primary_offload: false
+  change_budget_after_confirmation_unblind: false
+downloads:
+  allow_official_packages_in_isolated_environment: true
+  allow_specified_public_checkpoint: true
+  allow_required_public_dataset: true
+  prefer_existing_verified_cache: true
+  maximum_checkpoint_download_gib: 80
+  maximum_dataset_download_gib: 2
+  maximum_environment_download_gib: 20
+  permit_other_models: false
+  permit_gated_access_bypass: false
+model:
+  id: Qwen/Qwen3-30B-A3B-Instruct-2507
+  revision: 0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe
+  dtype: bfloat16
+  native_config_must_be_revalidated: true
+  expected_routed_layers: 48
+  expected_experts_per_layer: 128
+  expected_top_k: 8
+  expected_hidden_size: 2048
+  expected_intermediate_size: 768
+  require_cpu_first_loading: true
+  forbid_full_model_cuda_staging: true
+  trust_remote_code: false
+  allow_quantization: false
+  allow_training: false
+memory:
+  primary_slots_per_layer: 32
+  resource_only_fallback_order: [16, 8]
+  resolve_before_policy_outputs: true
+  equal_slots_and_total_memory_envelope: true
+  preferred_host_mode: full_pinned_cpu
+  allowed_alternate_host_mode: cpu_resident_with_bounded_pinned_staging
+  hidden_double_expert_buffer: false
+routing:
+  primary_window_tokens: 8
+  optional_history_window_tokens: [4, 16]
+  legacy_pseudo_compute_tokens: 8
+  reduced_pseudo_compute_tokens: 4
+  legacy_pseudo_content_horizon: 8
+  selector_core_anchors: 4
+  retain_native_router_weighting: true
+  production_misses_forbidden_for_subset: true
+  natural_history_dtype: float32
+  history_ema_alpha: 0.2
+  switch_beta: 0.05
+  weighted_pseudo_mix: 0.5
+backend:
+  preferred_order: [compatible_official_bf16_fused_experts, bounded_custom_triton]
+  retain_python_reference: true
+  optimized_backend_shared_by_all_policies: true
+  require_end_to_end_dispatch_mlp_combine_timing: true
+  require_no_selected_weight_materialization_per_token: true
+  force_physical_permutation: false
+  optimize_router_before_profiling: false
+  microbench_token_counts: [1, 5, 9, 16, 32, 128]
+  microbench_timing_blocks: 5
+correctness:
+  fp32_atol: 0.00001
+  fp32_rtol: 0.0001
+  bf16_max_nrmse: 0.01
+  bf16_min_cosine_nonzero_cases: 0.999
+  report_max_absolute_error: true
+  forbid_posthoc_tolerance_relaxation: true
+  require_cache_rng_and_slot_lifetime_tests: true
+  require_audit_performance_semantics_parity: true
+policies:
+  exact: E
+  optional_stronger_exact: EP
+  static: S
+  cheap_window: [H, HC]
+  legacy_diagnostic: P8
+  pseudo_candidates: [P4, PW4]
+  optional_semantics_ablation: PM4
+  max_confirmed_window_candidates: 2
+  freeze_candidate_on_development_only: true
+data:
+  task: gsm8k
+  dataset_config: main
+  resolve_and_pin_dataset_revision: true
+  development_split: train
+  development_samples: 32
+  cheap_development_samples: 8
+  confirmation_split: test
+  exclude_known_policy_development_ids: true
+  never_filter_by_baseline_correctness: true
+  primary_confirmation_target_n: 256
+  resource_only_confirmation_n_choices: [256, 128, 64]
+  freeze_n_before_confirmation_outputs: true
+  seed: 20260922
+  prompt_parser_stop_source: configs/benchmark/speculating_experts_accuracy_v17.yaml
+  max_new_tokens: 512
+  dev_only_alternate_max_new_tokens: 1024
+  dev_truncation_trigger: 0.05
+  expose_gold_to_online_selector: false
+performance:
+  primary_mode: controlled_fixed_length
+  fixed_post_prefill_production_forwards: 128
+  fixed_mode_ignore_eos: true
+  fixed_mode_is_task_quality: false
+  development_prompts: 8
+  development_repetitions: 3
+  confirmation_prompts: 8
+  confirmation_repetitions: 5
+  balanced_randomized_order: true
+  cold_compile_separate: true
+  include_bootstrap_probe_h2d_staging_and_wait: true
+  count_pseudo_positions_as_production_tokens: false
+  primary_statistic: geometric_mean_paired_request_tps_ratio
+  report_aggregate_tps: true
+  report_free_generation_request_latency_and_length: true
+statistics:
+  nominal_alpha: 0.05
+  quality_primary_ci: bonferroni_clopper_pearson_gain_minus_loss
+  multiplicity_claim_count: resolve_and_freeze_before_confirmation
+  performance_ci: paired_request_cluster_bootstrap
+  bootstrap_resamples: 10000
+  optional_stopping_by_results: false
+  degenerate_zero_width_bootstrap_proves_noninferiority: false
+decision:
+  quality_max_accuracy_drop_fraction: 0.02
+  practical_decode_speedup_point: 1.10
+  required_speedup_ci_lower_exclusive: 1.00
+  p95_latency_ratio_goal: 1.20
+  supporting_decode_bytes_reduction_target: 0.30
+  require_dynamic_value_vs_static_for_strong_go: true
+  require_pseudo_increment_vs_history_for_pseudo_go: true
+  sample_shortfall_can_produce_no_go: false
+  failure_to_reject_is_no_go: false
+  missing_gpu_is_method_failure: false
+outputs:
+  final_report_language: zh-TW
+  final_report: FINAL_REPORT.md
+  decision: DECISION.json
+  decision_schema: decision.schema.json
+  require_machine_verifiable_evidence_paths: true
+  require_reproduce_and_resume: true

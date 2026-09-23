@@ -459,9 +459,11 @@ def _run_lossless(
             generated,
             scores,
         )
+    torch.cuda.synchronize(device)
+    inference_ended = time.perf_counter()
+    decode_wall = inference_ended - decode_started
+    inference_wall = inference_ended - inference_started
     metrics = _metrics_payload(engine)
-    decode_wall = time.perf_counter() - decode_started
-    inference_wall = time.perf_counter() - inference_started
     text = tokenizer.decode(generated, skip_special_tokens=True)
     score = score_response(example, text)
     agreement, first_divergence, exact = _exact_reference(generated, reference_tokens)

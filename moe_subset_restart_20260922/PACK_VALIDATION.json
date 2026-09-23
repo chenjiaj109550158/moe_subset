@@ -1,0 +1,12 @@
+{
+  "validation_scope": "Document package integrity, not repository or model execution",
+  "date": "2026-09-22",
+  "markdown_code_fences": "PASS",
+  "yaml_parse_and_key_invariants": "PASS",
+  "json_schema_draft_2020_12": "PASS",
+  "schema_accepts_blocked_and_rejects_unexecuted_go": "PASS",
+  "ordered_document_paths_exist": "PASS",
+  "project_code_executed": false,
+  "gpu_model_runs_executed": false,
+  "source_review": "Public source pages inspected; actual clone/patch/measurement belongs to the code agent on the new machine"
+}

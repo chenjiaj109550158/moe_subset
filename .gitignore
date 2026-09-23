@@ -12,3 +12,7 @@ artifacts/*
 
 
 .cache/pseudoroute/
+
+# Restart-owned environments and public checkpoint caches
+.acquire-venv/
+.cache/restart/

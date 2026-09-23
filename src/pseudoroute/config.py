@@ -68,6 +68,12 @@ class TinyModelConfig(StrictModel):
 def resolve_device(configured: str) -> str:
     """Resolve the portable ``auto`` setting to the best available accelerator."""
     if configured != "auto":
+        if configured.startswith("cuda"):
+            if not torch.cuda.is_available():
+                raise RuntimeError(f"CUDA is not available: {configured}")
+            index = torch.device(configured).index
+            if index is not None and index >= torch.cuda.device_count():
+                raise RuntimeError(f"CUDA device is not available: {configured}")
         return configured
     if torch.cuda.is_available():
         return "cuda"

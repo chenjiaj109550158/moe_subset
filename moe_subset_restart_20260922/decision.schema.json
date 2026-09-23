@@ -1,0 +1,809 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MoE subset restart decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "run_state",
+    "overall",
+    "completed_at_utc",
+    "scope",
+    "gates",
+    "runtime",
+    "window_subset",
+    "pseudo_predictor",
+    "primary_metrics",
+    "evidence",
+    "limitations",
+    "next_action",
+    "resume_command"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_state": {
+      "enum": [
+        "COMPLETE",
+        "BLOCKED",
+        "BUDGET_EXHAUSTED",
+        "INTERRUPTED"
+      ]
+    },
+    "overall": {
+      "enum": [
+        "GO_WINDOW_AND_PSEUDO",
+        "GO_WINDOW_HISTORY_ONLY",
+        "PILOT_PROMISING",
+        "STATIC_SUFFICIENT_TESTED_SCOPE",
+        "PIVOT_RUNTIME",
+        "PIVOT_SELECTOR",
+        "NO_GO_TESTED_REGIME",
+        "INCONCLUSIVE",
+        "BLOCKED"
+      ]
+    },
+    "completed_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository_commit",
+        "source_diff_sha256",
+        "protocol_sha256",
+        "model_id",
+        "model_revision",
+        "dtype",
+        "gpu",
+        "backend",
+        "host_mode",
+        "slots_per_layer",
+        "window_tokens",
+        "pseudo_compute_tokens",
+        "baseline_scope",
+        "dataset_scope"
+      ],
+      "properties": {
+        "repository_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_diff_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "protocol_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dtype": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "backend": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "host_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slots_per_layer": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "window_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "pseudo_compute_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_scope": {
+          "type": "string"
+        },
+        "dataset_scope": {
+          "type": "string"
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "V",
+        "Q",
+        "S",
+        "D",
+        "P"
+      ],
+      "properties": {
+        "V": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason",
+            "evidence_paths"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_TESTED",
+                "BLOCKED"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "Q": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason",
+            "evidence_paths"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_TESTED",
+                "BLOCKED"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "S": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason",
+            "evidence_paths"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_TESTED",
+                "BLOCKED"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "D": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason",
+            "evidence_paths"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_TESTED",
+                "BLOCKED"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "P": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason",
+            "evidence_paths"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_TESTED",
+                "BLOCKED"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "evidence_paths"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "VALIDATED",
+            "NEEDS_WORK",
+            "BLOCKED"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "window_subset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "evidence_paths"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "CONTINUE",
+            "PROMISING",
+            "STATIC_SUFFICIENT",
+            "STOP_TESTED_REGIME",
+            "INCONCLUSIVE",
+            "BLOCKED"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pseudo_predictor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "evidence_paths"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "CONTINUE",
+            "STOP_CURRENT_VARIANT",
+            "INCONCLUSIVE",
+            "NOT_TESTED",
+            "BLOCKED"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "primary_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate",
+        "baseline",
+        "planned_quality_n",
+        "completed_paired_quality_n",
+        "accuracy_delta_fraction",
+        "accuracy_delta_ci",
+        "paired_gains",
+        "paired_losses",
+        "paired_ties",
+        "decode_speedup",
+        "decode_speedup_ci",
+        "decode_expert_bytes_reduction_fraction",
+        "p95_latency_ratio",
+        "actual_model_runs_completed"
+      ],
+      "properties": {
+        "candidate": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseline": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "planned_quality_n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "completed_paired_quality_n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "paired_gains": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "paired_losses": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "paired_ties": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "accuracy_delta_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -1,
+          "maximum": 1
+        },
+        "accuracy_delta_ci": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "decode_speedup": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "decode_speedup_ci": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "decode_expert_bytes_reduction_fraction": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "p95_latency_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "actual_model_runs_completed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "kind"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "MEASURED",
+              "TEST",
+              "SOURCE_AUDIT",
+              "PROFILE",
+              "DERIVED_STATISTIC",
+              "CONFIG",
+              "BLOCKER_LOG"
+            ]
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resume_command": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "overall": {
+            "enum": [
+              "GO_WINDOW_AND_PSEUDO",
+              "GO_WINDOW_HISTORY_ONLY"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "run_state": {
+            "const": "COMPLETE"
+          },
+          "gates": {
+            "properties": {
+              "V": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_paths": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "Q": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_paths": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "S": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_paths": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "D": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_paths": {
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          },
+          "runtime": {
+            "properties": {
+              "status": {
+                "const": "VALIDATED"
+              }
+            }
+          },
+          "primary_metrics": {
+            "properties": {
+              "actual_model_runs_completed": {
+                "const": true
+              },
+              "completed_paired_quality_n": {
+                "type": "integer",
+                "minimum": 64
+              },
+              "planned_quality_n": {
+                "type": "integer",
+                "minimum": 64
+              },
+              "decode_speedup": {
+                "type": "number",
+                "minimum": 1.1
+              },
+              "decode_speedup_ci": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 1.0
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "accuracy_delta_fraction": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1
+              },
+              "accuracy_delta_ci": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -0.02
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "p95_latency_ratio": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1.2
+              },
+              "candidate": {
+                "type": "string",
+                "minLength": 1
+              },
+              "baseline": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "evidence": {
+            "minItems": 1
+          },
+          "window_subset": {
+            "properties": {
+              "status": {
+                "const": "CONTINUE"
+              }
+            }
+          },
+          "scope": {
+            "properties": {
+              "repository_commit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_diff_sha256": {
+                "type": "string",
+                "minLength": 1
+              },
+              "protocol_sha256": {
+                "type": "string",
+                "minLength": 1
+              },
+              "model_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "model_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dtype": {
+                "type": "string",
+                "minLength": 1
+              },
+              "gpu": {
+                "type": "string",
+                "minLength": 1
+              },
+              "backend": {
+                "type": "string",
+                "minLength": 1
+              },
+              "host_mode": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "overall": {
+            "const": "GO_WINDOW_AND_PSEUDO"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "gates": {
+            "properties": {
+              "P": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  }
+                }
+              }
+            }
+          },
+          "pseudo_predictor": {
+            "properties": {
+              "status": {
+                "const": "CONTINUE"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
