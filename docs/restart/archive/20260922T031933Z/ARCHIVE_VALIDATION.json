@@ -1,0 +1,31 @@
+{
+  "state": "PASS",
+  "validated_at_utc": "2026-09-23T02:12:20.108214+00:00",
+  "source_commit": "85162cba5632172f4a3f3c5163af121ccdf89124",
+  "fresh_independent_checkout": true,
+  "standard_library_restore": "PASS",
+  "restored_file_hashes": "PASS",
+  "restored_file_count": 1566,
+  "measured_rows": 1261,
+  "scientific_verification_on_restored_files": {
+    "state": "PASS",
+    "evidence_files": 37,
+    "rows": 1261,
+    "schema": "PASS",
+    "row_checksums": "PASS",
+    "source_hashes": "PASS",
+    "decision_recomputed": "PASS",
+    "reporting_only_repair_verified": true
+  },
+  "refuse_existing_output": "PASS",
+  "reject_corrupted_archive_before_output": "PASS",
+  "restorer_sha256": "87ec47c591cbc9b86b20619acc4d53185b080494de21850deadd196ff7ef676e",
+  "new_model_measurements": 0,
+  "preservation_retry": {
+    "initial_restore": "PASS",
+    "initial_science_verify": "FAIL",
+    "cause": "A new navigation link changed the checksum-frozen docs/restart/README.md.",
+    "repair": "Restored the README exactly and used a new RESTART_RESULTS.md index. No measurement code or frozen evidence changed."
+  },
+  "note": "Source was cloned without hard links; archive and helper were copied before their preservation commit. Existing pinned dependencies were used with PYTHONPATH pointing to the independent checkout. Every restored file matched the archive manifest."
+}

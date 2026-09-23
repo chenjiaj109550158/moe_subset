@@ -1,0 +1,10 @@
+{
+  "state": "PASS",
+  "evidence_files": 37,
+  "rows": 1261,
+  "schema": "PASS",
+  "row_checksums": "PASS",
+  "source_hashes": "PASS",
+  "decision_recomputed": "PASS",
+  "reporting_only_repair_verified": true
+}

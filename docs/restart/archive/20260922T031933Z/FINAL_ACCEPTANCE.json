@@ -1,0 +1,30 @@
+{
+  "state": "PASS",
+  "sealed_at_utc": "2026-09-22T17:17:01.810852+00:00",
+  "run_state": "COMPLETE",
+  "overall": "NO_GO_TESTED_REGIME",
+  "measured_rows": 1261,
+  "quality_rows": 768,
+  "performance_rows": 120,
+  "final_regressions_passed": 35,
+  "final_verify": "PASS",
+  "completed_resume": "PASS",
+  "environment_lock": "UNCHANGED",
+  "reporting_repair_values_identical": true,
+  "source_patch_clean_apply_files": 156,
+  "historical_integrity": [
+    {
+      "path": "/home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset",
+      "protected_tracked_diff": "EMPTY"
+    },
+    {
+      "path": "/home/dev/moe_subset",
+      "protected_tracked_diff": "EMPTY"
+    }
+  ],
+  "run_and_gpu_advisory_locks": "AVAILABLE",
+  "gpu_compute_processes": 0,
+  "initial_primary_exit_code": 1,
+  "reporting_recovery_exit_code": 0,
+  "note": "Initial P6 report serialization failure preserved and repaired; all scientific measurements retained unchanged."
+}

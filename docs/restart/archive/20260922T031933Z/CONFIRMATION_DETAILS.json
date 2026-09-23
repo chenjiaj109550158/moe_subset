@@ -1,0 +1,511 @@
+{
+  "scope": "POSTHOC_DESCRIPTIVE_ONLY; does not change Q/S/D/P gates",
+  "quality_rows": 768,
+  "policies": {
+    "E": {
+      "mean_ttft_seconds": 3.0101452853591013,
+      "mean_request_tpot_seconds": 0.08714039825489703,
+      "aggregate_tpot_seconds": 0.08704892483661728,
+      "repetition_proxy_definition": "Any identical 16-token span appearing at least eight times; post-hoc descriptive flag, not a registered significance or collapse gate.",
+      "repetition_proxy_count": 0,
+      "maximum_16gram_occurrences": 4,
+      "flagged_samples": []
+    },
+    "H": {
+      "mean_ttft_seconds": 3.0173910039529233,
+      "mean_request_tpot_seconds": 0.09598604852327036,
+      "aggregate_tpot_seconds": 0.09352557438747632,
+      "repetition_proxy_definition": "Any identical 16-token span appearing at least eight times; post-hoc descriptive flag, not a registered significance or collapse gate.",
+      "repetition_proxy_count": 29,
+      "maximum_16gram_occurrences": 1001,
+      "flagged_samples": [
+        {
+          "sample_id": "test-1094",
+          "maximum_identical_16gram_occurrences": 973
+        },
+        {
+          "sample_id": "test-7",
+          "maximum_identical_16gram_occurrences": 326
+        },
+        {
+          "sample_id": "test-499",
+          "maximum_identical_16gram_occurrences": 971
+        },
+        {
+          "sample_id": "test-550",
+          "maximum_identical_16gram_occurrences": 659
+        },
+        {
+          "sample_id": "test-815",
+          "maximum_identical_16gram_occurrences": 838
+        },
+        {
+          "sample_id": "test-1017",
+          "maximum_identical_16gram_occurrences": 50
+        },
+        {
+          "sample_id": "test-590",
+          "maximum_identical_16gram_occurrences": 980
+        },
+        {
+          "sample_id": "test-1001",
+          "maximum_identical_16gram_occurrences": 969
+        },
+        {
+          "sample_id": "test-997",
+          "maximum_identical_16gram_occurrences": 1001
+        },
+        {
+          "sample_id": "test-955",
+          "maximum_identical_16gram_occurrences": 998
+        },
+        {
+          "sample_id": "test-1176",
+          "maximum_identical_16gram_occurrences": 487
+        },
+        {
+          "sample_id": "test-813",
+          "maximum_identical_16gram_occurrences": 773
+        },
+        {
+          "sample_id": "test-264",
+          "maximum_identical_16gram_occurrences": 879
+        },
+        {
+          "sample_id": "test-125",
+          "maximum_identical_16gram_occurrences": 998
+        },
+        {
+          "sample_id": "test-584",
+          "maximum_identical_16gram_occurrences": 847
+        },
+        {
+          "sample_id": "test-318",
+          "maximum_identical_16gram_occurrences": 821
+        },
+        {
+          "sample_id": "test-526",
+          "maximum_identical_16gram_occurrences": 999
+        },
+        {
+          "sample_id": "test-1298",
+          "maximum_identical_16gram_occurrences": 982
+        },
+        {
+          "sample_id": "test-1054",
+          "maximum_identical_16gram_occurrences": 817
+        },
+        {
+          "sample_id": "test-534",
+          "maximum_identical_16gram_occurrences": 624
+        },
+        {
+          "sample_id": "test-755",
+          "maximum_identical_16gram_occurrences": 1001
+        },
+        {
+          "sample_id": "test-1067",
+          "maximum_identical_16gram_occurrences": 999
+        },
+        {
+          "sample_id": "test-517",
+          "maximum_identical_16gram_occurrences": 888
+        },
+        {
+          "sample_id": "test-381",
+          "maximum_identical_16gram_occurrences": 793
+        },
+        {
+          "sample_id": "test-1183",
+          "maximum_identical_16gram_occurrences": 1001
+        },
+        {
+          "sample_id": "test-209",
+          "maximum_identical_16gram_occurrences": 787
+        },
+        {
+          "sample_id": "test-126",
+          "maximum_identical_16gram_occurrences": 991
+        },
+        {
+          "sample_id": "test-386",
+          "maximum_identical_16gram_occurrences": 982
+        },
+        {
+          "sample_id": "test-657",
+          "maximum_identical_16gram_occurrences": 976
+        }
+      ]
+    },
+    "S": {
+      "mean_ttft_seconds": 3.027950072558326,
+      "mean_request_tpot_seconds": 0.08137129496792615,
+      "aggregate_tpot_seconds": 0.08105383320635287,
+      "repetition_proxy_definition": "Any identical 16-token span appearing at least eight times; post-hoc descriptive flag, not a registered significance or collapse gate.",
+      "repetition_proxy_count": 90,
+      "maximum_16gram_occurrences": 991,
+      "flagged_samples": [
+        {
+          "sample_id": "test-990",
+          "maximum_identical_16gram_occurrences": 882
+        },
+        {
+          "sample_id": "test-1016",
+          "maximum_identical_16gram_occurrences": 76
+        },
+        {
+          "sample_id": "test-1094",
+          "maximum_identical_16gram_occurrences": 41
+        },
+        {
+          "sample_id": "test-1035",
+          "maximum_identical_16gram_occurrences": 11
+        },
+        {
+          "sample_id": "test-958",
+          "maximum_identical_16gram_occurrences": 66
+        },
+        {
+          "sample_id": "test-232",
+          "maximum_identical_16gram_occurrences": 134
+        },
+        {
+          "sample_id": "test-535",
+          "maximum_identical_16gram_occurrences": 968
+        },
+        {
+          "sample_id": "test-1190",
+          "maximum_identical_16gram_occurrences": 67
+        },
+        {
+          "sample_id": "test-846",
+          "maximum_identical_16gram_occurrences": 16
+        },
+        {
+          "sample_id": "test-591",
+          "maximum_identical_16gram_occurrences": 120
+        },
+        {
+          "sample_id": "test-498",
+          "maximum_identical_16gram_occurrences": 425
+        },
+        {
+          "sample_id": "test-696",
+          "maximum_identical_16gram_occurrences": 54
+        },
+        {
+          "sample_id": "test-499",
+          "maximum_identical_16gram_occurrences": 897
+        },
+        {
+          "sample_id": "test-815",
+          "maximum_identical_16gram_occurrences": 165
+        },
+        {
+          "sample_id": "test-525",
+          "maximum_identical_16gram_occurrences": 104
+        },
+        {
+          "sample_id": "test-66",
+          "maximum_identical_16gram_occurrences": 153
+        },
+        {
+          "sample_id": "test-1017",
+          "maximum_identical_16gram_occurrences": 18
+        },
+        {
+          "sample_id": "test-590",
+          "maximum_identical_16gram_occurrences": 115
+        },
+        {
+          "sample_id": "test-326",
+          "maximum_identical_16gram_occurrences": 155
+        },
+        {
+          "sample_id": "test-1001",
+          "maximum_identical_16gram_occurrences": 11
+        },
+        {
+          "sample_id": "test-1260",
+          "maximum_identical_16gram_occurrences": 91
+        },
+        {
+          "sample_id": "test-746",
+          "maximum_identical_16gram_occurrences": 779
+        },
+        {
+          "sample_id": "test-870",
+          "maximum_identical_16gram_occurrences": 68
+        },
+        {
+          "sample_id": "test-339",
+          "maximum_identical_16gram_occurrences": 14
+        },
+        {
+          "sample_id": "test-566",
+          "maximum_identical_16gram_occurrences": 18
+        },
+        {
+          "sample_id": "test-1129",
+          "maximum_identical_16gram_occurrences": 132
+        },
+        {
+          "sample_id": "test-1176",
+          "maximum_identical_16gram_occurrences": 449
+        },
+        {
+          "sample_id": "test-1029",
+          "maximum_identical_16gram_occurrences": 29
+        },
+        {
+          "sample_id": "test-675",
+          "maximum_identical_16gram_occurrences": 90
+        },
+        {
+          "sample_id": "test-853",
+          "maximum_identical_16gram_occurrences": 77
+        },
+        {
+          "sample_id": "test-813",
+          "maximum_identical_16gram_occurrences": 14
+        },
+        {
+          "sample_id": "test-672",
+          "maximum_identical_16gram_occurrences": 29
+        },
+        {
+          "sample_id": "test-1233",
+          "maximum_identical_16gram_occurrences": 481
+        },
+        {
+          "sample_id": "test-1221",
+          "maximum_identical_16gram_occurrences": 117
+        },
+        {
+          "sample_id": "test-821",
+          "maximum_identical_16gram_occurrences": 118
+        },
+        {
+          "sample_id": "test-112",
+          "maximum_identical_16gram_occurrences": 153
+        },
+        {
+          "sample_id": "test-1317",
+          "maximum_identical_16gram_occurrences": 11
+        },
+        {
+          "sample_id": "test-125",
+          "maximum_identical_16gram_occurrences": 30
+        },
+        {
+          "sample_id": "test-576",
+          "maximum_identical_16gram_occurrences": 33
+        },
+        {
+          "sample_id": "test-946",
+          "maximum_identical_16gram_occurrences": 116
+        },
+        {
+          "sample_id": "test-221",
+          "maximum_identical_16gram_occurrences": 106
+        },
+        {
+          "sample_id": "test-790",
+          "maximum_identical_16gram_occurrences": 119
+        },
+        {
+          "sample_id": "test-1022",
+          "maximum_identical_16gram_occurrences": 49
+        },
+        {
+          "sample_id": "test-338",
+          "maximum_identical_16gram_occurrences": 47
+        },
+        {
+          "sample_id": "test-526",
+          "maximum_identical_16gram_occurrences": 95
+        },
+        {
+          "sample_id": "test-1046",
+          "maximum_identical_16gram_occurrences": 24
+        },
+        {
+          "sample_id": "test-794",
+          "maximum_identical_16gram_occurrences": 937
+        },
+        {
+          "sample_id": "test-29",
+          "maximum_identical_16gram_occurrences": 32
+        },
+        {
+          "sample_id": "test-1200",
+          "maximum_identical_16gram_occurrences": 9
+        },
+        {
+          "sample_id": "test-913",
+          "maximum_identical_16gram_occurrences": 109
+        },
+        {
+          "sample_id": "test-1250",
+          "maximum_identical_16gram_occurrences": 101
+        },
+        {
+          "sample_id": "test-1201",
+          "maximum_identical_16gram_occurrences": 393
+        },
+        {
+          "sample_id": "test-355",
+          "maximum_identical_16gram_occurrences": 122
+        },
+        {
+          "sample_id": "test-1092",
+          "maximum_identical_16gram_occurrences": 292
+        },
+        {
+          "sample_id": "test-701",
+          "maximum_identical_16gram_occurrences": 24
+        },
+        {
+          "sample_id": "test-212",
+          "maximum_identical_16gram_occurrences": 114
+        },
+        {
+          "sample_id": "test-1066",
+          "maximum_identical_16gram_occurrences": 991
+        },
+        {
+          "sample_id": "test-612",
+          "maximum_identical_16gram_occurrences": 64
+        },
+        {
+          "sample_id": "test-304",
+          "maximum_identical_16gram_occurrences": 66
+        },
+        {
+          "sample_id": "test-534",
+          "maximum_identical_16gram_occurrences": 77
+        },
+        {
+          "sample_id": "test-1103",
+          "maximum_identical_16gram_occurrences": 80
+        },
+        {
+          "sample_id": "test-601",
+          "maximum_identical_16gram_occurrences": 40
+        },
+        {
+          "sample_id": "test-188",
+          "maximum_identical_16gram_occurrences": 802
+        },
+        {
+          "sample_id": "test-569",
+          "maximum_identical_16gram_occurrences": 45
+        },
+        {
+          "sample_id": "test-755",
+          "maximum_identical_16gram_occurrences": 97
+        },
+        {
+          "sample_id": "test-733",
+          "maximum_identical_16gram_occurrences": 127
+        },
+        {
+          "sample_id": "test-994",
+          "maximum_identical_16gram_occurrences": 130
+        },
+        {
+          "sample_id": "test-388",
+          "maximum_identical_16gram_occurrences": 55
+        },
+        {
+          "sample_id": "test-185",
+          "maximum_identical_16gram_occurrences": 120
+        },
+        {
+          "sample_id": "test-154",
+          "maximum_identical_16gram_occurrences": 100
+        },
+        {
+          "sample_id": "test-916",
+          "maximum_identical_16gram_occurrences": 72
+        },
+        {
+          "sample_id": "test-141",
+          "maximum_identical_16gram_occurrences": 101
+        },
+        {
+          "sample_id": "test-13",
+          "maximum_identical_16gram_occurrences": 309
+        },
+        {
+          "sample_id": "test-1137",
+          "maximum_identical_16gram_occurrences": 94
+        },
+        {
+          "sample_id": "test-104",
+          "maximum_identical_16gram_occurrences": 77
+        },
+        {
+          "sample_id": "test-667",
+          "maximum_identical_16gram_occurrences": 137
+        },
+        {
+          "sample_id": "test-183",
+          "maximum_identical_16gram_occurrences": 18
+        },
+        {
+          "sample_id": "test-1183",
+          "maximum_identical_16gram_occurrences": 300
+        },
+        {
+          "sample_id": "test-149",
+          "maximum_identical_16gram_occurrences": 39
+        },
+        {
+          "sample_id": "test-1152",
+          "maximum_identical_16gram_occurrences": 40
+        },
+        {
+          "sample_id": "test-126",
+          "maximum_identical_16gram_occurrences": 29
+        },
+        {
+          "sample_id": "test-1011",
+          "maximum_identical_16gram_occurrences": 371
+        },
+        {
+          "sample_id": "test-999",
+          "maximum_identical_16gram_occurrences": 90
+        },
+        {
+          "sample_id": "test-84",
+          "maximum_identical_16gram_occurrences": 71
+        },
+        {
+          "sample_id": "test-743",
+          "maximum_identical_16gram_occurrences": 82
+        },
+        {
+          "sample_id": "test-811",
+          "maximum_identical_16gram_occurrences": 38
+        },
+        {
+          "sample_id": "test-20",
+          "maximum_identical_16gram_occurrences": 96
+        },
+        {
+          "sample_id": "test-928",
+          "maximum_identical_16gram_occurrences": 193
+        },
+        {
+          "sample_id": "test-1179",
+          "maximum_identical_16gram_occurrences": 46
+        },
+        {
+          "sample_id": "test-547",
+          "maximum_identical_16gram_occurrences": 9
+        }
+      ]
+    }
+  }
+}

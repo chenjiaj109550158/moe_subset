@@ -1,0 +1,15 @@
+{
+  "run_id": "20260922T031933Z",
+  "original": "/home/dev/moe_subset",
+  "workspace": "/home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset",
+  "external_log": "/home/dev/moe_subset/.restart_runs/20260922T031933Z",
+  "started_at_utc": "2026-09-22T03:19:33.508092+00:00",
+  "original_status": "?? moe_subset_restart_20260922/\n",
+  "commit": "9f182729ee33a1737e1203e2693fb903d11e62cf",
+  "terminal_state": "COMPLETE",
+  "overall": "NO_GO_TESTED_REGIME",
+  "artifact_root": "/home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset/artifacts/restart_v1/20260922T031933Z",
+  "final_report": "/home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset/artifacts/restart_v1/20260922T031933Z/FINAL_REPORT.md",
+  "decision": "/home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset/artifacts/restart_v1/20260922T031933Z/DECISION.json",
+  "completed_at_utc": "2026-09-22T17:01:48.613964+00:00"
+}

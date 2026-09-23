@@ -1,0 +1,71 @@
+{
+  "utc": "2026-09-22T16:53:04.704382+00:00",
+  "phase": "P6_FINAL_AUDIT",
+  "exit_code": 1,
+  "error": "TypeError: Object of type bool is not JSON serializable (numpy.bool)",
+  "model_rows_affected": 0,
+  "measurement_source_changed": false,
+  "numpy_scalar_paths": [
+    {
+      "path": "/primary_metrics/accuracy_delta_ci/0",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/primary_metrics/accuracy_delta_ci/1",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/decision_inputs/accuracy_delta_ci/0",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/decision_inputs/accuracy_delta_ci/1",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/decision_inputs/dynamic_value_confirmed",
+      "type": "<class 'numpy.bool'>"
+    },
+    {
+      "path": "/decision_inputs/static_dominance_confirmed",
+      "type": "<class 'numpy.bool'>"
+    },
+    {
+      "path": "/decision_inputs/sufficient_negative_evidence",
+      "type": "<class 'numpy.bool'>"
+    },
+    {
+      "path": "/comparisons/H_vs_E/accuracy_delta_ci/0",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/H_vs_E/accuracy_delta_ci/1",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/S_vs_E/accuracy_delta_ci/0",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/S_vs_E/accuracy_delta_ci/1",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/H_vs_S/accuracy_delta_ci/0",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/H_vs_S/accuracy_delta_ci/1",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/S_vs_H/accuracy_delta_ci/0",
+      "type": "<class 'numpy.float64'>"
+    },
+    {
+      "path": "/comparisons/S_vs_H/accuracy_delta_ci/1",
+      "type": "<class 'numpy.float64'>"
+    }
+  ],
+  "reference": "attempts/p6_reporting_failure/aggregate_normalized_reference.json"
+}

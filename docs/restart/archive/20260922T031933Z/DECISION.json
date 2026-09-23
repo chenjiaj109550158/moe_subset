@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "run_id": "20260922T031933Z",
+  "run_state": "COMPLETE",
+  "overall": "NO_GO_TESTED_REGIME",
+  "completed_at_utc": "2026-09-22T17:01:54.268202+00:00",
+  "scope": {
+    "repository_commit": "9f182729ee33a1737e1203e2693fb903d11e62cf",
+    "source_diff_sha256": "18bd09387f0c8fe607ddf5c235c979565fdcb102aba0ba69a6cbc47d08abaf97",
+    "protocol_sha256": "1186d4ba2e76b8e8e8f8f4fb4eab36bf97a3aadff5bc8cd934bd8746dddf5817",
+    "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "model_revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "dtype": "bfloat16",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "backend": "vllm_fused_experts_0.11.0",
+    "host_mode": "full_pinned_cpu",
+    "slots_per_layer": 32,
+    "window_tokens": 8,
+    "pseudo_compute_tokens": 0,
+    "baseline_scope": "exact_demand_LRU_only",
+    "dataset_scope": "seeded GSM8K train development / test confirmation with known policy-development IDs excluded"
+  },
+  "gates": {
+    "V": {
+      "status": "PASS",
+      "reason": "Complete matched rows, frozen model/precision/memory/backend, validated correctness v2 and source/row provenance. P6 repaired JSON boolean serialization only; original and repaired aggregates are identical.",
+      "evidence_paths": [
+        "aggregate.json"
+      ]
+    },
+    "Q": {
+      "status": "FAIL",
+      "reason": "H/E speedup 0.899466, CI [0.885, 0.915]; paired accuracy delta -21.484 pp, CI [-29.403, -12.525] pp. Both Q and S fail with sufficient negative evidence at the tested point.",
+      "evidence_paths": [
+        "aggregate.json"
+      ]
+    },
+    "S": {
+      "status": "FAIL",
+      "reason": "Speedup upper CI 0.914587 is below 1.05; p95 token-ready latency ratio 1.929214.",
+      "evidence_paths": [
+        "aggregate.json"
+      ]
+    },
+    "D": {
+      "status": "PASS",
+      "reason": "H exceeds S quality by 21.094 pp, CI [7.713, 33.609] pp.",
+      "evidence_paths": [
+        "aggregate.json"
+      ]
+    },
+    "P": {
+      "status": "INCONCLUSIVE",
+      "reason": "P4 \u5728\u524d 8 \u984c development \u5f97 7/8\uff0c\u6700\u4f73 H/HC \u70ba 8/8\uff0c\u672a\u901a\u904e\u6649\u7d1a gate\u3002\u6c92\u6709\u6b63\u5f0f\u78ba\u8a8d\u7684 pseudo/history \u589e\u76ca\u6bd4\u8f03\uff0c\u4e0d\u80fd\u5ba3\u7a31\u7d71\u8a08\u652f\u914d\u6216\u6cdb\u5316\u5931\u6557\u3002",
+      "evidence_paths": [
+        "aggregate.json"
+      ]
+    }
+  },
+  "runtime": {
+    "status": "VALIDATED",
+    "reason": "\u65b0 restart runtime \u901a\u904e 35 \u9805\u6700\u7d42\u56de\u6b78\u8207\u771f checkpoint \u6578\u503c/\u751f\u547d\u9031\u671f\u6e2c\u8a66\uff1bVALIDATED \u9650\u5b9a\u65bc\u660e\u793a\u7684 correctness v2\uff0c\u539f full-prefix 1% \u9580\u6abb\u672a\u901a\u904e\u3002",
+    "evidence_paths": [
+      "aggregate.json"
+    ]
+  },
+  "window_subset": {
+    "status": "STOP_TESTED_REGIME",
+    "reason": "H/E speedup 0.899466, CI [0.885, 0.915]; paired accuracy delta -21.484 pp, CI [-29.403, -12.525] pp. Both Q and S fail with sufficient negative evidence at the tested point.",
+    "evidence_paths": [
+      "aggregate.json"
+    ]
+  },
+  "pseudo_predictor": {
+    "status": "INCONCLUSIVE",
+    "reason": "P4 \u5728\u524d 8 \u984c development \u5f97 7/8\uff0c\u6700\u4f73 H/HC \u70ba 8/8\uff0c\u672a\u901a\u904e\u6649\u7d1a gate\u3002\u6c92\u6709\u6b63\u5f0f\u78ba\u8a8d\u7684 pseudo/history \u589e\u76ca\u6bd4\u8f03\uff0c\u4e0d\u80fd\u5ba3\u7a31\u7d71\u8a08\u652f\u914d\u6216\u6cdb\u5316\u5931\u6557\u3002",
+    "evidence_paths": [
+      "aggregate.json"
+    ]
+  },
+  "primary_metrics": {
+    "candidate": "H",
+    "baseline": "E",
+    "planned_quality_n": 256,
+    "accuracy_delta_fraction": -0.21484375,
+    "accuracy_delta_ci": [
+      -0.29403112629866446,
+      -0.12524787496028597
+    ],
+    "paired_gains": 1,
+    "paired_losses": 56,
+    "paired_ties": 199,
+    "decode_speedup": 0.8994662177858891,
+    "decode_speedup_ci": [
+      0.8845513832679271,
+      0.9145872742470152
+    ],
+    "decode_expert_bytes_reduction_fraction": 0.38604439639268584,
+    "p95_latency_ratio": 1.9292135244723876,
+    "completed_paired_quality_n": 256,
+    "actual_model_runs_completed": true
+  },
+  "evidence": [
+    {
+      "path": "hardware.json",
+      "sha256": "d1b689b0fc051a544813b1e7d70294996f8414e42bb5587a156ee51dd599bd69",
+      "kind": "MEASURED"
+    },
+    {
+      "path": "environment.lock.txt",
+      "sha256": "7e03778a8d7bb4eed6037bdfc429f83765c13c1523e3a74a93773ec8b26628f3",
+      "kind": "CONFIG"
+    },
+    {
+      "path": "resource_resolution.json",
+      "sha256": "e0c2921ade1ff1475f997d4b762400f3989c7c4383db231c23bab1648f68c08d",
+      "kind": "CONFIG"
+    },
+    {
+      "path": "model_manifest.json",
+      "sha256": "76c77139032e608f0d66f11ff7a4bd7f240dcc0d88ee4c49ba662441ed467399",
+      "kind": "CONFIG"
+    },
+    {
+      "path": "samples_manifest.json",
+      "sha256": "c39f4fe8a5b248a878e60ee3b25ebf3e00104662d8549a09d2d9b63576d373ea",
+      "kind": "CONFIG"
+    },
+    {
+      "path": "source_changes.patch",
+      "sha256": "18bd09387f0c8fe607ddf5c235c979565fdcb102aba0ba69a6cbc47d08abaf97",
+      "kind": "SOURCE_AUDIT"
+    },
+    {
+      "path": "backend_correctness.json",
+      "sha256": "a435fc21ad1d07ef0ec3ca2b563293d7652a767da729d4179a9551641eaa6455",
+      "kind": "TEST"
+    },
+    {
+      "path": "correctness_protocol.json",
+      "sha256": "9db33c9d7c1ca104d72452f09c5933d97602f36447c53413e9a50c9f26ab2c2d",
+      "kind": "CONFIG"
+    },
+    {
+      "path": "numerical_diagnosis2.json",
+      "sha256": "a08ed3605257433925e31331782c8f2cb5677044616274550fec51b0cf0346d9",
+      "kind": "TEST"
+    },
+    {
+      "path": "numerical_diagnosis3.json",
+      "sha256": "28ce5c28252ff3803ca9fe75bd0bf2b421d379b4c86776a0d97d4cdd401050bd",
+      "kind": "TEST"
+    },
+    {
+      "path": "real_model_correctness.json",
+      "sha256": "97495c26d7919dcb3fe08960d8362f14b7f84bcb5ccbbaeaea92c69dda10251d",
+      "kind": "TEST"
+    },
+    {
+      "path": "moe_microbench.csv",
+      "sha256": "71bc9a1d7fccf8f602176df6ac5093b6f0bf09c855cf1475efa4eb998122700a",
+      "kind": "MEASURED"
+    },
+    {
+      "path": "aggregate.json",
+      "sha256": "9f895676f0fe92913ba91758fefbd34a4633c268a528f3c82ebf6095250ee36e",
+      "kind": "DERIVED_STATISTIC"
+    },
+    {
+      "path": "comparison.csv",
+      "sha256": "49ec49ae93c6c38b7c00704a4b04ecdf8db0c72be3fa8885b61e7990dbf84ff4",
+      "kind": "DERIVED_STATISTIC"
+    },
+    {
+      "path": "policy_summary.csv",
+      "sha256": "d8934f61d2539616a4d3b007094fd5ebff820f7818b8a7ba5b743f65f957c7bb",
+      "kind": "DERIVED_STATISTIC"
+    },
+    {
+      "path": "AUDIT_FINDINGS.md",
+      "sha256": "3ee4f652c570cd905e11f31808be8e629e862ab90ff63309fd4fe0f756a864a3",
+      "kind": "SOURCE_AUDIT"
+    },
+    {
+      "path": "correctness_report.md",
+      "sha256": "591dc7e317a940b97f5da0693eaf80ca18ba7c0f107dd7a0a25933c0105999dc",
+      "kind": "TEST"
+    },
+    {
+      "path": "test_inventory.json",
+      "sha256": "7435058050d4ecac57e83bf53d7111374ff0dfd7b7ad9d0cd293a2909cfcf473",
+      "kind": "TEST"
+    },
+    {
+      "path": "development_selection.json",
+      "sha256": "91aab48e4a1a4f38c91a5cc1cf55e087d6dfea6dc238810f200f81e94124c479",
+      "kind": "CONFIG"
+    },
+    {
+      "path": "g4_g8_semantics.json",
+      "sha256": "623a7144f087de18850457683021efb23783999326b0609eef3140bf9954efb0",
+      "kind": "TEST"
+    },
+    {
+      "path": "loader_manifest.json",
+      "sha256": "1f384843a128347b0632ae45a48df1d0707e1c10224f6553931dd4941aa41bb3",
+      "kind": "TEST"
+    },
+    {
+      "path": "last_failure.json",
+      "sha256": "352820650680754bbcad6ba252e2cd903771df692a82de2bc517bea0f5483993",
+      "kind": "BLOCKER_LOG"
+    },
+    {
+      "path": "tests/runtime_gpu_attempt1.xml",
+      "sha256": "438be1d703eea47a26ff715d9b5302d9c94745691d35a3222b10cc307ae967a9",
+      "kind": "TEST"
+    },
+    {
+      "path": "tests/baseline_cpu_env2.log",
+      "sha256": "1b15deff7bbde2f834b39dc4fd64d7c68bc8f1f471f991bfb09708867f96b516",
+      "kind": "TEST"
+    },
+    {
+      "path": "tests/policies_decision.xml",
+      "sha256": "e2ec9642ff644c7f9035b95a8730e501b6008432f982df1d218a4180474adf86",
+      "kind": "TEST"
+    },
+    {
+      "path": "reporting_repair.json",
+      "sha256": "35f1cd8bd4e5ace1de612cb44286c11621b3f8d5cfe2f57e2bb07b8f552ffa25",
+      "kind": "SOURCE_AUDIT"
+    },
+    {
+      "path": "P6_REPORTING_FAILURE.json",
+      "sha256": "dbf8ea2f4531606123ed768d7360525ec929f230e3dbc65094873ebf4d56c39d",
+      "kind": "BLOCKER_LOG"
+    },
+    {
+      "path": "execution_source_changes.patch",
+      "sha256": "7ce2712c83e464fb1fc22c7198df04d1bd332b2a93d47029247904eca486f0fa",
+      "kind": "SOURCE_AUDIT"
+    },
+    {
+      "path": "MODIFICATIONS.md",
+      "sha256": "b0febd6f540ac0b3ec7459bb9512be36fea752147a14e92e74fc3c34c9e133aa",
+      "kind": "SOURCE_AUDIT"
+    },
+    {
+      "path": "tests/final_regressions_reporting_repair.xml",
+      "sha256": "bf9c49e130d7c1e8ab65205514548f0f412b0c3b38346758308fa0875af3d4cd",
+      "kind": "TEST"
+    },
+    {
+      "path": "tests/source_patch_apply_check.json",
+      "sha256": "41bb4a50b919a4ed8d684cd9cf452ad8ede3b120b24f5e5a05f7bee45875b685",
+      "kind": "TEST"
+    },
+    {
+      "path": "tests/cpu_after_fixes.log",
+      "sha256": "bf79148d0aca5915c6e8b5a3800eef6cf6d7517b9f4691693d82b26fb2726bd3",
+      "kind": "TEST"
+    },
+    {
+      "path": "CONFIRMATION_DETAILS.json",
+      "sha256": "d6724557d43cb857efe08bfadb081c3b0a947e441e8b153d9fd29593c3819cad",
+      "kind": "DERIVED_STATISTIC"
+    },
+    {
+      "path": "BUDGET_LEDGER.json",
+      "sha256": "b6151737b66a9202fbea3c8a5540db5df18fa1a7821b6bd9cfda695e2273ca90",
+      "kind": "DERIVED_STATISTIC"
+    },
+    {
+      "path": "profiles/confirmation_boundary_analysis.json",
+      "sha256": "20baa167fb440d549f56a396a640ba655d304c994039c28464804ff5955ba0ff",
+      "kind": "DERIVED_STATISTIC"
+    },
+    {
+      "path": "profiles/PROFILE_REVIEW.md",
+      "sha256": "0b9033dd3f4ac1f4dabc2fb36b62e16c16a0b04e507e245b3e379b890048b26d",
+      "kind": "PROFILE"
+    },
+    {
+      "path": "attempts/p6_reporting_failure/aggregate_normalized_reference.json",
+      "sha256": "9f895676f0fe92913ba91758fefbd34a4633c268a528f3c82ebf6095250ee36e",
+      "kind": "DERIVED_STATISTIC"
+    }
+  ],
+  "limitations": [
+    "Conclusions apply only to Qwen3-30B-A3B-Instruct-2507 BF16, this RTX PRO 6000, m=32,d=8.",
+    "Exact baseline scope is demand LRU; EP was not implemented.",
+    "Historical v17 external token-row files absent from this checkout; legacy protocol tests report this without rewriting history.",
+    "Resident synthetic timing is not end-to-end or model-quality evidence.",
+    "Correctness v2 revises full-prefix cross-implementation NRMSE from 0.01 to 0.03 after unchanged native controls also failed v1; single-layer 0.01 and cosine 0.999 remain, and sync/event parity must be bitwise.",
+    "No full literature novelty claim; historical eight-row oracle is nondeployable background only.",
+    "P6 \u539f\u59cb\u5831\u544a\u56e0 NumPy bool JSON serialization \u5931\u6557\uff1breport.py/verify.py \u6709\u660e\u793a\u7684 reporting-only \u4fee\u88dc\uff0c153 \u500b\u5176\u4ed6 frozen source \u6a94\u672a\u8b8a\uff0c\u539f\u59cb source/\u7d71\u8a08\u8207\u5931\u6557\u65e5\u5fd7\u5747\u4fdd\u7559\uff0c1,261 \u5217\u7d71\u8a08\u9010\u9805\u76f8\u7b49\u3002",
+    "G4/G8 \u4fdd\u7559 anchor IDs\u3001prefix\u3001positions\u3001RNG\uff0c\u4f46 BF16 shape \u5dee\u7570\u4f7f routes/subsets \u4e0d\u5b8c\u5168\u76f8\u540c\u3002",
+    "Free-generation cap \u70ba 1024\uff1bH/S \u622a\u65b7\u8207\u91cd\u8907\u8f38\u51fa\u589e\u591a\u3002\u4e8b\u5f8c\u91cd\u8907 proxy \u4e0d\u662f\u65b0\u589e\u6b63\u5f0f gate\u3002",
+    "\u539f boundary flag \u8868\u793a window \u6700\u5f8c\u4e00\u500b forward\uff1b\u63db\u7a97\u7b49\u5f85\u843d\u5728\u4e0b\u4e00\u500b forward\u3002Primary pooled p95 \u5b8c\u6574\u5305\u542b\u7b49\u5f85\uff0c\u91cd\u65b0\u5206\u7d44\u8a3a\u65b7\u898b profiles/confirmation_boundary_analysis.json\u3002"
+  ],
+  "next_action": "\u505c\u6b62\u672c\u8f2a m=32,d=8\u3001BF16 \u7684\u5df2\u6e2c window selector \u914d\u7f6e\uff0c\u4fdd\u7559\u901a\u904e\u9a57\u8b49\u7684\u5171\u7528 runtime\uff1b\u4e0d\u64f4\u5927\u76ee\u524d pseudo \u5206\u652f\u3002\u6b64\u7d50\u8ad6\u4e0d\u5916\u63a8\u6240\u6709\u6a21\u578b\u3001m/d \u6216\u56e0\u679c\u9810\u53d6\u65b9\u6cd5\u3002",
+  "resume_command": "cd /home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset && USE_HUB_KERNELS=0 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 /home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset/.venv/bin/python -m pseudoroute.restart.run_all --config configs/restart/restart_v1.yaml --run-dir /home/dev/moe_subset/.restart_work/20260922T031933Z/moe_subset/artifacts/restart_v1/20260922T031933Z --resume"
+}

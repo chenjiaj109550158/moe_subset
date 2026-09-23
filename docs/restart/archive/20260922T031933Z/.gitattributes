@@ -1,0 +1,3 @@
+# Preserve checksum-frozen evidence bytes, including the original CSV CRLF.
+* -text
+*.csv whitespace=cr-at-eol

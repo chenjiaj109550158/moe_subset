@@ -1,0 +1,103 @@
+{
+  "derived_at_utc": "2026-09-22T14:41:35.818475+00:00",
+  "scope": "POSTHOC_DESCRIPTIVE_TIMING_ONLY; immutable confirmation performance rows; no gate or source change",
+  "definition": "Updates run after production forward 8,16,... is sampled. Their wait appears in forward 9,17,... readiness. Existing row boundary flag denotes the prior final forward, not the wait-bearing next first forward. Primary pooled p95 already includes all forwards and is unchanged.",
+  "policies": {
+    "E": {
+      "first_forward_including_bootstrap": {
+        "n": 40,
+        "mean_ms": 103.1509330488916,
+        "p50_ms": 103.30512399377767,
+        "p95_ms": 109.3766871956177,
+        "total_seconds": 4.126037321955664
+      },
+      "first_forward_after_window_update": {
+        "n": 600,
+        "mean_ms": 87.75693064688917,
+        "p50_ms": 85.64417400339153,
+        "p95_ms": 102.55004234495573,
+        "total_seconds": 52.65415838813351
+      },
+      "last_forward_before_window_update": {
+        "n": 640,
+        "mean_ms": 87.18045194530077,
+        "p50_ms": 85.08062150212936,
+        "p95_ms": 100.45942274809931,
+        "total_seconds": 55.795489244992496
+      },
+      "other_forwards": {
+        "n": 3840,
+        "mean_ms": 86.56672720178828,
+        "p50_ms": 84.24677750008414,
+        "p95_ms": 99.59788719861535,
+        "total_seconds": 332.416232454867
+      },
+      "requests": 40,
+      "decode_wall_seconds": 444.99578656202357
+    },
+    "H": {
+      "first_forward_including_bootstrap": {
+        "n": 40,
+        "mean_ms": 395.5773187997693,
+        "p50_ms": 391.32179849548265,
+        "p95_ms": 419.07402336291847,
+        "total_seconds": 15.823092751990771
+      },
+      "first_forward_after_window_update": {
+        "n": 600,
+        "mean_ms": 182.61109713144833,
+        "p50_ms": 183.1368709972594,
+        "p95_ms": 230.36627369583582,
+        "total_seconds": 109.566658278869
+      },
+      "last_forward_before_window_update": {
+        "n": 640,
+        "mean_ms": 82.45405562956876,
+        "p50_ms": 79.9775494961068,
+        "p95_ms": 95.41489504699712,
+        "total_seconds": 52.770595602924004
+      },
+      "other_forwards": {
+        "n": 3840,
+        "mean_ms": 82.4116924422583,
+        "p50_ms": 79.89453749905806,
+        "p95_ms": 95.37643244766514,
+        "total_seconds": 316.46089897827187
+      },
+      "requests": 40,
+      "decode_wall_seconds": 494.62520043205586
+    },
+    "S": {
+      "first_forward_including_bootstrap": {
+        "n": 40,
+        "mean_ms": 393.076314823702,
+        "p50_ms": 393.4815280008479,
+        "p95_ms": 411.0792013409082,
+        "total_seconds": 15.723052592948079
+      },
+      "first_forward_after_window_update": {
+        "n": 600,
+        "mean_ms": 79.46696334993855,
+        "p50_ms": 76.90485849889228,
+        "p95_ms": 91.85898004725459,
+        "total_seconds": 47.68017800996313
+      },
+      "last_forward_before_window_update": {
+        "n": 640,
+        "mean_ms": 79.17319032935666,
+        "p50_ms": 76.63327801128617,
+        "p95_ms": 91.5209639526438,
+        "total_seconds": 50.67084181078826
+      },
+      "other_forwards": {
+        "n": 3840,
+        "mean_ms": 79.12050307896834,
+        "p50_ms": 76.60188249428757,
+        "p95_ms": 91.41873334447155,
+        "total_seconds": 303.8227318232384
+      },
+      "requests": 40,
+      "decode_wall_seconds": 417.9007126109791
+    }
+  }
+}

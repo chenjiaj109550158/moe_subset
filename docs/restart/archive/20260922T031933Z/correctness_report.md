@@ -1,0 +1,751 @@
+# Correctness evidence
+
+Correctness protocol v2 retains single-layer NRMSE <= 0.01 and cosine >= 0.999. Full-prefix cross-implementation NRMSE is <= 0.03 after the original 0.01 also failed unchanged native controls. Same-backend synchronous/event-ordered execution requires bitwise equality. Original failures and calibration evidence are preserved; see docs/restart/numerical_protocol_v2.md.
+
+| Test evidence | tests | failures | errors | skipped |
+|---|---:|---:|---:|---:|
+| tests/baseline_cpu.xml | 5 | 0 | 5 | 0 |
+| tests/baseline_cpu_env2.xml | 294 | 8 | 0 | 10 |
+| tests/cli_resume.xml | 2 | 0 | 0 | 0 |
+| tests/cpu_after_fixes.xml | 294 | 6 | 0 | 10 |
+| tests/final_gate_cli.xml | 17 | 0 | 0 | 0 |
+| tests/final_regressions.xml | 33 | 0 | 0 | 0 |
+| tests/final_regressions_reporting_repair.xml | 35 | 0 | 0 | 0 |
+| tests/locking_cli.xml | 2 | 0 | 0 | 0 |
+| tests/locking_parent_cli.xml | 2 | 0 | 0 | 0 |
+| tests/policies_decision.xml | 14 | 0 | 0 | 0 |
+| tests/pre_freeze_final.xml | 32 | 0 | 0 | 0 |
+| tests/pre_freeze_regressions.xml | 32 | 0 | 0 | 0 |
+| tests/profile_counter_gpu.xml | 10 | 0 | 0 | 0 |
+| tests/repair1_regressions.xml | 33 | 0 | 0 | 0 |
+| tests/report_cli_gate.xml | 17 | 0 | 0 | 0 |
+| tests/reporting_repair_unit.xml | 2 | 0 | 0 | 0 |
+| tests/runtime_gpu_attempt1.xml | 36 | 0 | 0 | 1 |
+| tests/runtime_gpu_attempt2.xml | 16 | 0 | 0 | 0 |
+
+Checkpoint checks:
+
+```json
+{
+  "state": "PASS",
+  "checks": [
+    {
+      "finite": true,
+      "max_abs": 2.532079815864563e-05,
+      "rmse": 1.1776824169444387e-06,
+      "nrmse": 0.0028490245399955916,
+      "cosine": 0.999995964760196,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 8136,
+      "name": "real_layer_fixed_routes_fp32_reference"
+    },
+    {
+      "finite": true,
+      "max_abs": 0.625,
+      "rmse": 0.07911919092605449,
+      "nrmse": 0.017962689188722212,
+      "cosine": 0.9998388189038168,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 2215021,
+      "name": "full_prefix_0_fixed_routes_reference_vs_fused",
+      "acceptance_max_nrmse": 0.03
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0,
+      "rmse": 0.0,
+      "nrmse": 0.0,
+      "cosine": 1.0,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 0,
+      "name": "full_prefix_0_synchronous_vs_event_ordered",
+      "bitwise_required": true,
+      "bitwise_equal": true
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0014973878860473633,
+      "rmse": 8.849668517393852e-05,
+      "nrmse": 0.0023845718033172632,
+      "cosine": 0.999997228052765,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 475,
+      "name": "actual_input_layer_0_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.3982391357421875,
+      "rmse": 0.004597365403590508,
+      "nrmse": 0.0020203680254518176,
+      "cosine": 0.9999997109105582,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 2988,
+      "name": "actual_input_layer_1_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 3.52984619140625,
+      "rmse": 0.03907959637944671,
+      "nrmse": 0.004575624934340096,
+      "cosine": 0.9999999894756194,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 2988,
+      "name": "actual_input_layer_2_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 3.532470703125,
+      "rmse": 0.039066175123183756,
+      "nrmse": 0.00792520443098962,
+      "cosine": 0.9999999667367402,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 2988,
+      "name": "actual_input_layer_3_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0024933815002441406,
+      "rmse": 0.00013090852400056877,
+      "nrmse": 0.002434769507024022,
+      "cosine": 0.9999970602063802,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_4_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0019510388374328613,
+      "rmse": 0.00017937184454215412,
+      "nrmse": 0.004454215681657049,
+      "cosine": 0.9999914256017628,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_5_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0011382102966308594,
+      "rmse": 0.0001836190176498835,
+      "nrmse": 0.00390219414819625,
+      "cosine": 0.9999924437030223,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_6_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.008238077163696289,
+      "rmse": 0.00025094546196025757,
+      "nrmse": 0.0037916118289529717,
+      "cosine": 0.9999957262666948,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_7_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0011453628540039062,
+      "rmse": 0.00016393379062808885,
+      "nrmse": 0.0035036956607437998,
+      "cosine": 0.9999941910101282,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_8_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0012013018131256104,
+      "rmse": 0.00014960645317969938,
+      "nrmse": 0.003512324463323994,
+      "cosine": 0.9999938774236653,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 6,
+      "name": "actual_input_layer_9_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.000785529613494873,
+      "rmse": 0.00011998766208824861,
+      "nrmse": 0.003824215858381091,
+      "cosine": 0.9999927023739177,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1955,
+      "name": "actual_input_layer_10_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0009792894124984741,
+      "rmse": 0.0001587127179504682,
+      "nrmse": 0.004203442907725406,
+      "cosine": 0.9999911883421074,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1215,
+      "name": "actual_input_layer_11_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0036501362919807434,
+      "rmse": 0.00027745697513097817,
+      "nrmse": 0.004488570529456424,
+      "cosine": 0.9999924485186302,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_12_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.007187843322753906,
+      "rmse": 0.00023340162551516527,
+      "nrmse": 0.003136071622224857,
+      "cosine": 0.9999955171325388,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_13_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.001176685094833374,
+      "rmse": 0.00011339771486186816,
+      "nrmse": 0.0037664027250805168,
+      "cosine": 0.9999929455432763,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_14_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0011340081691741943,
+      "rmse": 0.00014683099092303544,
+      "nrmse": 0.003842455659077085,
+      "cosine": 0.9999926919174053,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_15_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.08057022094726562,
+      "rmse": 0.0014312729681282893,
+      "nrmse": 0.0032200536939709103,
+      "cosine": 0.9999987882171906,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_16_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0014843642711639404,
+      "rmse": 0.00018166404673695198,
+      "nrmse": 0.00393679821075196,
+      "cosine": 0.9999929361673022,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 6960,
+      "name": "actual_input_layer_17_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0023928284645080566,
+      "rmse": 0.00015632178348220832,
+      "nrmse": 0.003472094458391327,
+      "cosine": 0.999994053937204,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_18_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.00311887264251709,
+      "rmse": 0.00022973328190744366,
+      "nrmse": 0.003475455056588223,
+      "cosine": 0.9999952406837375,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_19_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.002225518226623535,
+      "rmse": 0.00019605674300241912,
+      "nrmse": 0.0036957881287213792,
+      "cosine": 0.9999931735354067,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_20_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0015192925930023193,
+      "rmse": 0.0001862770960943591,
+      "nrmse": 0.0032125595161643394,
+      "cosine": 0.9999948418730537,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 8136,
+      "name": "actual_input_layer_21_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.004643261432647705,
+      "rmse": 0.00018372497039264657,
+      "nrmse": 0.003312631121548829,
+      "cosine": 0.9999949915569132,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_22_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0008899122476577759,
+      "rmse": 0.00015671761570313007,
+      "nrmse": 0.00381794124658568,
+      "cosine": 0.9999927184301896,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1734,
+      "name": "actual_input_layer_23_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0142822265625,
+      "rmse": 0.0008933571130654035,
+      "nrmse": 0.001836086896252379,
+      "cosine": 0.999998383423025,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_24_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.01955270767211914,
+      "rmse": 0.0003941388978113568,
+      "nrmse": 0.0030902062818962024,
+      "cosine": 0.9999954529642834,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_25_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.08876800537109375,
+      "rmse": 0.00107959188235042,
+      "nrmse": 0.003938380702025508,
+      "cosine": 0.9999979207657717,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_26_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0010911226272583008,
+      "rmse": 0.00017024715048498252,
+      "nrmse": 0.0035888385148253555,
+      "cosine": 0.9999935867946668,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 6088,
+      "name": "actual_input_layer_27_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.003073275089263916,
+      "rmse": 0.00020761239064348138,
+      "nrmse": 0.003675929883281147,
+      "cosine": 0.9999934397102486,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 378,
+      "name": "actual_input_layer_28_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.003347545862197876,
+      "rmse": 0.0004052505058516481,
+      "nrmse": 0.005292579430582097,
+      "cosine": 0.9999889305296942,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 7012,
+      "name": "actual_input_layer_29_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.001324683427810669,
+      "rmse": 0.000227912308682409,
+      "nrmse": 0.0036800239373203287,
+      "cosine": 0.9999932310308485,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 8057,
+      "name": "actual_input_layer_30_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.15620803833007812,
+      "rmse": 0.002734765887265703,
+      "nrmse": 0.005408747218308115,
+      "cosine": 0.9999983536822219,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_31_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.00434112548828125,
+      "rmse": 0.00035257892090378095,
+      "nrmse": 0.0035141577501785343,
+      "cosine": 0.9999948761867177,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 8136,
+      "name": "actual_input_layer_32_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0012408941984176636,
+      "rmse": 0.00022403298745487835,
+      "nrmse": 0.004027443299513101,
+      "cosine": 0.9999919593947415,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 6270,
+      "name": "actual_input_layer_33_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0015490949153900146,
+      "rmse": 0.0002223781437550616,
+      "nrmse": 0.0038387688614559047,
+      "cosine": 0.9999926499719569,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 6088,
+      "name": "actual_input_layer_34_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0017077326774597168,
+      "rmse": 0.0002604327256661924,
+      "nrmse": 0.0038655348511457683,
+      "cosine": 0.9999925435388146,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 8136,
+      "name": "actual_input_layer_35_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.017397403717041016,
+      "rmse": 0.0005121385960553727,
+      "nrmse": 0.003418710852226013,
+      "cosine": 0.9999957649270372,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_36_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.05581474304199219,
+      "rmse": 0.001386874849701598,
+      "nrmse": 0.0034144852499657153,
+      "cosine": 0.9999970445481028,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 940,
+      "name": "actual_input_layer_37_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0031276047229766846,
+      "rmse": 0.0004660013362462738,
+      "nrmse": 0.0039742286161679,
+      "cosine": 0.9999926394170173,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1287,
+      "name": "actual_input_layer_38_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.003878474235534668,
+      "rmse": 0.0005298398768135126,
+      "nrmse": 0.0037640196458028153,
+      "cosine": 0.9999929779049896,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 5450,
+      "name": "actual_input_layer_39_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.027892351150512695,
+      "rmse": 0.0010767762318248306,
+      "nrmse": 0.00440253841793438,
+      "cosine": 0.9999909694734594,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_40_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.021099090576171875,
+      "rmse": 0.001198426644213509,
+      "nrmse": 0.002987248428288135,
+      "cosine": 0.999996159542846,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_41_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.005297482013702393,
+      "rmse": 0.0009185277764868429,
+      "nrmse": 0.0033800214577562075,
+      "cosine": 0.9999943164470846,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 4307,
+      "name": "actual_input_layer_42_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.012442827224731445,
+      "rmse": 0.0015800322921156163,
+      "nrmse": 0.003410658544422912,
+      "cosine": 0.9999941968695746,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 6790,
+      "name": "actual_input_layer_43_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0082244873046875,
+      "rmse": 0.0009836273985795927,
+      "nrmse": 0.0037911301128751695,
+      "cosine": 0.9999928218897625,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 8136,
+      "name": "actual_input_layer_44_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.007283449172973633,
+      "rmse": 0.0010849756668851517,
+      "nrmse": 0.003962506598267765,
+      "cosine": 0.9999921551457658,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 5750,
+      "name": "actual_input_layer_45_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.6553955078125,
+      "rmse": 0.016104538535331163,
+      "nrmse": 0.0024679565049293517,
+      "cosine": 0.9999970482691758,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 2988,
+      "name": "actual_input_layer_46_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.372833251953125,
+      "rmse": 0.015111181523202127,
+      "nrmse": 0.0023803261931602928,
+      "cosine": 0.9999971713681004,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1992,
+      "name": "actual_input_layer_47_fp32_reference",
+      "acceptance_max_nrmse": 0.01
+    },
+    {
+      "finite": true,
+      "max_abs": 0.625,
+      "rmse": 0.08338675165127957,
+      "nrmse": 0.019470210152941123,
+      "cosine": 0.9998146687773557,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 2289782,
+      "name": "full_prefix_1_fixed_routes_reference_vs_fused",
+      "acceptance_max_nrmse": 0.03
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0,
+      "rmse": 0.0,
+      "nrmse": 0.0,
+      "cosine": 1.0,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 0,
+      "name": "full_prefix_1_synchronous_vs_event_ordered",
+      "bitwise_required": true,
+      "bitwise_equal": true
+    },
+    {
+      "finite": true,
+      "max_abs": 0.625,
+      "rmse": 0.06656744834169119,
+      "nrmse": 0.014101111466033003,
+      "cosine": 0.9999005805126218,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 1221644,
+      "name": "full_prefix_2_fixed_routes_reference_vs_fused",
+      "acceptance_max_nrmse": 0.03
+    },
+    {
+      "finite": true,
+      "max_abs": 0.0,
+      "rmse": 0.0,
+      "nrmse": 0.0,
+      "cosine": 0.9999999999999999,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 0,
+      "name": "full_prefix_2_synchronous_vs_event_ordered",
+      "bitwise_required": true,
+      "bitwise_equal": true
+    }
+  ],
+  "model_id": ".cache/restart/hub/models--Qwen--Qwen3-30B-A3B-Instruct-2507/snapshots/0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "full_resident_reference": false,
+  "correctness_protocol_revision": 2,
+  "cross_implementation_threshold_is_revised": true,
+  "calibration_evidence": "docs/restart/numerical_protocol_v2.md",
+  "reference_scope": "CPU-first synchronous reference compute plus real-layer FP32 and tiny native checks"
+}
+```
+
+G4/G8 fixed-prefix bootstrap and joint semantics:
+
+```json
+{
+  "bootstrap": {
+    "same_first_four_token_ids": true,
+    "same_prefix_and_positions": true,
+    "production_prefix_unmodified": true,
+    "rng_unchanged": true,
+    "logits_metrics": {
+      "finite": true,
+      "max_abs": 1.2265625,
+      "rmse": 0.18438233392830478,
+      "nrmse": 0.02787335153015489,
+      "cosine": 0.9996308037218307,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 556602
+    },
+    "first_four_route_id_agreement": 0.8990885416666666,
+    "subset_layers_exact": 42,
+    "layers": 48,
+    "bitwise_identity_assumed": false
+  },
+  "joint": {
+    "same_first_four_token_ids": true,
+    "same_prefix_and_positions": true,
+    "production_prefix_unmodified": true,
+    "rng_unchanged": true,
+    "logits_metrics": {
+      "finite": true,
+      "max_abs": 0.9375,
+      "rmse": 0.14204773195952275,
+      "nrmse": 0.023747358426531678,
+      "cosine": 0.9997275140628434,
+      "zero_reference": false,
+      "zero_exact": null,
+      "worst_flat_index": 466555
+    },
+    "first_four_route_id_agreement": 0.8248697916666666,
+    "subset_layers_exact": 27,
+    "layers": 48,
+    "bitwise_identity_assumed": false
+  }
+}
+```
+
+Initial environment collection/import errors are preserved. Six remaining legacy failures are missing historical v17 token-row files, not passing tests. Tiny/native tests and resident synthetic checks do not substitute for full-checkpoint checks. Full-resident native checkpoint execution was not used; the reference is CPU-first synchronous Python expert compute at fixed routes, plus native tiny and real single-layer FP32 checks. G4/G8 shape-dependent BF16 differences are measured, not assumed bitwise equal.

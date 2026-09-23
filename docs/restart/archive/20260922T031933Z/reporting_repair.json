@@ -1,0 +1,29 @@
+{
+  "repair_cycle": 1,
+  "phase": "P6_FINAL_AUDIT",
+  "kind": "REPORTING_ONLY_JSON_BOOLEAN_REPAIR",
+  "recorded_at_utc": "2026-09-22T16:59:09.443334+00:00",
+  "source_changes": {
+    "src/pseudoroute/restart/report.py": {
+      "execution_sha256": "6379df36fdd66b7146471d39c2361cf9331933711e25df3305987e92e0a823e9",
+      "current_sha256": "7b08fb46bd405065a80cd7c97dfcc17492e791d7c05a15c46544f18612102f68",
+      "archived_execution_source": "attempts/p6_reporting_failure/src/pseudoroute/restart/report.py"
+    },
+    "src/pseudoroute/restart/verify.py": {
+      "execution_sha256": "4d9846cd5dda3a4ed9f6a3016e11dbfaa265972d9cc55870e86d1f005efae480",
+      "current_sha256": "f1ac90fbdb3cc685f038fe605aced3b317641b1259764058fc2c1419da815aa8",
+      "archived_execution_source": "attempts/p6_reporting_failure/src/pseudoroute/restart/verify.py"
+    }
+  },
+  "additional_analysis_source_hashes": {
+    "tests/restart/test_reporting.py": "eda70abe96671e91a98b5ae6e11b9351830c01b8700a0b56f494b50e1c58ea56"
+  },
+  "normalized_original_aggregate": "attempts/p6_reporting_failure/aggregate_normalized_reference.json",
+  "normalized_original_aggregate_sha256": "9f895676f0fe92913ba91758fefbd34a4633c268a528f3c82ebf6095250ee36e",
+  "aggregate_values_identical": true,
+  "rows_invalidated": 0,
+  "rows_reused": 1261,
+  "measurement_source_files_unchanged": 153,
+  "execution_source_patch": "execution_source_changes.patch",
+  "reason": "NumPy boolean gate evidence is cast to Python bool only at the reporting boundary. Inference, selectors, backend, decision thresholds and statistical formulas are unchanged."
+}

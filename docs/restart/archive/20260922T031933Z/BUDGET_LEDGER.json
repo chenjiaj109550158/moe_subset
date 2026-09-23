@@ -1,0 +1,14 @@
+{
+  "original_started_at_utc": "2026-09-22T03:19:33.508092+00:00",
+  "pipeline_completed_at_utc": "2026-09-22T17:01:48.613964+00:00",
+  "artifact_review_at_utc": "2026-09-22T17:12:28.836649+00:00",
+  "calendar_wall_seconds": 49975.328557,
+  "main_gpu_worker_elapsed_seconds": 41805.0992975235,
+  "preflight_gpu_budget_upper_bound_seconds": 6696.750370865158,
+  "reporting_repair_gpu_budget_upper_bound_seconds": 172.61396408081055,
+  "gpu_budget_charge_seconds": 48674.463632469466,
+  "gpu_limit_hours": 48,
+  "wall_limit_hours": 72,
+  "final_reserve_fraction": 0.1,
+  "note": "Only main worker elapsed is centrally measured. Preflight and reporting-repair CUDA checks are separately charged conservative observed-wall upper bounds, not claimed GPU busy time. Calendar wall includes the calibration/restart gap."
+}

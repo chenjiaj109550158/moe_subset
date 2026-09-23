@@ -1,0 +1,30 @@
+{
+  "protocol": "restart_v1_correctness_revision2",
+  "frozen_before_candidate_outputs": true,
+  "fp32": {
+    "atol": 1e-05,
+    "rtol": 0.0001,
+    "tf32": false
+  },
+  "bf16": {
+    "finite": true,
+    "max_nrmse": 0.01,
+    "min_cosine": 0.999
+  },
+  "router": "native float32 softmax then topk normalize then cast BF16",
+  "accumulation": "BF16 expert projection/output; FP32 weighted combine and streaming group accumulation",
+  "attention": "sdpa",
+  "zero_reference_requires_exact_zero": true,
+  "revision": 2,
+  "full_prefix_cross_implementation": {
+    "max_nrmse": 0.03,
+    "min_cosine": 0.999,
+    "finite": true
+  },
+  "same_backend_sync_async_requires_bitwise": true,
+  "calibration_source": "docs/restart/numerical_protocol_v2.md",
+  "previous_protocol_preserved": "attempts/attempt1/correctness_protocol.json",
+  "frozen_at_utc": "2026-09-22T05:12:16.204885+00:00",
+  "quality_or_official_performance_rows_observed": 0,
+  "validation_prefixes": "first three seeded development IDs; first used for arithmetic calibration, next two additional checks"
+}
